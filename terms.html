@@ -1,0 +1,531 @@
+<!--
+  ╔══════════════════════════════════════════════════════════════╗
+  ║                                                              ║
+  ║   Built with Perplexity Computer                             ║
+  ║   https://www.perplexity.ai/computer                         ║
+  ║                                                              ║
+  ╚══════════════════════════════════════════════════════════════╝
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="generator" content="Perplexity Computer">
+  <link rel="author" href="https://www.perplexity.ai/computer">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terms of Service — Sector Defense</title>
+  <meta name="description" content="Terms of Service for Sector Defense, a tower defense game by Helix Games Studio.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg:        #0a0e1a;
+      --bg-card:   #0f1628;
+      --bg-rule:   #1a2240;
+      --text:      #c8d6f0;
+      --text-muted:#6b82a8;
+      --teal:      #00ccaa;
+      --teal-dim:  #009e85;
+      --teal-glow: rgba(0, 204, 170, 0.12);
+      --border:    rgba(0, 204, 170, 0.18);
+      --font-head: 'JetBrains Mono', 'Courier New', monospace;
+      --font-body: 'Inter', system-ui, sans-serif;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 16px;
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+
+    /* ─── Top bar ─── */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10, 14, 26, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-family: var(--font-head);
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--teal);
+      text-decoration: none;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 0.35rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .back-link:hover {
+      background: var(--teal-glow);
+      border-color: var(--teal);
+    }
+
+    .back-link svg {
+      flex-shrink: 0;
+    }
+
+    .topbar-title {
+      font-family: var(--font-head);
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-left: auto;
+    }
+
+    /* ─── Layout ─── */
+    .page-wrap {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 5rem;
+    }
+
+    /* ─── Header ─── */
+    .doc-header {
+      margin-bottom: 3rem;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .doc-eyebrow {
+      font-family: var(--font-head);
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--teal);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+
+    .doc-title {
+      font-family: var(--font-head);
+      font-size: clamp(1.6rem, 4vw, 2.4rem);
+      font-weight: 700;
+      color: #e8f0ff;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      margin-bottom: 1rem;
+    }
+
+    .doc-meta {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .doc-meta strong {
+      color: var(--text);
+    }
+
+    /* ─── Summary card ─── */
+    .summary-card {
+      background: var(--teal-glow);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--teal);
+      border-radius: 6px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 3rem;
+      font-size: 0.93rem;
+    }
+
+    .summary-card p {
+      margin: 0;
+    }
+
+    /* ─── Sections ─── */
+    .section {
+      margin-bottom: 2.5rem;
+    }
+
+    .section-number {
+      font-family: var(--font-head);
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: var(--teal);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 0.35rem;
+    }
+
+    h2 {
+      font-family: var(--font-head);
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #e8f0ff;
+      letter-spacing: 0.01em;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--bg-rule);
+    }
+
+    p {
+      margin-bottom: 0.85rem;
+      color: var(--text);
+    }
+
+    p:last-child {
+      margin-bottom: 0;
+    }
+
+    ul, ol {
+      padding-left: 1.5rem;
+      margin-bottom: 0.85rem;
+    }
+
+    li {
+      margin-bottom: 0.4rem;
+      color: var(--text);
+    }
+
+    /* ─── Callout boxes ─── */
+    .callout {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-rule);
+      border-radius: 6px;
+      padding: 1.1rem 1.3rem;
+      margin: 1rem 0;
+      font-size: 0.92rem;
+    }
+
+    .callout.warning {
+      border-left: 3px solid #e6a020;
+    }
+
+    .callout.info {
+      border-left: 3px solid var(--teal);
+    }
+
+    .callout ul {
+      margin-bottom: 0;
+    }
+
+    /* ─── Contact box ─── */
+    .contact-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1.25rem 1.5rem;
+      margin-top: 1rem;
+    }
+
+    .contact-box a {
+      color: var(--teal);
+      text-decoration: none;
+      font-family: var(--font-head);
+      font-size: 0.9rem;
+    }
+
+    .contact-box a:hover {
+      text-decoration: underline;
+    }
+
+    /* ─── Caps disclaimer ─── */
+    .caps-box {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-rule);
+      border-radius: 6px;
+      padding: 1.1rem 1.3rem;
+      margin: 1rem 0;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+
+    /* ─── Horizontal rule ─── */
+    hr {
+      border: none;
+      border-top: 1px solid var(--bg-rule);
+      margin: 2.5rem 0;
+    }
+
+    /* ─── Footer ─── */
+    footer {
+      border-top: 1px solid var(--border);
+      margin-top: 4rem;
+      padding-top: 2rem;
+      padding-bottom: 2rem;
+      text-align: center;
+    }
+
+    footer p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+    }
+
+    footer a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.8rem;
+      transition: color 0.2s;
+    }
+
+    footer a:hover {
+      color: var(--teal);
+    }
+
+    .footer-sep {
+      color: var(--bg-rule);
+      margin: 0 0.5rem;
+    }
+
+    /* ─── Responsive ─── */
+    @media (max-width: 600px) {
+      .page-wrap {
+        padding: 2rem 1.1rem 4rem;
+      }
+
+      .topbar {
+        padding: 0.6rem 1rem;
+      }
+
+      .topbar-title {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <nav class="topbar" aria-label="Site navigation">
+    <a class="back-link" href="index.html" aria-label="Back to Sector Defense game">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+        <path d="M8 1L3 6L8 11" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Back to Game
+    </a>
+    <span class="topbar-title">Sector Defense &mdash; Legal</span>
+  </nav>
+
+  <main class="page-wrap">
+
+    <!-- Document Header -->
+    <header class="doc-header">
+      <p class="doc-eyebrow">Helix Games Studio</p>
+      <h1 class="doc-title">Terms of Service</h1>
+      <p class="doc-meta">
+        <strong>Sector Defense</strong> &nbsp;&bull;&nbsp;
+        Effective Date: <strong>March 20, 2026</strong> &nbsp;&bull;&nbsp;
+        Last Updated: <strong>March 20, 2026</strong>
+      </p>
+    </header>
+
+    <!-- Plain-Language Summary -->
+    <div class="summary-card" role="note" aria-label="Terms summary">
+      <p><strong>Plain-language summary:</strong> By playing Sector Defense, you agree to these terms. The game is free to play with optional cosmetic in-app purchases. All content belongs to Helix Games Studio. Use the game fairly and enjoy.</p>
+    </div>
+
+    <!-- Section 1 -->
+    <section class="section" aria-labelledby="s1">
+      <span class="section-number">Section 01</span>
+      <h2 id="s1">Acceptance of Terms</h2>
+      <p>These Terms of Service ("Terms") constitute a legally binding agreement between you ("you" or "the user") and Helix Games Studio ("we," "us," or "our") governing your access to and use of the mobile game <strong>Sector Defense</strong> (the "Game"), available on Apple's App Store for iOS devices.</p>
+      <p><strong>By downloading, installing, or playing Sector Defense, you agree to be bound by these Terms.</strong> If you do not agree to these Terms, do not use the Game.</p>
+      <p>If you are under the age of majority in your jurisdiction, you represent that a parent or legal guardian has reviewed and agreed to these Terms on your behalf.</p>
+    </section>
+
+    <!-- Section 2 -->
+    <section class="section" aria-labelledby="s2">
+      <span class="section-number">Section 02</span>
+      <h2 id="s2">License to Use</h2>
+      <p>Subject to your compliance with these Terms, Helix Games Studio grants you a limited, non-exclusive, non-transferable, revocable license to download, install, and use the Game for your personal, non-commercial entertainment purposes on iOS devices that you own or control.</p>
+      <p>This license does not include:</p>
+      <ul>
+        <li>Any resale or commercial exploitation of the Game or its content</li>
+        <li>Distribution, redistribution, or sublicensing of the Game</li>
+        <li>Copying, modifying, adapting, translating, or creating derivative works of the Game</li>
+        <li>Reverse engineering, decompiling, disassembling, or extracting the source code of the Game</li>
+        <li>Removing or circumventing any technological protection measures</li>
+      </ul>
+      <p>Any use of the Game not expressly authorized by these Terms is strictly prohibited and may violate copyright, trademark, and other applicable laws.</p>
+    </section>
+
+    <!-- Section 3 -->
+    <section class="section" aria-labelledby="s3">
+      <span class="section-number">Section 03</span>
+      <h2 id="s3">In-App Purchases</h2>
+      <p>Sector Defense offers optional in-app purchases of cosmetic items, including hero skins, tower skins, and map themes ("Cosmetic Items"), as well as Helix Credits (virtual currency). All purchases are processed through Apple's App Store In-App Purchase system.</p>
+      <div class="callout info">
+        <p><strong>Cosmetic only:</strong> All purchasable content is purely cosmetic and does not affect gameplay, progression, balance, or competitive outcomes. No in-app purchase provides a gameplay advantage.</p>
+      </div>
+      <p><strong>Payment and billing:</strong> All payment transactions are handled by Apple. By making an in-app purchase, you agree to Apple's Terms of Sale and applicable App Store policies. We do not process, store, or have access to your payment information.</p>
+      <p><strong>Refunds:</strong> All sales of in-app purchases are final. Refund requests must be submitted directly to Apple in accordance with Apple's refund policy. Helix Games Studio does not issue refunds directly.</p>
+      <p><strong>Price changes:</strong> We reserve the right to change the prices of in-app purchases at any time. Price changes will be reflected in the App Store listing prior to taking effect.</p>
+    </section>
+
+    <!-- Section 4 -->
+    <section class="section" aria-labelledby="s4">
+      <span class="section-number">Section 04</span>
+      <h2 id="s4">Virtual Currency — Helix Credits</h2>
+      <p>Sector Defense includes a premium virtual currency called <strong>Helix Credits</strong>. The following terms apply:</p>
+      <div class="callout warning">
+        <ul>
+          <li><strong>No real-world value:</strong> Helix Credits have no monetary value, cannot be redeemed for cash, and are not transferable to any other person or entity.</li>
+          <li><strong>Non-refundable:</strong> Helix Credits that have been spent within the Game cannot be refunded. Unused Helix Credits may only be refunded through Apple in accordance with Apple's refund policy.</li>
+          <li><strong>No exchange:</strong> Helix Credits cannot be exchanged, transferred, traded, or sold outside the Game.</li>
+          <li><strong>Expiration:</strong> Helix Credits do not expire under normal circumstances but may be lost if the Game is deleted or if your license is terminated.</li>
+          <li><strong>Speculative purchase:</strong> Future game updates may add or change items purchasable with Helix Credits. We make no guarantee that a specific item will remain available.</li>
+        </ul>
+      </div>
+      <p>Helix Credits are a limited license right, not property, and are governed by these Terms.</p>
+    </section>
+
+    <!-- Section 5 -->
+    <section class="section" aria-labelledby="s5">
+      <span class="section-number">Section 05</span>
+      <h2 id="s5">Intellectual Property</h2>
+      <p>All content, features, and functionality of Sector Defense — including but not limited to the game engine, game design, artwork, graphics, animations, audio, music, sound effects, text, user interface elements, character designs, tower designs, map themes, logos, and trademarks — are owned by, licensed to, or controlled by Helix Games Studio and are protected by copyright, trademark, trade dress, patent, and other applicable intellectual property laws.</p>
+      <p>The Game name "Sector Defense" and the "Helix Games Studio" name and logo are trademarks of Helix Games Studio. You may not use these marks without our prior written permission.</p>
+      <p>Nothing in these Terms transfers any intellectual property rights to you. Your rights are limited to the personal use license described in Section 2.</p>
+    </section>
+
+    <!-- Section 6 -->
+    <section class="section" aria-labelledby="s6">
+      <span class="section-number">Section 06</span>
+      <h2 id="s6">User Conduct</h2>
+      <p>Sector Defense is a single-player game with no multiplayer, social, chat, or user-generated content features. Nevertheless, you agree not to:</p>
+      <ul>
+        <li>Use the Game for any unlawful purpose or in violation of any applicable law or regulation</li>
+        <li>Attempt to circumvent, disable, or interfere with security features of the Game</li>
+        <li>Use cheats, automation software, bots, hacks, or any other unauthorized third-party software that modifies or interacts with the Game</li>
+        <li>Exploit bugs or glitches in the Game; if you discover a bug, you agree to report it to us rather than exploit it</li>
+        <li>Attempt to reverse engineer, decompile, or extract source code or assets from the Game</li>
+        <li>Use the Game to infringe on the intellectual property or privacy rights of any third party</li>
+      </ul>
+      <p>We reserve the right to terminate your license to use the Game for violations of these conduct requirements.</p>
+    </section>
+
+    <!-- Section 7 -->
+    <section class="section" aria-labelledby="s7">
+      <span class="section-number">Section 07</span>
+      <h2 id="s7">Disclaimer of Warranties</h2>
+      <div class="caps-box">
+        The game is provided "as is" and "as available" without warranties of any kind, either express or implied, including but not limited to implied warranties of merchantability, fitness for a particular purpose, title, and non-infringement. Helix Games Studio does not warrant that the game will be uninterrupted, error-free, or free of viruses or other harmful components. You use the game at your sole risk. Some jurisdictions do not allow the exclusion of implied warranties, so the above exclusion may not apply to you.
+      </div>
+    </section>
+
+    <!-- Section 8 -->
+    <section class="section" aria-labelledby="s8">
+      <span class="section-number">Section 08</span>
+      <h2 id="s8">Limitation of Liability</h2>
+      <div class="caps-box">
+        To the fullest extent permitted by applicable law, Helix Games Studio and its owners, officers, agents, and licensors shall not be liable for any indirect, incidental, special, consequential, punitive, or exemplary damages, including but not limited to loss of profits, data, goodwill, or other intangible losses, arising out of or relating to your use of or inability to use the game, even if Helix Games Studio has been advised of the possibility of such damages. In no event shall Helix Games Studio's total liability to you for all claims arising out of these terms or your use of the game exceed the total amount paid by you for in-app purchases in the game during the twelve (12) months immediately preceding the event giving rise to the claim, or USD $10.00, whichever is greater.
+      </div>
+      <p>Some jurisdictions do not allow the limitation of liability for certain types of damages, so the above limitation may not apply to you in full.</p>
+    </section>
+
+    <!-- Section 9 -->
+    <section class="section" aria-labelledby="s9">
+      <span class="section-number">Section 09</span>
+      <h2 id="s9">Game Updates and Availability</h2>
+      <p>We may update, modify, or discontinue the Game or any of its features at any time without notice or liability. This includes adding new content, changing existing content, adjusting pricing, or removing features.</p>
+      <p>We do not guarantee that the Game will remain available on the App Store indefinitely. If the Game is discontinued, you will retain access to it on devices where it is already installed as long as your device and iOS version support it, but we will have no obligation to provide further support or updates.</p>
+    </section>
+
+    <!-- Section 10 -->
+    <section class="section" aria-labelledby="s10">
+      <span class="section-number">Section 10</span>
+      <h2 id="s10">Termination</h2>
+      <p>These Terms remain in effect until terminated by either you or us. Your rights under these Terms will terminate automatically and without notice if you fail to comply with any provision of these Terms.</p>
+      <p>You may terminate these Terms at any time by deleting the Game from your device.</p>
+      <p>Upon termination, all rights granted to you under these Terms cease immediately. Sections relating to intellectual property, disclaimer of warranties, limitation of liability, and governing law shall survive termination.</p>
+    </section>
+
+    <!-- Section 11 -->
+    <section class="section" aria-labelledby="s11">
+      <span class="section-number">Section 11</span>
+      <h2 id="s11">Third-Party Terms — Apple</h2>
+      <p>Sector Defense is distributed through Apple's App Store. You acknowledge that:</p>
+      <ul>
+        <li>These Terms are between you and Helix Games Studio only, and not with Apple, Inc.</li>
+        <li>Apple is not responsible for the Game or its content.</li>
+        <li>Apple has no obligation whatsoever to furnish any maintenance or support services with respect to the Game.</li>
+        <li>In the event of any failure of the Game to conform to any applicable warranty, you may notify Apple, and Apple will refund the purchase price for the Game (if any) to you. To the maximum extent permitted by applicable law, Apple will have no other warranty obligation with respect to the Game.</li>
+        <li>Apple is not responsible for addressing any claims you have or any third-party claims relating to the Game, including product liability claims, consumer protection claims, or intellectual property infringement claims.</li>
+        <li>Apple and its subsidiaries are third-party beneficiaries of these Terms, and upon your acceptance of these Terms, Apple will have the right to enforce these Terms against you as a third-party beneficiary.</li>
+      </ul>
+    </section>
+
+    <!-- Section 12 -->
+    <section class="section" aria-labelledby="s12">
+      <span class="section-number">Section 12</span>
+      <h2 id="s12">Governing Law and Dispute Resolution</h2>
+      <p>These Terms shall be governed by and construed in accordance with the laws of the United States and applicable state law, without regard to conflict of law principles.</p>
+      <p>Any dispute arising out of or relating to these Terms or the Game shall be resolved through good-faith negotiation. If negotiation fails, disputes shall be submitted to binding arbitration or the courts of competent jurisdiction, as appropriate under applicable law.</p>
+      <p>If any provision of these Terms is found to be unenforceable, the remaining provisions will continue in full force and effect.</p>
+    </section>
+
+    <!-- Section 13 -->
+    <section class="section" aria-labelledby="s13">
+      <span class="section-number">Section 13</span>
+      <h2 id="s13">Contact Us</h2>
+      <p>If you have any questions or concerns about these Terms of Service, please contact us:</p>
+      <div class="contact-box">
+        <p><strong>Helix Games Studio</strong></p>
+        <p>Email: <a href="mailto:styxm@outlook.com">styxm@outlook.com</a></p>
+      </div>
+      <p style="margin-top: 1rem; font-size: 0.88rem; color: var(--text-muted);">We will make reasonable efforts to respond to your inquiry in a timely manner.</p>
+    </section>
+
+    <!-- Section 14 -->
+    <section class="section" aria-labelledby="s14">
+      <span class="section-number">Section 14</span>
+      <h2 id="s14">Changes to These Terms</h2>
+      <p>We reserve the right to modify these Terms at any time. When we make material changes, we will update the "Last Updated" date above and, where appropriate, notify users through App Store update notes.</p>
+      <p>Your continued use of the Game after the effective date of any changes constitutes your acceptance of the revised Terms. If you do not agree to the modified Terms, you must stop using the Game.</p>
+      <p>We encourage you to review these Terms periodically to stay informed about your rights and obligations.</p>
+    </section>
+
+    <hr>
+
+    <p style="font-size: 0.85rem; color: var(--text-muted);">
+      These Terms of Service were last reviewed and updated on <strong style="color: var(--text);">March 20, 2026</strong> and are effective as of that date.
+    </p>
+
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <p>
+      &copy; 2026 Helix Games Studio &nbsp;<span class="footer-sep">&bull;</span>&nbsp;
+      <a href="privacy.html">Privacy Policy</a>
+      &nbsp;<span class="footer-sep">&bull;</span>&nbsp;
+      <a href="terms.html">Terms of Service</a>
+    </p>
+    <a href="https://www.perplexity.ai/computer" target="_blank" rel="noopener noreferrer">Created with Perplexity Computer</a>
+  </footer>
+
+</body>
+</html>

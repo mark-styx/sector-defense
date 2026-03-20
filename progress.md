@@ -136,6 +136,24 @@ Original prompt: build an iphone game that is a knockoff of starcraft2 tower def
 - No console errors after fixes
 - All 5 hero sub-tabs functional with unique skins per hero
 
+---
+
+## Phase 7: Legal & Compliance — COMPLETE
+
+### Changes Applied
+- **IP Audit**: Renamed `Arc Pylon` → `Arc Tesla`, `Port Nexus` → `Port Helix`, `The Nexus` → `The Furnace`, `Command Center` → `War Room` to eliminate any StarCraft adjacency
+- **Privacy Policy** (`privacy.html`): Full GDPR/CCPA compliant policy, dark-themed, mobile-friendly
+- **Terms of Service** (`terms.html`): Comprehensive ToS covering IAP, virtual currency, licensing
+- **In-game legal links**: Settings screen now shows Privacy Policy + Terms of Service tappable links
+- **License audit**: Only Google Fonts used (JetBrains Mono + Inter), both SIL OFL — free commercial use
+- **App Store compliance doc** (`APP_STORE_COMPLIANCE.md`): Age rating (9+), export compliance (ECCN exempt), privacy nutrition label, IAP product IDs, metadata draft
+- **Toast system**: `addToast()` reused from Phase 6 — confirmed working
+
+### QA Results
+- No console errors after all Phase 7 edits
+- Settings screen renders legal links cleanly
+- Privacy and Terms pages load correctly, match game aesthetic
+- No remaining StarCraft/Blizzard IP references in codebase
+
 ## TODO / Next Steps
-- Phase 7: Legal & Compliance (privacy policy, age rating, GDPR)
 - Phase 8: Native Packaging (Capacitor wrapper, Xcode, App Store submission)
