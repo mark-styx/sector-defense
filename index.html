@@ -45,7 +45,7 @@ footer a:hover{color:rgba(255,255,255,.6)}
 (function(){
 'use strict';
 // ============================================================
-// SECTOR DEFENSE v5.0 — Visual Polish
+// SECTOR DEFENSE v6.0 — Tutorial + Accessibility
 // ============================================================
 const FD="'JetBrains Mono',monospace",FB="'Inter',sans-serif";
 let animTime=0; // Global animation timer for polish effects
@@ -80,10 +80,159 @@ towerAngles:{}
 };
 // Splash screen state
 let splashActive=true,splashTimer=0,splashPhase='init';
+
+// === PHASE 4: TUTORIAL + ACCESSIBILITY ===
+const TUTORIAL = {
+  active: false,
+  step: 0,
+  wave: 0,
+  forcedTowerType: -1,
+  highlightCells: [],
+  waitingFor: '', // 'tap_cell', 'select_tower', 'start_wave', 'wait_wave_end', 'tap_upgrade', 'acknowledge'
+  messageQueue: [],
+  currentMsg: '',
+  msgAlpha: 0,
+  arrowTarget: null, // {x,y} for animated arrow
+  dimExcept: null, // {x,y,w,h} rect to NOT dim
+  completed: false,
+  pulseTimer: 0,
+  stepStartTime: 0,
+
+  steps: [
+    // WAVE 0 - Build Phase: Place first tower
+    {msg: 'Welcome, Commander! Let\'s defend the sector.\nTap a highlighted cell near the path.', wait: 'tap_cell', highlight: 'buildable', dim: true},
+    {msg: 'Great! Now select SENTINEL TURRET\n— it\'s the cheapest tower.', wait: 'select_tower', forceTower: 0, dim: 'radial'},
+    {msg: 'Tower placed! Towers auto-attack enemies\nthat pass within range (blue circle).', wait: 'acknowledge', dim: false},
+    {msg: 'Now tap START WAVE to send enemies.', wait: 'start_wave', dim: 'start_btn'},
+    {msg: 'Enemies are coming! Towers fire automatically.\nWatch them get destroyed.', wait: 'wait_wave_end', dim: false},
+    // WAVE 1 - Build Phase: Place second tower + upgrade
+    {msg: 'Wave cleared! You earned Nexium (◆) from kills.\nPlace another tower to strengthen defenses.', wait: 'tap_cell', highlight: 'buildable', dim: true},
+    {msg: 'Try THUNDER CANNON this time\n— it deals splash damage!', wait: 'select_tower', forceTower: 1, dim: 'radial'},
+    {msg: 'Tap your first Sentinel tower to see info.', wait: 'tap_tower', dim: false},
+    {msg: 'You can UPGRADE towers for more power,\nor SELL them to recover Nexium.\nTap anywhere to continue.', wait: 'acknowledge', dim: false},
+    {msg: 'Start wave 2! More enemies this time.', wait: 'start_wave', dim: 'start_btn'},
+    {msg: 'Watch the action! Different enemies have\ndifferent strengths. Some fly, some have armor.', wait: 'wait_wave_end', dim: false},
+    // WAVE 2 - Abilities intro
+    {msg: 'Two waves down! See the abilities at bottom?\n💥 Vanguard Strike — emergency area blast\n⚡ Temporal Surge — speeds all towers\n🔧 Field Repair — restores lives', wait: 'acknowledge', dim: false},
+    {msg: 'You\'re ready, Commander!\nSurvive all waves to win.\nGood luck!', wait: 'acknowledge', dim: false, final: true}
+  ],
+
+  start() {
+    this.active = true;
+    this.step = 0;
+    this.wave = 0;
+    this.completed = false;
+    this.pulseTimer = 0;
+    this.msgAlpha = 0;
+    this.stepStartTime = performance.now();
+    this.applyStep();
+  },
+
+  applyStep() {
+    if (this.step >= this.steps.length) {
+      this.finish();
+      return;
+    }
+    const s = this.steps[this.step];
+    this.currentMsg = s.msg;
+    this.waitingFor = s.wait;
+    this.forcedTowerType = s.forceTower !== undefined ? s.forceTower : -1;
+    this.msgAlpha = 0;
+    this.stepStartTime = performance.now();
+
+    // Compute highlight cells
+    this.highlightCells = [];
+    if (s.highlight === 'buildable') {
+      for (let r = 0; r < currentRows; r++) {
+        for (let c = 0; c < currentCols; c++) {
+          if (isValidPlacement(c, r)) {
+            let occ = false;
+            for (const t of G.towers) if (t.col === c && t.row === r) { occ = true; break; }
+            if (!occ) this.highlightCells.push({col: c, row: r});
+          }
+        }
+      }
+    }
+  },
+
+  advance() {
+    this.step++;
+    if (this.step >= this.steps.length) {
+      this.finish();
+    } else {
+      this.applyStep();
+    }
+  },
+
+  finish() {
+    this.active = false;
+    this.completed = true;
+    // Mark tutorial done in persistence
+    prog.tutorialDone = true;
+    saveAllState();
+  },
+
+  getCurrentStep() {
+    return this.steps[this.step] || null;
+  }
+};
+
 const C_BG='#0a0e1a',C_SUR='rgba(20,30,50,0.85)',C_BOR='rgba(100,180,255,0.2)';
 const C_TXT='#e0e8f0',C_MUT='#6880a0',C_ACC='#00ccff',C_DNG='#ff4466',C_WRN='#ffaa22';
 const BIOMES={urban:{ground:'#0d1322',grid:'rgba(50,80,120,0.15)',path:'#1a2235',glow:'rgba(0,200,255,',accent:'#00ccff'},volcanic:{ground:'#1a0d0d',grid:'rgba(120,60,20,0.15)',path:'#2a1510',glow:'rgba(255,120,30,',accent:'#ff6622'},arctic:{ground:'#0d1520',grid:'rgba(50,100,140,0.15)',path:'#152030',glow:'rgba(100,200,255,',accent:'#88ddff'}};
-const settings={sfxVol:75,musicVol:50,defaultSpeed:1,damageNumbers:true,gridOverlay:true,screenShake:true,showFPS:false};
+
+// === COLOR BLIND SUPPORT ===
+const CB_PATTERNS = {};
+function getColorBlindColor(origColor, id) {
+  if (settings.colorBlind === 'off') return origColor;
+  // Deuteranopia: red-green blindness (most common)
+  const deut = {
+    '#44ff44': '#4488ff', // green -> blue
+    '#44ddcc': '#88aaff', // teal -> light blue
+    '#889944': '#ccaa44', // olive -> gold
+    '#bb44ff': '#ff44bb', // purple -> pink
+    '#ff4444': '#ff8844', // red -> orange (keep distinguishable)
+    '#aaff22': '#ffff44', // lime -> yellow
+    '#7722aa': '#2244aa', // dark purple -> dark blue
+    '#227744': '#2277aa', // dark green -> dark teal
+    '#aa7744': '#aa7744', // brown stays
+    '#44cc44': '#4488cc', // green -> blue-ish
+    '#bb66ff': '#ff66bb', // light purple -> pink
+    '#ff3333': '#ff8833', // red -> orange
+  };
+  // Protanopia: similar to deut with red shifted
+  const prot = Object.assign({}, deut, {
+    '#ff4444': '#ffaa44',
+    '#ff3333': '#ffaa33',
+    '#ff8800': '#ffcc00',
+  });
+  const map = settings.colorBlind === 'deuteranopia' ? deut : settings.colorBlind === 'protanopia' ? prot : {};
+  return map[origColor] || origColor;
+}
+
+// Add pattern markers for color blind - shapes drawn on enemies/towers for identification
+function drawColorBlindMarker(ctx2, x, y, size, typeId) {
+  if (settings.colorBlind === 'off') return;
+  const markers = {
+    'sentinel': '○', 'thunder': '□', 'hawk': '△', 'neural': '◇',
+    'nova': '☆', 'shockwave': '≈', 'fusion': '⊙', 'arcpylon': '⚡',
+    'dronebay': '⬡', 'barrier': '◎',
+    'skitterling': '·', 'venomspine': '◆', 'ironshell': '■', 'stingwing': '▲',
+    'devastator': '★', 'blisterbomb': '●', 'hivemind': '⬟', 'plaguebearer': '+',
+    'tunneler': '▼', 'swarmcarrier': '⊕', 'phasewraith': '◈', 'siegecrawler': '✦'
+  };
+  const m = markers[typeId];
+  if (!m) return;
+  ctx2.save();
+  ctx2.font = 'bold ' + Math.max(8, size * 0.6) + 'px ' + FB;
+  ctx2.textAlign = 'center';
+  ctx2.textBaseline = 'middle';
+  ctx2.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx2.fillText(m, x, y);
+  ctx2.restore();
+}
+
+const settings={sfxVol:75,musicVol:50,defaultSpeed:1,damageNumbers:true,gridOverlay:true,screenShake:true,showFPS:false,reduceMotion:false,colorBlind:'off'};
 const MASTERY_THRESHOLDS=[0,50,150,400,1000];
 
 // Arsenal Cards
@@ -509,7 +658,7 @@ function emitP(x,y,count,color,speed,life,size,shape){for(let i=0;i<count;i++){c
 function spawnDmgNum(x,y,dmg,color){if(!settings.damageNumbers)return;const d=dmgNumPool.get();if(!d)return;d.x=x+(Math.random()-0.5)*10;d.y=y-10;d.text=Math.round(dmg).toString();d.color=color||'#fff';d.life=0.8;}
 
 // Progression (in-memory)
-const prog={xp:0,level:1,totalKills:0,totalMatches:0,totalStars:0,highestWaves:{}};
+const prog={xp:0,level:1,totalKills:0,totalMatches:0,totalStars:0,highestWaves:{},tutorialDone:false};
 
 // Phase 2 State
 const loadout={unlockedCards:new Set(),equippedCards:new Set(),unlockedSkins:{},equippedSkins:{},matchCount:0};
@@ -841,7 +990,9 @@ function updateChains(dt){chainPool.forEach(c=>{c.life-=dt;if(c.life<=0)chainPoo
 
 function drawParticles(){particlePool.forEach(p=>{const a=Math.max(0,p.life/p.maxLife);ctx.globalAlpha=a;ctx.fillStyle=p.color;const s=p.size*a;
 if(p.shape==='circle'){ctx.beginPath();ctx.arc(p.x,p.y,s/2,0,Math.PI*2);ctx.fill();}
-else if(p.shape==='line'){ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);ctx.fillRect(-s/2,-1,s,2);ctx.restore();}
+else if(p.shape==='line'){ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);ctx.fillRect(-s/2,-1,s,2);// Color blind marker
+drawColorBlindMarker(ctx, x, y, s*cellSize, e.type);
+ctx.restore();}
 else if(p.shape==='triangle'){ctx.beginPath();ctx.moveTo(p.x,p.y-s/2);ctx.lineTo(p.x+s/2,p.y+s/2);ctx.lineTo(p.x-s/2,p.y+s/2);ctx.closePath();ctx.fill();}
 else{ctx.fillRect(p.x-s/2,p.y-s/2,s,s);}});ctx.globalAlpha=1;}
 function drawProjectiles(){projectilePool.forEach(p=>{const tid=p._towerTypeId||'';ctx.shadowColor=p.color;ctx.shadowBlur=6;
@@ -972,7 +1123,7 @@ ctx.strokeStyle=C_DNG;ctx.lineWidth=1.5;const sr=cellSize*0.25;
 ctx.beginPath();ctx.arc(exx,exy,sr,0,Math.PI*2);ctx.stroke();
 ctx.beginPath();ctx.moveTo(exx,exy-sr*0.5);ctx.lineTo(exx,exy+sr*0.3);ctx.moveTo(exx-sr*0.3,exy);ctx.lineTo(exx+sr*0.3,exy);ctx.stroke();}ctx.textBaseline='alphabetic';
 // Environmental particles
-VFX.drawEnvParticles(ctx);}
+if(!settings.reduceMotion)VFX.drawEnvParticles(ctx);}
 
 function drawTower(t){const type=TT[t.typeIdx];const skinColor=getTowerColor(t);const x=offsetX+t.col*cellSize+cellSize/2,y=offsetY+t.row*cellSize+cellSize/2,s=cellSize*0.35;
 if(t.disabled>0){ctx.globalAlpha=0.4+0.2*Math.sin(performance.now()*0.01);}
@@ -1111,7 +1262,7 @@ const xpProg2=tempXP2/xpN2,barW2=W*0.4,barH2=6,barX2=(W-barW2)/2,barY2=H*0.1+ts*
 ctx.fillStyle='#1a2235';ctx.beginPath();ctx.roundRect(barX2,barY2,barW2,barH2,3);ctx.fill();
 ctx.fillStyle=C_ACC;ctx.beginPath();ctx.roundRect(barX2,barY2,barW2*xpProg2,barH2,3);ctx.fill();
 // Menu buttons - vertically stacked, compact
-const bw=200,bh=38,gap2=8;const menuItems=[
+const bw=200,bh=38,gap2=8;let menuItems=[
 {label:'CLASSIC DEFENSE',color:C_ACC,bgCol:'#003344',key:'menuPlay'},
 {label:'ENDLESS MODE',color:'#ff8800',bgCol:'rgba(30,20,10,0.8)',key:'menuEndless'},
 {label:'THE HELIX WAR',color:'#44ff88',bgCol:'rgba(10,30,20,0.8)',key:'menuCampaign'},
@@ -1120,6 +1271,7 @@ const bw=200,bh=38,gap2=8;const menuItems=[
 {label:'PROFILE',color:'#88ccff',bgCol:'rgba(15,20,30,0.8)',key:'menuProfile'},
 {label:'SETTINGS',color:C_MUT,bgCol:'rgba(20,30,50,0.8)',key:'menuSettings'},
 {label:'HOW TO PLAY',color:C_MUT,bgCol:'rgba(20,30,50,0.8)',key:'menuHowTo'}];
+if(!prog.tutorialDone)menuItems.splice(0,0,{label:'▶  TUTORIAL',color:'#00ffaa',bgCol:'rgba(0,40,30,0.85)',key:'menuTutorial',glow:true});
 let by=barY2+20;const bx=W/2-bw/2;
 for(let i=0;i<menuItems.length;i++){const mi2=menuItems[i];
 const isMain=i<4;const h=isMain?bh:bh-4;
@@ -1136,7 +1288,10 @@ ctx.restore();
 const sepW=W*0.3;const sepGrad=ctx.createLinearGradient(W/2-sepW/2,0,W/2+sepW/2,0);
 sepGrad.addColorStop(0,'transparent');sepGrad.addColorStop(0.5,C_ACC);sepGrad.addColorStop(1,'transparent');
 ctx.strokeStyle=sepGrad;ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(W/2-sepW/2,H*0.09);ctx.lineTo(W/2+sepW/2,H*0.09);ctx.stroke();
-const opts=[['SFX Volume',settings.sfxVol.toString(),'🔊'],['Music Volume',settings.musicVol.toString(),'🎵'],['Game Speed',settings.defaultSpeed+'x','⏩'],['Damage Numbers',settings.damageNumbers?'On':'Off','💢'],['Grid Overlay',settings.gridOverlay?'On':'Off','▦'],['Screen Shake',settings.screenShake?'On':'Off','📳'],['Show FPS',settings.showFPS?'On':'Off','📊']];
+const opts=[['SFX Volume',settings.sfxVol.toString(),'🔊'],['Music Volume',settings.musicVol.toString(),'🎵'],['Game Speed',settings.defaultSpeed+'x','⏩'],['Damage Numbers',settings.damageNumbers?'On':'Off','💢'],['Grid Overlay',settings.gridOverlay?'On':'Off','▦'],['Screen Shake',settings.screenShake?'On':'Off','📳'],['Show FPS',settings.showFPS?'On':'Off','📊'],
+['Reduce Motion',settings.reduceMotion?'On':'Off','♿'],
+['Color Blind',settings.colorBlind==='off'?'Off':settings.colorBlind==='deuteranopia'?'Deut.':'Prot.','👁']];
+
 const fs=Math.min(13,W*0.033),rowH=Math.min(58,H*0.068);G._btns.settingsOpts=[];
 for(let i=0;i<opts.length;i++){const[label,val,icon]=opts[i];
 const ry=H*0.12+i*rowH;
@@ -1187,6 +1342,104 @@ ctx.font='500 '+htFS+'px '+FB;ctx.fillStyle='rgba(200,200,180,0.6)';
 const tips=['Use abilities in emergencies only','Endless mode scales infinitely','Arsenal Cards give powerful bonuses','Campaign mode unlocks unique rewards'];
 for(const tip of tips){ctx.fillText('• '+tip,W/2,htY);htY+=htFS+5;}
 const bw=160,bh=44,bx=W/2-bw/2,by=H*0.88;ctx.fillStyle='#003344';ctx.strokeStyle=C_ACC;ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(bx,by,bw,bh,6);ctx.fill();ctx.stroke();ctx.font='700 '+Math.min(16,W*0.04)+'px '+FD;ctx.fillStyle=C_ACC;ctx.fillText('BACK',W/2,by+bh/2+2);G._btns.howToBack={x:bx,y:by,w:bw,h:bh};}
+
+
+function drawTutorialOverlay(){
+if(!TUTORIAL.active) return;
+const step = TUTORIAL.getCurrentStep();
+if(!step) return;
+TUTORIAL.pulseTimer += 1/60;
+TUTORIAL.msgAlpha = Math.min(1, TUTORIAL.msgAlpha + 0.05);
+
+// Dim overlay with cutout
+if(step.dim === true && TUTORIAL.highlightCells.length > 0){
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(0, 0, W, H);
+  // Cut out highlighted cells
+  ctx.globalCompositeOperation = 'destination-out';
+  for(const cell of TUTORIAL.highlightCells){
+    const cx = offsetX + cell.col * cellSize;
+    const cy = offsetY + cell.row * cellSize;
+    ctx.fillStyle = 'rgba(0,0,0,1)';
+    ctx.fillRect(cx-2, cy-2, cellSize+4, cellSize+4);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  // Pulse highlight on cells
+  const pa = 0.3 + 0.2 * Math.sin(TUTORIAL.pulseTimer * 4);
+  for(const cell of TUTORIAL.highlightCells){
+    const cx = offsetX + cell.col * cellSize;
+    const cy = offsetY + cell.row * cellSize;
+    ctx.strokeStyle = 'rgba(0,255,170,' + pa + ')';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(cx, cy, cellSize, cellSize);
+  }
+} else if(step.dim === 'start_btn' && G._btns.startWave){
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(0, 0, W, H);
+  const b = G._btns.startWave;
+  ctx.globalCompositeOperation = 'destination-out';
+  ctx.fillStyle = 'rgba(0,0,0,1)';
+  ctx.beginPath(); ctx.roundRect(b.x-4, b.y-4, b.w+8, b.h+8, 8); ctx.fill();
+  ctx.globalCompositeOperation = 'source-over';
+  // Pulse arrow
+  const ay = b.y - 20 - 6 * Math.sin(TUTORIAL.pulseTimer * 3);
+  ctx.fillStyle = '#00ffaa';
+  ctx.beginPath(); ctx.moveTo(b.x+b.w/2, b.y-6); ctx.lineTo(b.x+b.w/2-8, ay); ctx.lineTo(b.x+b.w/2+8, ay); ctx.closePath(); ctx.fill();
+}
+
+// Message box
+const lines = TUTORIAL.currentMsg.split('\n');
+const lineH = Math.min(16, W*0.04);
+const boxH = lines.length * lineH + 32;
+const boxW = Math.min(W * 0.88, 340);
+const boxX = W/2 - boxW/2;
+const boxY = H * 0.35 - boxH/2;
+
+ctx.globalAlpha = TUTORIAL.msgAlpha;
+// Box background
+ctx.fillStyle = 'rgba(5,15,30,0.92)';
+ctx.strokeStyle = '#00ffaa';
+ctx.lineWidth = 2;
+ctx.beginPath(); ctx.roundRect(boxX, boxY, boxW, boxH, 12); ctx.fill(); ctx.stroke();
+// Glow
+ctx.shadowColor = '#00ffaa';
+ctx.shadowBlur = 15;
+ctx.strokeStyle = 'rgba(0,255,170,0.3)';
+ctx.beginPath(); ctx.roundRect(boxX, boxY, boxW, boxH, 12); ctx.stroke();
+ctx.shadowBlur = 0;
+
+// Text
+ctx.font = '600 ' + Math.min(13, W*0.033) + 'px ' + FB;
+ctx.textAlign = 'center';
+ctx.fillStyle = '#e0f0e8';
+for(let i = 0; i < lines.length; i++){
+  ctx.fillText(lines[i], W/2, boxY + 20 + i * lineH);
+}
+
+// Tap hint for acknowledge steps
+if(step.wait === 'acknowledge'){
+  const hint = 'Tap to continue';
+  const ha = 0.3 + 0.3 * Math.sin(TUTORIAL.pulseTimer * 3);
+  ctx.font = '500 ' + Math.min(10, W*0.025) + 'px ' + FB;
+  ctx.fillStyle = 'rgba(0,255,170,' + ha + ')';
+  ctx.fillText(hint, W/2, boxY + boxH - 8);
+}
+
+// Step indicator dots
+const totalSteps = TUTORIAL.steps.length;
+const dotR = 3;
+const dotGap = 10;
+const dotsW = totalSteps * dotGap;
+const dotsX = W/2 - dotsW/2;
+for(let i = 0; i < totalSteps; i++){
+  ctx.beginPath();
+  ctx.arc(dotsX + i * dotGap + dotR, boxY + boxH + 14, dotR, 0, Math.PI*2);
+  ctx.fillStyle = i <= TUTORIAL.step ? '#00ffaa' : 'rgba(100,150,130,0.3)';
+  ctx.fill();
+}
+
+ctx.globalAlpha = 1;
+}
 
 function drawMapSelect(){drawStarfield();
 ctx.save();ctx.shadowColor='rgba(0,200,255,0.3)';ctx.shadowBlur=15;
@@ -1589,10 +1842,10 @@ ctx.font='500 '+Math.max(8,10)+'px '+FB;ctx.textAlign='center';ctx.fillStyle=C_M
 ctx.fillText('Tap unit to spawn',W/2,py+bs+26);}
 
 function drawOffenseGame(){
-drawMap();VFX.drawTrails(ctx);
+drawMap();if(!settings.reduceMotion)VFX.drawTrails(ctx);
 for(const t of G.towers)drawTower(t);
 for(const e of G.enemies)if(e.alive)drawEnemy(e);
-drawProjectiles();drawChains();VFX.drawDeathRings(ctx);drawParticles();drawDmgNums();
+drawProjectiles();drawChains();if(!settings.reduceMotion)VFX.drawDeathRings(ctx);drawParticles();drawDmgNums();
 drawOffenseHUD();drawOffenseSpawnPanel();drawMinimap();}
 
 function drawOffenseResult(){
@@ -2149,9 +2402,9 @@ G.phase='clashAttack';
 startAmbient(mapRef.biome);}
 
 function drawClashAttack(){
-drawMap();VFX.drawTrails(ctx);
+drawMap();if(!settings.reduceMotion)VFX.drawTrails(ctx);
 for(const t of G.towers)drawTower(t);for(const e of G.enemies)if(e.alive)drawEnemy(e);
-drawProjectiles();drawChains();VFX.drawDeathRings(ctx);drawParticles();drawDmgNums();
+drawProjectiles();drawChains();if(!settings.reduceMotion)VFX.drawDeathRings(ctx);drawParticles();drawDmgNums();
 // HUD
 ctx.fillStyle='rgba(10,14,26,0.9)';ctx.fillRect(0,0,W,44);
 ctx.font='700 14px '+FD;ctx.textAlign='left';ctx.fillStyle=C_ACC;ctx.fillText('SECTOR CLASH — ATTACK',10,16);
@@ -2455,7 +2708,7 @@ ctx.globalAlpha=1;
 ctx.font='500 '+Math.min(10,W*0.025)+'px '+FB;ctx.fillStyle='rgba(104,128,160,0.7)';
 ctx.fillText('THE HELIX SECTOR',W/2,H*0.085+Math.min(50,W*0.125));
 
-const menuItems=[
+let menuItems=[
 {label:'CLASSIC DEFENSE',key:'menuPlay',color:C_ACC,icon:'⬡'},
 {label:'ENDLESS MODE',key:'menuEndless',color:'#44ff88',icon:'∞'},
 {label:'THE HELIX WAR',key:'menuCampaign',color:'#ff8844',icon:'⚔'},
@@ -2467,6 +2720,7 @@ const menuItems=[
 {label:'SETTINGS',key:'menuSettings',color:'#88aacc',icon:'⚙'},
 {label:'HOW TO PLAY',key:'menuHowTo',color:'#88aacc',icon:'?'}
 ];
+if(!prog.tutorialDone)menuItems.unshift({label:'\u25b6  TUTORIAL',key:'menuTutorial',color:'#00ffaa',icon:'\u25b6',glow:true});
 
 const bw=Math.min(280,W*0.8),bh=Math.min(40,H*0.044),gap=Math.min(6,H*0.006);
 const totalH=menuItems.length*(bh+gap)-gap;
@@ -2475,6 +2729,7 @@ for(let i=0;i<menuItems.length;i++){
 const mi=menuItems[i];const by=startY+i*(bh+gap);
 const bx=W/2-bw/2;
 const isNew=mi.key==='menuAllied'||mi.key==='menuClash';
+const isTut=mi.key==='menuTutorial';
 const isGameMode=i<6;
 // Button background with gradient
 const btnGrad=ctx.createLinearGradient(bx,by,bx+bw,by);
@@ -2483,7 +2738,7 @@ btnGrad.addColorStop(0,'rgba(10,20,40,0.9)');btnGrad.addColorStop(0.5,'rgba(15,2
 }else{
 btnGrad.addColorStop(0,'rgba(10,15,30,0.8)');btnGrad.addColorStop(1,'rgba(10,15,30,0.8)');
 }
-if(isNew){ctx.shadowColor=mi.color;ctx.shadowBlur=8;}
+if(isNew||isTut){ctx.shadowColor=mi.color;ctx.shadowBlur=isTut?12:8;}
 ctx.fillStyle=btnGrad;ctx.strokeStyle=mi.color+'88';ctx.lineWidth=1;
 ctx.beginPath();ctx.roundRect(bx,by,bw,bh,8);ctx.fill();ctx.stroke();
 // Left accent line
@@ -2539,6 +2794,7 @@ if(t>2.0){ctx.globalAlpha=(t-2.0)/0.5;ctx.fillStyle='#030508';ctx.fillRect(0,0,W
 let _lastMusicPhase='';
 function render(){ctx.clearRect(0,0,W,H);
 // Splash screen
+if(splashActive&&settings.reduceMotion){splashActive=false;G.phase='menu';Music.play('menu');}
 if(splashActive){drawSplashScreen();return;}
 // Auto-manage music based on phase
 if(audioCtx&&audioEnabled){
@@ -2570,9 +2826,9 @@ else if(G.phase==='biomeSelect')drawBiomeSelect();
 else if(G.phase==='offenseGame'){drawOffenseGame();}
 else{
 drawMap();if(G.showTowerInfo)drawRangeIndicator();drawPlacementAnims();
-VFX.drawTrails(ctx);
+if(!settings.reduceMotion)VFX.drawTrails(ctx);
 for(const t of G.towers)drawTower(t);for(const e of G.enemies)if(e.alive)drawEnemy(e);
-drawProjectiles();drawChains();VFX.drawDeathRings(ctx);drawParticles();drawDmgNums();drawHUD();drawBottomPanel();drawMinimap();
+drawProjectiles();drawChains();if(!settings.reduceMotion)VFX.drawDeathRings(ctx);drawParticles();drawDmgNums();drawHUD();drawBottomPanel();drawMinimap();
 // Vignette
 ctx.globalAlpha=VFX.vignetteAlpha;const vg=ctx.createRadialGradient(W/2,H/2,W*0.3,W/2,H/2,W*0.8);vg.addColorStop(0,'transparent');vg.addColorStop(1,'rgba(0,0,0,0.6)');ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);ctx.globalAlpha=1;
 // Wave start flash
@@ -2581,11 +2837,14 @@ if(VFX.waveFlash>0){ctx.globalAlpha=VFX.waveFlash*0.15;ctx.fillStyle='#00ccff';c
 if(G.lives>0&&G.lives<5){VFX.lowHealthPulse=1;const lha=0.08+0.04*Math.sin(animTime*3);ctx.globalAlpha=lha;ctx.strokeStyle=C_DNG;ctx.lineWidth=4;ctx.strokeRect(2,2,W-4,H-4);ctx.globalAlpha=1;}
 if(G.orbitalTargeting)drawOrbitalTargeting();if(G.showRadialMenu)drawRadialMenu();
 if(G.phase==='wavePreview')drawWavePreview();
-else if(G.phase==='waveSummary')drawWaveSummary();
+
+if(G.phase==='waveSummary')drawWaveSummary();
 else if(G.phase==='paused')drawPauseOverlay();
 else if(G.phase==='gameover'||G.phase==='victory')drawGameOverScreen();}
 if(settings.screenShake&&G.shakeTimer>0)ctx.restore();
 drawToasts();drawScreenFade();
+// Tutorial overlay
+drawTutorialOverlay();
 // Button press highlight
 if(pressedBtn&&pressedBtnTimer>0){
   const a=pressedBtnTimer/0.15;
@@ -2599,10 +2858,12 @@ if(lastTouchFlash.timer>0){ctx.globalAlpha=lastTouchFlash.timer*2;ctx.fillStyle=
 
 // Update
 function update(dt){
-animTime+=dt;VFX.updateTrails(dt);VFX.updateDeathRings(dt);VFX.updateHitFlash(dt);VFX.updateEnvParticles(dt,W,H);
+animTime+=dt;if(!settings.reduceMotion)VFX.updateTrails(dt);if(!settings.reduceMotion)VFX.updateDeathRings(dt);if(!settings.reduceMotion)VFX.updateHitFlash(dt);if(!settings.reduceMotion)VFX.updateEnvParticles(dt,W,H);
 if(VFX.waveFlash>0)VFX.waveFlash-=dt*3;if(VFX.lowHealthPulse>0)VFX.lowHealthPulse-=dt;
 // Splash screen timer
 if(splashActive){splashTimer+=dt;if(splashTimer>2.5)splashActive=false;return;}
+// Tutorial: auto-advance from waveSummary to build (skip wave summary screen)
+if(TUTORIAL.active&&TUTORIAL.waitingFor==='wait_wave_end'&&G.phase==='waveSummary'){TUTORIAL.advance();G.phase='build';G.shakeTimer=0;}
 if(['paused','wavePreview','waveSummary','menu','mapSelect','diffSelect','howToPlay','gameover','victory','settings','biomeSelect','campaign','campaignMap','campaignSwarmAttack','swarmCommander','offenseMapSelect','offenseResult','loadout','profile','campaignVictory','campaignDefeat','alliedVictory','clashFinal','clashAttackResult','achievements'].includes(G.phase))return;
 const sdt=dt*G.gameSpeed;if(G.shakeTimer>0)G.shakeTimer-=dt;
 if(pressedBtnTimer>0){pressedBtnTimer-=dt;}else{pressedBtn=null;}
@@ -2636,7 +2897,52 @@ function getGridCell(px,py){const c=Math.floor((px-offsetX)/cellSize),r=Math.flo
 function hitTest(px,py,r){return r&&px>=r.x&&px<=r.x+r.w&&py>=r.y&&py<=r.y+r.h;}
 function hitCircle(px,py,c){const dx=px-c.x,dy=py-c.y;return Math.sqrt(dx*dx+dy*dy)<=c.r;}
 
+
+function getCellAt(px, py) {
+  const col = Math.floor((px - offsetX) / cellSize);
+  const row = Math.floor((py - offsetY) / cellSize);
+  if (col < 0 || col >= currentCols || row < 0 || row >= currentRows) return null;
+  return {col, row};
+}
+
 function handleTap(px,py){initAudio();
+
+// === TUTORIAL TAP INTERCEPTION ===
+if(TUTORIAL.active){
+  const step = TUTORIAL.getCurrentStep();
+  if(!step) { TUTORIAL.finish(); }
+  else if(step.wait === 'acknowledge'){
+    TUTORIAL.advance();
+    playSound('click');
+    if(step.final) return;
+    return;
+  }
+  // For 'tap_cell', let the normal flow handle it but only on highlighted cells
+  // For 'start_wave', let the normal start wave button work
+  // For 'select_tower', intercept radial menu
+  // For 'wait_wave_end', block all interaction
+  else if(step.wait === 'wait_wave_end'){
+    // Allow wavePreview tap through so wave actually starts
+    if(G.phase === 'wavePreview'){ startWave(); return; }
+    return; // Block other taps during wave watching
+  }
+  else if(step.wait === 'tap_tower'){
+    // Let tower info taps through - check if they tapped a tower
+    const cell = getCellAt(px, py);
+    if(cell){
+      for(let i=0;i<G.towers.length;i++){
+        if(G.towers[i].col===cell.col&&G.towers[i].row===cell.row){
+          G.showTowerInfo=true;G.towerInfoIdx=i;
+          TUTORIAL.advance();
+          playSound('click');
+          return;
+        }
+      }
+    }
+    return;
+  }
+}
+
 
 if(G.phase==='campaignMap'){handleCampaignMapTap(px,py);return;}
 if(G.phase==='campaignSwarmAttack'){handleCampaignSwarmAttackTap(px,py);return;}
@@ -2687,7 +2993,17 @@ else if(G._btns.menuClash&&hitTest(px,py,G._btns.menuClash)){startSectorClash();
 else if(hitTest(px,py,G._btns.menuLoadout)){G.phase='loadout';playSound('click');}
 else if(hitTest(px,py,G._btns.menuProfile)){G.phase='profile';playSound('click');}
 else if(hitTest(px,py,G._btns.menuSettings)){G.previousPhase='menu';G.phase='settings';playSound('click');}
-else if(hitTest(px,py,G._btns.menuHowTo)){G.phase='howToPlay';playSound('click');}return;}
+else if(hitTest(px,py,G._btns.menuHowTo)){G.phase='howToPlay';playSound('click');}
+else if(G._btns.menuTutorial&&hitTest(px,py,G._btns.menuTutorial)){
+  // Start tutorial: load Outpost Alpha, Standard difficulty, start build phase
+  G.mapIdx=0;G.diffIdx=0;G.endlessMode=false;
+  setupMap(0);
+  G.phase='build';G.wave=0;G.nexium=300;G.lives=25;G.score=0;
+  G.towers=[];G.enemies=[];G.spawnQueue=[];G.totalKills=0;G.enemiesAlive=0;
+  G.gameSpeed=1;G.drones=[];G.waveKills=0;G.waveNex=0;
+  TUTORIAL.start();
+  playSound('click');
+}return;}
 if(G.phase==='howToPlay'){if(hitTest(px,py,G._btns.howToBack)){G.phase='menu';playSound('click');}return;}
 if(G.phase==='settings'){
 if(hitTest(px,py,G._btns.settingsBack)){G.phase=G.previousPhase||'menu';playSound('click');return;}
@@ -2699,6 +3015,8 @@ else if(i===3){settings.damageNumbers=!settings.damageNumbers;}
 else if(i===4){settings.gridOverlay=!settings.gridOverlay;}
 else if(i===5){settings.screenShake=!settings.screenShake;}
 else if(i===6){settings.showFPS=!settings.showFPS;}
+else if(i===7){settings.reduceMotion=!settings.reduceMotion;}
+else if(i===8){settings.colorBlind=settings.colorBlind==='off'?'deuteranopia':settings.colorBlind==='deuteranopia'?'protanopia':'off';}
 saveAllState();playSound('click');return;}}return;}
 if(G.phase==='biomeSelect'){if(G._btns.biomes)for(const b of G._btns.biomes){if(hitTest(px,py,b)){G.endlessBiome=b.biome;startEndlessGame();playSound('click');return;}}
 if(hitTest(px,py,G._btns.biomeBack)){G.phase='menu';playSound('click');}return;}
@@ -2724,18 +3042,32 @@ else if(hitTest(px,py,G._btns.quit)){G.phase='menu';saveAllState();playSound('cl
 if(G.orbitalTargeting){const cell=getGridCell(px,py);if(cell)useVanguardStrike(px,py);else G.orbitalTargeting=false;return;}
 if(hitTest(px,py,G._btns.speed)){G.gameSpeed=G.gameSpeed===1?2:G.gameSpeed===2?3:1;playSound('click');return;}
 if(hitTest(px,py,G._btns.pause)){if(G.phase==='build'||G.phase==='wave'){G.previousPhase=G.phase;G.phase='paused';G.showRadialMenu=false;G.showTowerInfo=false;G.towerInfoIdx=-1;G.orbitalTargeting=false;playSound('click');}return;}
-if(G.showRadialMenu){let tapped=false;if(G._btns.radial)for(const btn of G._btns.radial){if(hitCircle(px,py,btn)){const cost=getTowerCost(btn.idx);if(G.nexium>=cost&&!isTowerRestricted(btn.idx)){placeTower(G.radialMenuCol,G.radialMenuRow,btn.idx);}else playSound('error');tapped=true;break;}}G.showRadialMenu=false;G._btns.radial=null;G.hoveredRadialIdx=-1;if(tapped)return;playSound('click');return;}
+if(G.showRadialMenu){let tapped=false;if(G._btns.radial)for(const btn of G._btns.radial){if(hitCircle(px,py,btn)){const cost=getTowerCost(btn.idx);if(G.nexium>=cost&&!isTowerRestricted(btn.idx)){
+  if(TUTORIAL.active&&TUTORIAL.waitingFor==='select_tower'&&TUTORIAL.forcedTowerType>=0&&btn.idx!==TUTORIAL.forcedTowerType){playSound('error');tapped=true;break;}
+  placeTower(G.radialMenuCol,G.radialMenuRow,btn.idx);
+  if(TUTORIAL.active&&TUTORIAL.waitingFor==='select_tower'){TUTORIAL.advance();}
+}else playSound('error');tapped=true;break;}}G.showRadialMenu=false;G._btns.radial=null;G.hoveredRadialIdx=-1;if(tapped)return;playSound('click');return;}
 if(G._btns.globals)for(let i=0;i<G._btns.globals.length;i++){if(hitTest(px,py,G._btns.globals[i])){if(i===0){if(G.orbitalCD<=0){G.orbitalTargeting=true;playSound('click');}else playSound('error');}
 else if(i===1)useTemporalSurge();else if(i===2)useFieldRepair();return;}}
 if(G.showTowerInfo){if(hitTest(px,py,G._btns.closeInfo)){G.showTowerInfo=false;G.towerInfoIdx=-1;playSound('click');return;}
 if(G._btns.upgrade&&hitTest(px,py,G._btns.upgrade)){if(!upgradeTower(G.towerInfoIdx))playSound('error');return;}
 if(G._btns.ability&&hitTest(px,py,G._btns.ability)){if(!activateAbility(G.towerInfoIdx))playSound('error');return;}
 if(hitTest(px,py,G._btns.sell)){sellTower(G.towerInfoIdx);G.showTowerInfo=false;G.towerInfoIdx=-1;return;}}
-if(G.phase==='build'&&G._btns.startWave&&hitTest(px,py,G._btns.startWave)){G.phase='wavePreview';return;}
+if(G.phase==='build'&&G._btns.startWave&&hitTest(px,py,G._btns.startWave)){
+  if(TUTORIAL.active&&TUTORIAL.waitingFor==='start_wave'){TUTORIAL.advance();}
+  else if(TUTORIAL.active&&TUTORIAL.waitingFor!=='start_wave'){return;}
+  G.phase='wavePreview';return;}
 const cell=getGridCell(px,py);if(!cell){G.showTowerInfo=false;G.towerInfoIdx=-1;return;}
 for(let i=0;i<G.towers.length;i++){if(G.towers[i].col===cell.col&&G.towers[i].row===cell.row){G.showTowerInfo=true;G.towerInfoIdx=i;playSound('click');return;}}
 if(isValidPlacement(cell.col,cell.row)){let occ=false;for(const t of G.towers)if(t.col===cell.col&&t.row===cell.row){occ=true;break;}
-if(!occ&&(G.phase==='build'||G.phase==='wave')){G.showRadialMenu=true;G.radialMenuCol=cell.col;G.radialMenuRow=cell.row;playSound('click');return;}}
+if(!occ&&(G.phase==='build'||G.phase==='wave')){
+  if(TUTORIAL.active&&TUTORIAL.waitingFor==='tap_cell'){
+    // Only allow highlighted cells
+    const isHL = TUTORIAL.highlightCells.some(h=>h.col===cell.col&&h.row===cell.row);
+    if(!isHL){playSound('error');return;}
+    TUTORIAL.advance();
+  }
+  G.showRadialMenu=true;G.radialMenuCol=cell.col;G.radialMenuRow=cell.row;playSound('click');return;}}
 G.showTowerInfo=false;G.towerInfoIdx=-1;}
 
 canvas.addEventListener('touchstart',e=>{e.preventDefault();const tx=e.touches[0].clientX,ty=e.touches[0].clientY;lastTouchFlash={x:tx,y:ty,timer:0.2};pressedBtn=findPressedButton(tx,ty);pressedBtnTimer=0.15;handleTap(tx,ty);},{passive:false});
