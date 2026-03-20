@@ -45,7 +45,7 @@ footer a:hover{color:rgba(255,255,255,.6)}
 (function(){
 'use strict';
 // ============================================================
-// SECTOR DEFENSE v6.0 — Tutorial + Accessibility
+// SECTOR DEFENSE v7.0 — Hero System
 // ============================================================
 const FD="'JetBrains Mono',monospace",FB="'Inter',sans-serif";
 let animTime=0; // Global animation timer for polish effects
@@ -256,6 +256,233 @@ const ARSENAL_CARDS=[
 {id:'reflective_shield',name:'Reflective Shield',desc:'20% reflect damage',icon:'🪞'},
 {id:'nexium_generator',name:'Nexium Generator',desc:'+1 Nexium/sec',icon:'🔋'}
 ];
+
+// === PHASE 5: HERO SYSTEM ===
+const HEROES = [
+  {
+    id: 'vanguard', name: 'Commander Vex', title: 'The Vanguard',
+    desc: 'Front-line commander. Boosts nearby tower damage and has a devastating orbital strike.',
+    color: '#00ccff', icon: '⚔', shape: 'shield',
+    passive: {name: 'Battle Cry', desc: 'Towers within range deal +15% damage', range: 3.5},
+    ability: {name: 'Orbital Barrage', desc: 'Rains 5 explosions in target area', cd: 45, type: 'aoe_strike', radius: 2.5, damage: 200, hits: 5},
+    ultimate: {name: 'Total War', desc: 'All towers fire 2x for 10s, hero range doubled', cd: 90, dur: 10, type: 'global_buff'},
+    stats: {hp: 500, speed: 1.5, armor: 5, size: 0.45},
+    levelBonuses: [
+      {desc: '+50 HP', apply: 'hp+50'},
+      {desc: '+5% passive range', apply: 'range+0.5'},
+      {desc: '+20% ability damage', apply: 'abilityDmg+0.2'},
+      {desc: 'Passive boosts +20%', apply: 'passiveStr+0.2'},
+      {desc: 'Ultimate lasts 15s', apply: 'ultDur+5'}
+    ]
+  },
+  {
+    id: 'technomancer', name: 'Dr. Lyra Sol', title: 'The Technomancer',
+    desc: 'Tech genius. Reduces tower costs and can overclock towers in an area.',
+    color: '#aa66ff', icon: '⚡', shape: 'diamond',
+    passive: {name: 'Field Engineering', desc: 'Towers near hero cost 10% less to upgrade', range: 3},
+    ability: {name: 'Overclock Pulse', desc: 'All towers in range fire 50% faster for 8s', cd: 35, type: 'buff_aoe', radius: 3, dur: 8},
+    ultimate: {name: 'Tech Singularity', desc: 'Spawns 3 temporary auto-turrets for 15s', cd: 100, dur: 15, type: 'spawn_turrets', turretCount: 3},
+    stats: {hp: 300, speed: 1.8, armor: 2, size: 0.4},
+    levelBonuses: [
+      {desc: '+30 HP', apply: 'hp+30'},
+      {desc: 'Cost reduction 15%', apply: 'passiveStr+0.05'},
+      {desc: 'Overclock duration +3s', apply: 'abilityDur+3'},
+      {desc: '+1 turret from ultimate', apply: 'ultExtra+1'},
+      {desc: 'Passive range +1', apply: 'range+1'}
+    ]
+  },
+  {
+    id: 'warden', name: 'Kael Ironhart', title: 'The Warden',
+    desc: 'Immovable defender. Blocks enemies and absorbs damage for nearby towers.',
+    color: '#44ff88', icon: '🛡', shape: 'hexagon',
+    passive: {name: 'Fortified Aura', desc: 'Enemies near hero move 20% slower', range: 2.5},
+    ability: {name: 'Shield Wall', desc: 'Blocks path for 6s — enemies must walk around', cd: 40, type: 'block_path', dur: 6},
+    ultimate: {name: 'Citadel Protocol', desc: 'Hero becomes invulnerable, reflects all damage for 8s', cd: 80, dur: 8, type: 'invuln_reflect'},
+    stats: {hp: 800, speed: 1.0, armor: 10, size: 0.5},
+    levelBonuses: [
+      {desc: '+100 HP', apply: 'hp+100'},
+      {desc: 'Slow effect +10%', apply: 'passiveStr+0.1'},
+      {desc: 'Shield Wall +3s', apply: 'abilityDur+3'},
+      {desc: '+5 armor', apply: 'armor+5'},
+      {desc: 'Ultimate reflects 2x damage', apply: 'ultExtra+1'}
+    ]
+  },
+  {
+    id: 'phantom', name: 'Nyx Shade', title: 'The Phantom',
+    desc: 'Stealth assassin. Massive single-target damage with teleportation.',
+    color: '#ff4466', icon: '🗡', shape: 'triangle',
+    passive: {name: 'Assassin Mark', desc: 'Strongest enemy in range takes +25% damage from all sources', range: 4},
+    ability: {name: 'Shadow Strike', desc: 'Teleport to target enemy, deal 500 damage', cd: 20, type: 'teleport_strike', damage: 500},
+    ultimate: {name: 'Death Sentence', desc: 'Mark all enemies — marked enemies take 3x damage for 6s', cd: 75, dur: 6, type: 'mark_all'},
+    stats: {hp: 250, speed: 2.5, armor: 0, size: 0.35},
+    levelBonuses: [
+      {desc: '+30 HP', apply: 'hp+30'},
+      {desc: '+10% mark damage', apply: 'passiveStr+0.1'},
+      {desc: 'Shadow Strike +200 dmg', apply: 'abilityDmg+0.4'},
+      {desc: 'Shadow Strike CD -5s', apply: 'abilityCd-5'},
+      {desc: 'Ultimate lasts 10s', apply: 'ultDur+4'}
+    ]
+  },
+  {
+    id: 'oracle', name: 'Zara Prime', title: 'The Oracle',
+    desc: 'Support specialist. Heals the base, generates Nexium, and reveals hidden enemies.',
+    color: '#ffcc00', icon: '✦', shape: 'star',
+    passive: {name: 'Nexium Resonance', desc: 'Generates +2 Nexium per second while deployed', range: 0},
+    ability: {name: 'Restoration Wave', desc: 'Restore 3 lives and heal hero to full', cd: 50, type: 'heal', livesRestore: 3},
+    ultimate: {name: 'Prophecy', desc: 'All enemies take 50% more damage and move 30% slower for 12s', cd: 85, dur: 12, type: 'global_debuff'},
+    stats: {hp: 350, speed: 1.5, armor: 3, size: 0.4},
+    levelBonuses: [
+      {desc: '+40 HP', apply: 'hp+40'},
+      {desc: '+1 Nexium/sec', apply: 'passiveStr+1'},
+      {desc: 'Restore +2 lives', apply: 'abilityExtra+2'},
+      {desc: 'Prophecy duration +4s', apply: 'ultDur+4'},
+      {desc: 'Passive range reveals stealth', apply: 'ultExtra+1'}
+    ]
+  }
+];
+
+// Hero progression (persisted)
+const heroProg = {};
+HEROES.forEach(h => { heroProg[h.id] = {xp: 0, level: 1, matchesPlayed: 0, totalKills: 0}; });
+
+// Active hero state (in-match)
+const heroState = {
+  selectedHeroIdx: -1,
+  deployed: false,
+  hero: null, // runtime hero instance
+  tempTurrets: [], // for Technomancer ultimate
+  shieldWall: null, // for Warden ability
+  markedEnemies: new Set(), // for Phantom ultimate
+  abilityCd: 0,
+  ultimateCd: 0,
+  abilityActive: 0,
+  ultimateActive: 0,
+  heroHp: 0,
+  heroMaxHp: 0,
+  heroX: 0, heroY: 0,
+  heroTargetX: 0, heroTargetY: 0,
+  heroAngle: 0,
+  invuln: false,
+  reflectDmg: false,
+  deathTimer: 0, // respawn timer
+  pulseTimer: 0,
+  heroXpGained: 0,
+  // Computed from level
+  passiveStr: 0,
+  abilityDmgMult: 1,
+  abilityDurBonus: 0,
+  abilityCdBonus: 0,
+  abilityExtraBonus: 0,
+  ultDurBonus: 0,
+  ultExtraBonus: 0,
+};
+
+function getHeroLevel(heroId) {
+  const hp = heroProg[heroId];
+  if (!hp) return 1;
+  // XP curve: 100, 200, 350, 550, 800 per level
+  const thresholds = [0, 100, 300, 650, 1200, 2000];
+  for (let i = thresholds.length - 1; i >= 0; i--) {
+    if (hp.xp >= thresholds[i]) return Math.min(i + 1, 6);
+  }
+  return 1;
+}
+
+function getHeroXpForNext(heroId) {
+  const hp = heroProg[heroId];
+  if (!hp) return 100;
+  const thresholds = [0, 100, 300, 650, 1200, 2000];
+  const lvl = getHeroLevel(heroId);
+  if (lvl >= 6) return -1; // maxed
+  return thresholds[lvl] - hp.xp;
+}
+
+function addHeroXp(heroId, amount) {
+  if (!heroProg[heroId]) return;
+  const oldLvl = getHeroLevel(heroId);
+  heroProg[heroId].xp += amount;
+  const newLvl = getHeroLevel(heroId);
+  if (newLvl > oldLvl) {
+    playSound('levelup');
+    addToast('Hero Level Up! ' + HEROES.find(h=>h.id===heroId).name + ' → Lv.' + newLvl);
+    return true;
+  }
+  return false;
+}
+
+function computeHeroLevelBonuses() {
+  if (heroState.selectedHeroIdx < 0) return;
+  const hero = HEROES[heroState.selectedHeroIdx];
+  const lvl = getHeroLevel(hero.id);
+  heroState.passiveStr = 0;
+  heroState.abilityDmgMult = 1;
+  heroState.abilityDurBonus = 0;
+  heroState.abilityCdBonus = 0;
+  heroState.abilityExtraBonus = 0;
+  heroState.ultDurBonus = 0;
+  heroState.ultExtraBonus = 0;
+  let hpBonus = 0, armorBonus = 0, rangeBonus = 0;
+  for (let i = 0; i < Math.min(lvl - 1, hero.levelBonuses.length); i++) {
+    const b = hero.levelBonuses[i].apply;
+    if (b.startsWith('hp+')) hpBonus += parseFloat(b.slice(3));
+    if (b.startsWith('range+')) rangeBonus += parseFloat(b.slice(6));
+    if (b.startsWith('abilityDmg+')) heroState.abilityDmgMult += parseFloat(b.slice(11));
+    if (b.startsWith('passiveStr+')) heroState.passiveStr += parseFloat(b.slice(11));
+    if (b.startsWith('abilityDur+')) heroState.abilityDurBonus += parseFloat(b.slice(11));
+    if (b.startsWith('abilityCd-')) heroState.abilityCdBonus += parseFloat(b.slice(10));
+    if (b.startsWith('abilityExtra+')) heroState.abilityExtraBonus += parseFloat(b.slice(13));
+    if (b.startsWith('ultDur+')) heroState.ultDurBonus += parseFloat(b.slice(7));
+    if (b.startsWith('ultExtra+')) heroState.ultExtraBonus += parseFloat(b.slice(9));
+    if (b.startsWith('armor+')) armorBonus += parseFloat(b.slice(6));
+  }
+  return {hpBonus, armorBonus, rangeBonus};
+}
+
+function deployHero(pathIdx) {
+  if (heroState.selectedHeroIdx < 0) return;
+  const hero = HEROES[heroState.selectedHeroIdx];
+  const bonuses = computeHeroLevelBonuses();
+  heroState.deployed = true;
+  heroState.heroMaxHp = hero.stats.hp + (bonuses ? bonuses.hpBonus : 0);
+  heroState.heroHp = heroState.heroMaxHp;
+  heroState.abilityCd = 0;
+  heroState.ultimateCd = 0;
+  heroState.abilityActive = 0;
+  heroState.ultimateActive = 0;
+  heroState.invuln = false;
+  heroState.reflectDmg = false;
+  heroState.deathTimer = 0;
+  heroState.tempTurrets = [];
+  heroState.shieldWall = null;
+  heroState.markedEnemies = new Set();
+  heroState.pulseTimer = 0;
+  heroState.heroXpGained = 0;
+  // Place near first path entry
+  const pts = getPathPts(pathIdx || 0);
+  const startPt = pts[Math.min(2, pts.length - 1)];
+  heroState.heroX = startPt.x;
+  heroState.heroY = startPt.y;
+  heroState.heroTargetX = startPt.x;
+  heroState.heroTargetY = startPt.y;
+  heroState.heroAngle = 0;
+}
+
+function resetHeroState() {
+  heroState.deployed = false;
+  heroState.hero = null;
+  heroState.tempTurrets = [];
+  heroState.shieldWall = null;
+  heroState.markedEnemies = new Set();
+  heroState.abilityCd = 0;
+  heroState.ultimateCd = 0;
+  heroState.abilityActive = 0;
+  heroState.ultimateActive = 0;
+  heroState.invuln = false;
+  heroState.reflectDmg = false;
+  heroState.deathTimer = 0;
+}
+
+
 
 // Campaign Territories
 const TERRITORIES=[
@@ -732,6 +959,7 @@ function saveAllState() {
   saveState('achievements', [...achievements.unlocked]);
   saveState('clash', {elo: clash.elo, totalPvpWins: clash.totalPvpWins});
   saveState('swarm', {mapsCleared: swarmEnhanced.mapsCleared, hiveTitanUnlocked: swarmEnhanced.hiveTitanUnlocked});
+  saveState('heroProg', heroProg);
 }
 
 function loadAllState() {
@@ -764,6 +992,9 @@ function loadAllState() {
 
   const sw = loadState('swarm');
   if (sw) { swarmEnhanced.mapsCleared = sw.mapsCleared ?? 0; swarmEnhanced.hiveTitanUnlocked = sw.hiveTitanUnlocked ?? false; }
+
+  const hp2 = loadState('heroProg');
+  if (hp2) { for (const k in hp2) { if (heroProg[k]) Object.assign(heroProg[k], hp2[k]); } }
 }
 
 // Offense mode state
@@ -842,7 +1073,10 @@ function getBiome(){return BIOMES[MAPS[G.mapIdx].biome]||BIOMES.urban;}
 function getAvailableTowers(){const m=MAPS[G.mapIdx];if(!m.restricted||!m.restricted.length)return TT;return TT.filter(t=>!m.restricted.includes(t.id));}
 
 // Damage
-function applyDamage(e,dmg,splash,slows,disHeal,isNuke,towerTypeId){if(loadoutBonuses.luckyStrike&&Math.random()<0.1)dmg*=2;if(loadoutBonuses.reflectChance&&Math.random()<loadoutBonuses.reflectChance){const rd=Math.floor(dmg*0.2);e.hp-=rd;spawnDmgNum(e.px,e.py-5,rd,'#88ddff');}splash*=loadoutBonuses.splatMultiplier;
+function applyDamage(e,dmg,splash,slows,disHeal,isNuke,towerTypeId){if(loadoutBonuses.luckyStrike&&Math.random()<0.1)dmg*=2;
+// Hero damage bonuses
+const _hdm = getEnemyDamageMultiplier(e.id);
+if(_hdm !== 1) dmg = Math.round(dmg * _hdm);if(loadoutBonuses.reflectChance&&Math.random()<loadoutBonuses.reflectChance){const rd=Math.floor(dmg*0.2);e.hp-=rd;spawnDmgNum(e.px,e.py-5,rd,'#88ddff');}splash*=loadoutBonuses.splatMultiplier;
 const eff=Math.max(1,dmg-(e.empTimer>0?0:e.armor));e.hp-=eff;VFX.addHitFlash(e.id);
 spawnDmgNum(e.px,e.py,eff,C_DNG);
 if(slows)e.slowTimer=2.0;if(disHeal)e.healDisabled=3.0;
@@ -990,8 +1224,7 @@ function updateChains(dt){chainPool.forEach(c=>{c.life-=dt;if(c.life<=0)chainPoo
 
 function drawParticles(){particlePool.forEach(p=>{const a=Math.max(0,p.life/p.maxLife);ctx.globalAlpha=a;ctx.fillStyle=p.color;const s=p.size*a;
 if(p.shape==='circle'){ctx.beginPath();ctx.arc(p.x,p.y,s/2,0,Math.PI*2);ctx.fill();}
-else if(p.shape==='line'){ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);ctx.fillRect(-s/2,-1,s,2);// Color blind marker
-drawColorBlindMarker(ctx, x, y, s*cellSize, e.type);
+else if(p.shape==='line'){ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);ctx.fillRect(-s/2,-1,s,2);
 ctx.restore();}
 else if(p.shape==='triangle'){ctx.beginPath();ctx.moveTo(p.x,p.y-s/2);ctx.lineTo(p.x+s/2,p.y+s/2);ctx.lineTo(p.x-s/2,p.y+s/2);ctx.closePath();ctx.fill();}
 else{ctx.fillRect(p.x-s/2,p.y-s/2,s,s);}});ctx.globalAlpha=1;}
@@ -1015,6 +1248,571 @@ function drawDmgNums(){dmgNumPool.forEach(d=>{const a=Math.max(0,d.life/0.8);ctx
 function drawChains(){chainPool.forEach(c=>{const a=Math.max(0,c.life/0.2);ctx.globalAlpha=a;ctx.strokeStyle=c.color;ctx.lineWidth=2;ctx.shadowColor=c.color;ctx.shadowBlur=8;ctx.beginPath();ctx.moveTo(c.x1,c.y1);const mx=(c.x1+c.x2)/2+(Math.random()-0.5)*10,my=(c.y1+c.y2)/2+(Math.random()-0.5)*10;ctx.quadraticCurveTo(mx,my,c.x2,c.y2);ctx.stroke();ctx.shadowBlur=0;});ctx.globalAlpha=1;}
 
 // Wave spawning
+
+// === HERO BATTLEFIELD DRAWING ===
+function drawHeroOnField() {
+  if (!heroState.deployed || heroState.selectedHeroIdx < 0) return;
+  if (heroState.deathTimer > 0) {
+    // Death respawn indicator
+    const rx = W / 2, ry = topBarH + 30;
+    ctx.font = '600 10px ' + FB; ctx.textAlign = 'center';
+    ctx.fillStyle = C_DNG + '88';
+    ctx.fillText('Hero respawning: ' + Math.ceil(heroState.deathTimer) + 's', rx, ry);
+    return;
+  }
+  const hero = HEROES[heroState.selectedHeroIdx];
+  const x = heroState.heroX, y = heroState.heroY;
+  const s = hero.stats.size * cellSize;
+  const lvl = getHeroLevel(hero.id);
+
+  // Passive range circle
+  const pRange = (hero.passive.range + (computeHeroLevelBonuses()?.rangeBonus || 0)) * cellSize;
+  if (pRange > 0) {
+    ctx.globalAlpha = 0.06 + 0.02 * Math.sin(animTime * 2);
+    ctx.fillStyle = hero.color;
+    ctx.beginPath(); ctx.arc(x, y, pRange, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 0.2;
+    ctx.strokeStyle = hero.color; ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.arc(x, y, pRange, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+  }
+
+  // Invulnerability effect
+  if (heroState.invuln) {
+    ctx.strokeStyle = '#44ff88'; ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.5 + 0.3 * Math.sin(animTime * 8);
+    ctx.beginPath(); ctx.arc(x, y, s + 6, 0, Math.PI * 2); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // Hero platform glow
+  ctx.shadowColor = hero.color; ctx.shadowBlur = 12 + 4 * Math.sin(animTime * 3);
+  ctx.fillStyle = hero.color + '33';
+  ctx.beginPath(); ctx.arc(x, y, s + 4, 0, Math.PI * 2); ctx.fill();
+  ctx.shadowBlur = 0;
+
+  // Hero body shape
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(heroState.heroAngle);
+  drawHeroIcon(ctx, 0, 0, s, hero);
+
+  // Inner detail
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  ctx.beginPath(); ctx.arc(0, -s * 0.15, s * 0.25, 0, Math.PI * 2); ctx.fill();
+
+  // Level indicator ring
+  ctx.strokeStyle = hero.color; ctx.lineWidth = 2;
+  for (let i = 0; i < lvl; i++) {
+    const a = -Math.PI / 2 + i * Math.PI * 2 / 6;
+    const ae = a + Math.PI * 2 / 6 - 0.15;
+    ctx.beginPath(); ctx.arc(0, 0, s + 2, a, ae); ctx.stroke();
+  }
+  ctx.restore();
+
+  // HP bar
+  const barW = s * 2, barH = 4;
+  const barX = x - barW / 2, barY = y - s - 10;
+  const hpPct = heroState.heroHp / heroState.heroMaxHp;
+  ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(barX - 1, barY - 1, barW + 2, barH + 2);
+  ctx.fillStyle = hpPct > 0.5 ? '#44ff88' : hpPct > 0.25 ? '#ffaa22' : '#ff4466';
+  ctx.fillRect(barX, barY, barW * hpPct, barH);
+
+  // Name plate
+  ctx.font = '600 8px ' + FD; ctx.textAlign = 'center';
+  ctx.fillStyle = hero.color;
+  ctx.fillText(hero.name.split(' ').pop(), x, barY - 4);
+}
+
+function drawHeroHUD() {
+  if (heroState.selectedHeroIdx < 0 || !heroState.deployed) return;
+  const hero = HEROES[heroState.selectedHeroIdx];
+  // Draw hero ability buttons in the bottom panel area
+  const py = H - bottomBarH;
+  const bSize = 30, gap2 = 6;
+  const startX = W - bSize * 2 - gap2 * 2 - 8;
+
+  // Ability button
+  const abReady = heroState.abilityCd <= 0 && heroState.deathTimer <= 0;
+  const abX = startX, abY = py + 6;
+  ctx.fillStyle = abReady ? hero.color + '33' : 'rgba(30,30,50,0.8)';
+  ctx.strokeStyle = abReady ? hero.color : hero.color + '44';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.roundRect(abX, abY, bSize, bSize, 6); ctx.fill(); ctx.stroke();
+  if (!abReady && heroState.abilityCd > 0) {
+    const cdPct = heroState.abilityCd / (hero.ability.cd - heroState.abilityCdBonus);
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(abX + 2, abY + 2 + bSize * (1 - cdPct) - 4, bSize - 4, bSize * cdPct);
+    ctx.font = '700 9px ' + FD; ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
+    ctx.fillText(Math.ceil(heroState.abilityCd) + '', abX + bSize / 2, abY + bSize / 2 + 3);
+  } else {
+    ctx.font = '700 8px ' + FD; ctx.textAlign = 'center'; ctx.fillStyle = abReady ? hero.color : hero.color + '66';
+    ctx.fillText('Q', abX + bSize / 2, abY + bSize / 2 + 3);
+  }
+  ctx.font = '500 6px ' + FB; ctx.textAlign = 'center'; ctx.fillStyle = C_MUT;
+  ctx.fillText(hero.ability.name.split(' ')[0], abX + bSize / 2, abY + bSize + 8);
+
+  // Ultimate button
+  const ultReady = heroState.ultimateCd <= 0 && heroState.deathTimer <= 0;
+  const ultX = startX + bSize + gap2, ultY = py + 6;
+  ctx.fillStyle = ultReady ? '#ffcc00' + '33' : 'rgba(30,30,50,0.8)';
+  ctx.strokeStyle = ultReady ? '#ffcc00' : '#ffcc00' + '44';
+  ctx.lineWidth = 1.5;
+  if (ultReady) { ctx.shadowColor = '#ffcc00'; ctx.shadowBlur = 6; }
+  ctx.beginPath(); ctx.roundRect(ultX, ultY, bSize, bSize, 6); ctx.fill(); ctx.stroke();
+  ctx.shadowBlur = 0;
+  if (!ultReady && heroState.ultimateCd > 0) {
+    const ucdPct = heroState.ultimateCd / (hero.ultimate.cd);
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(ultX + 2, ultY + 2 + bSize * (1 - ucdPct) - 4, bSize - 4, bSize * ucdPct);
+    ctx.font = '700 9px ' + FD; ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
+    ctx.fillText(Math.ceil(heroState.ultimateCd) + '', ultX + bSize / 2, ultY + bSize / 2 + 3);
+  } else {
+    ctx.font = '700 8px ' + FD; ctx.textAlign = 'center'; ctx.fillStyle = ultReady ? '#ffcc00' : '#ffcc00' + '66';
+    ctx.fillText('ULT', ultX + bSize / 2, ultY + bSize / 2 + 3);
+  }
+  ctx.font = '500 6px ' + FB; ctx.textAlign = 'center'; ctx.fillStyle = C_MUT;
+  ctx.fillText('Ultimate', ultX + bSize / 2, ultY + bSize + 8);
+
+  G._btns.heroAbility = {x: abX, y: abY, w: bSize, h: bSize};
+  G._btns.heroUltimate = {x: ultX, y: ultY, w: bSize, h: bSize};
+}
+
+// Shield wall rendering
+function drawShieldWall() {
+  if (!heroState.shieldWall) return;
+  const sw = heroState.shieldWall;
+  const alpha = Math.min(1, sw.timer / 0.5);
+  ctx.globalAlpha = alpha * 0.7;
+  ctx.fillStyle = '#44ff8866';
+  ctx.strokeStyle = '#44ff88';
+  ctx.lineWidth = 2;
+  ctx.fillRect(sw.x - sw.w / 2, sw.y - sw.h / 2, sw.w, sw.h);
+  ctx.strokeRect(sw.x - sw.w / 2, sw.y - sw.h / 2, sw.w, sw.h);
+  // Pulse effect
+  const pulse = 0.5 + 0.3 * Math.sin(animTime * 4);
+  ctx.globalAlpha = alpha * pulse * 0.3;
+  ctx.strokeStyle = '#88ffbb';
+  ctx.strokeRect(sw.x - sw.w / 2 - 2, sw.y - sw.h / 2 - 2, sw.w + 4, sw.h + 4);
+  ctx.globalAlpha = 1;
+}
+
+// Temp turrets rendering
+function drawTempTurrets() {
+  for (const tt of heroState.tempTurrets) {
+    if (!tt.active) continue;
+    const x = tt.x, y = tt.y;
+    ctx.fillStyle = '#aa66ff33';
+    ctx.beginPath(); ctx.arc(x, y, cellSize * 0.3, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#aa66ff'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(x, y, cellSize * 0.25, 0, Math.PI * 2); ctx.stroke();
+    // Range
+    ctx.globalAlpha = 0.05;
+    ctx.fillStyle = '#aa66ff';
+    ctx.beginPath(); ctx.arc(x, y, tt.range * cellSize, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    // Barrel
+    ctx.save(); ctx.translate(x, y); ctx.rotate(tt.angle || 0);
+    ctx.fillStyle = '#cc88ff'; ctx.fillRect(-2, -cellSize * 0.3, 4, cellSize * 0.3);
+    ctx.restore();
+    // Timer bar
+    const pct = tt.timer / tt.maxTimer;
+    ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(x - 12, y - cellSize * 0.3 - 6, 24, 3);
+    ctx.fillStyle = '#aa66ff'; ctx.fillRect(x - 12, y - cellSize * 0.3 - 6, 24 * pct, 3);
+  }
+}
+
+// === HERO UPDATE LOGIC ===
+function updateHero(dt) {
+  if (!heroState.deployed || heroState.selectedHeroIdx < 0) return;
+  const hero = HEROES[heroState.selectedHeroIdx];
+  const sdt = dt * G.gameSpeed;
+  heroState.pulseTimer += dt;
+
+  // Respawn timer
+  if (heroState.deathTimer > 0) {
+    heroState.deathTimer -= dt;
+    if (heroState.deathTimer <= 0) {
+      heroState.heroHp = heroState.heroMaxHp;
+      const pts = getPathPts(0);
+      const sp = pts[Math.min(2, pts.length - 1)];
+      heroState.heroX = sp.x; heroState.heroY = sp.y;
+      addToast('Hero respawned!');
+    }
+    return;
+  }
+
+  // Ability cooldowns
+  if (heroState.abilityCd > 0) heroState.abilityCd -= dt;
+  if (heroState.ultimateCd > 0) heroState.ultimateCd -= dt;
+  if (heroState.abilityActive > 0) heroState.abilityActive -= dt;
+  if (heroState.ultimateActive > 0) {
+    heroState.ultimateActive -= dt;
+    if (heroState.ultimateActive <= 0) {
+      heroState.invuln = false;
+      heroState.reflectDmg = false;
+      heroState.markedEnemies.clear();
+    }
+  }
+
+  // Move hero toward target
+  const dx = heroState.heroTargetX - heroState.heroX;
+  const dy = heroState.heroTargetY - heroState.heroY;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  if (dist > 3) {
+    const spd = hero.stats.speed * cellSize * sdt;
+    heroState.heroX += (dx / dist) * Math.min(spd, dist);
+    heroState.heroY += (dy / dist) * Math.min(spd, dist);
+    heroState.heroAngle = Math.atan2(dy, dx) + Math.PI / 2;
+  }
+
+  // Auto-move toward nearest enemy cluster
+  if (G.phase === 'wave' && G.enemies.length > 0) {
+    let nearest = null, nearDist = Infinity;
+    for (const e of G.enemies) {
+      if (!e.alive) continue;
+      const ed = Math.sqrt((e.px - heroState.heroX) ** 2 + (e.py - heroState.heroY) ** 2);
+      if (ed < nearDist) { nearDist = ed; nearest = e; }
+    }
+    if (nearest && nearDist > hero.passive.range * cellSize * 0.8) {
+      heroState.heroTargetX = nearest.px;
+      heroState.heroTargetY = nearest.py;
+    }
+  }
+
+  // Passive effects
+  applyHeroPassive(hero, sdt);
+
+  // Shield wall timer
+  if (heroState.shieldWall) {
+    heroState.shieldWall.timer -= dt;
+    if (heroState.shieldWall.timer <= 0) heroState.shieldWall = null;
+  }
+
+  // Temp turrets
+  for (const tt of heroState.tempTurrets) {
+    if (!tt.active) continue;
+    tt.timer -= dt;
+    if (tt.timer <= 0) { tt.active = false; continue; }
+    tt.cd -= sdt;
+    if (tt.cd <= 0) {
+      // Fire at nearest enemy
+      let target = null, tDist = Infinity;
+      for (const e of G.enemies) {
+        if (!e.alive) continue;
+        const d2 = Math.sqrt((e.px - tt.x) ** 2 + (e.py - tt.y) ** 2);
+        if (d2 < tt.range * cellSize && d2 < tDist) { tDist = d2; target = e; }
+      }
+      if (target) {
+        tt.angle = Math.atan2(target.py - tt.y, target.px - tt.x);
+        applyDamage(target, 25, 0, false, false, false, 'sentinel');
+        spawnProjectile(tt.x, tt.y, target.px, target.py, '#aa66ff');
+        tt.cd = 0.4;
+      }
+    }
+  }
+  heroState.tempTurrets = heroState.tempTurrets.filter(t => t.active);
+
+  // Hero takes damage from nearby enemies
+  if (G.phase === 'wave') {
+    for (const e of G.enemies) {
+      if (!e.alive) continue;
+      const ed = Math.sqrt((e.px - heroState.heroX) ** 2 + (e.py - heroState.heroY) ** 2);
+      if (ed < cellSize * 0.8) {
+        if (heroState.invuln) {
+          // Reflect damage back
+          if (heroState.reflectDmg) {
+            const reflDmg = 20 * (1 + heroState.ultExtraBonus);
+            e.hp -= reflDmg;
+            spawnDmgNum(e.px, e.py, reflDmg, '#44ff88');
+            if (e.hp <= 0 && e.alive) killEnemy(e, 'hero');
+          }
+          continue;
+        }
+        const dmg = Math.max(1, 5 - hero.stats.armor);
+        heroState.heroHp -= dmg * sdt * 3;
+        if (heroState.heroHp <= 0) {
+          heroState.heroHp = 0;
+          heroState.deathTimer = 15; // 15s respawn
+          addToast('Hero down! Respawning in 15s...');
+          emitP(heroState.heroX, heroState.heroY, 30, hero.color, 150, 1.0, 6);
+          playSound('explosion');
+        }
+      }
+    }
+  }
+}
+
+function applyHeroPassive(hero, sdt) {
+  const bonuses = computeHeroLevelBonuses();
+  const pRange = (hero.passive.range + (bonuses?.rangeBonus || 0)) * cellSize;
+
+  switch (hero.id) {
+    case 'vanguard':
+      // Towers in range deal +15% (+passiveStr) damage — handled in applyDamage via heroBonus
+      break;
+    case 'technomancer':
+      // Cost reduction handled at purchase time
+      break;
+    case 'warden':
+      // Slow enemies in range
+      for (const e of G.enemies) {
+        if (!e.alive) continue;
+        const ed = Math.sqrt((e.px - heroState.heroX) ** 2 + (e.py - heroState.heroY) ** 2);
+        if (ed < pRange) {
+          e.slowTimer = Math.max(e.slowTimer || 0, 0.5);
+        }
+      }
+      break;
+    case 'phantom':
+      // Mark strongest enemy for extra damage — handled in applyDamage
+      if (G.enemies.length > 0) {
+        let strongest = null, maxHp = 0;
+        for (const e of G.enemies) {
+          if (!e.alive) continue;
+          const ed = Math.sqrt((e.px - heroState.heroX) ** 2 + (e.py - heroState.heroY) ** 2);
+          if (ed < pRange && e.hp > maxHp) { maxHp = e.hp; strongest = e; }
+        }
+        heroState._phantomTarget = strongest ? strongest.id : -1;
+      }
+      break;
+    case 'oracle':
+      // Generate Nexium
+      const nexGen = 2 + heroState.passiveStr;
+      G.nexium += nexGen * sdt;
+      G.totalNexEarned += nexGen * sdt;
+      break;
+  }
+}
+
+function useHeroAbility() {
+  if (heroState.selectedHeroIdx < 0 || !heroState.deployed) return;
+  if (heroState.abilityCd > 0 || heroState.deathTimer > 0) { playSound('error'); return; }
+  const hero = HEROES[heroState.selectedHeroIdx];
+  const ab = hero.ability;
+
+  switch (hero.id) {
+    case 'vanguard': {
+      // Orbital Barrage — 5 explosions near hero
+      const cx = heroState.heroX, cy = heroState.heroY;
+      for (let i = 0; i < ab.hits; i++) {
+        setTimeout(() => {
+          const ox = cx + (Math.random() - 0.5) * ab.radius * cellSize * 2;
+          const oy = cy + (Math.random() - 0.5) * ab.radius * cellSize * 2;
+          for (const e of G.enemies) {
+            if (!e.alive) continue;
+            const d = Math.sqrt((e.px - ox) ** 2 + (e.py - oy) ** 2);
+            if (d < cellSize * 1.5) {
+              const dmg = Math.round(ab.damage * heroState.abilityDmgMult);
+              e.hp -= dmg;
+              spawnDmgNum(e.px, e.py, dmg, '#00ccff');
+              if (e.hp <= 0 && e.alive) killEnemy(e, 'hero');
+            }
+          }
+          emitP(ox, oy, 20, '#00ccff', 120, 0.8, 5);
+          VFX.addDeathRing(ox, oy, '#00ccff', cellSize * 2);
+          if (i === 0) playSound('orbital');
+        }, i * 200);
+      }
+      break;
+    }
+    case 'technomancer': {
+      // Overclock Pulse — towers in range fire faster
+      heroState.abilityActive = ab.dur + heroState.abilityDurBonus;
+      playSound('ability');
+      addToast('Overclock active!');
+      break;
+    }
+    case 'warden': {
+      // Shield Wall — place a wall on nearest path cell
+      const nearPath = findNearestPathPoint(heroState.heroX, heroState.heroY);
+      if (nearPath) {
+        heroState.shieldWall = {
+          x: nearPath.x, y: nearPath.y,
+          w: cellSize * 1.5, h: cellSize * 0.5,
+          timer: ab.dur + heroState.abilityDurBonus
+        };
+        playSound('place');
+        addToast('Shield Wall deployed!');
+      }
+      break;
+    }
+    case 'phantom': {
+      // Shadow Strike — teleport to strongest enemy, deal damage
+      let target = null, maxHp = 0;
+      for (const e of G.enemies) {
+        if (!e.alive) continue;
+        if (e.hp > maxHp) { maxHp = e.hp; target = e; }
+      }
+      if (target) {
+        heroState.heroX = target.px + 15;
+        heroState.heroY = target.py;
+        heroState.heroTargetX = heroState.heroX;
+        heroState.heroTargetY = heroState.heroY;
+        const dmg = Math.round(ab.damage * heroState.abilityDmgMult);
+        target.hp -= dmg;
+        spawnDmgNum(target.px, target.py, dmg, '#ff4466');
+        emitP(target.px, target.py, 15, '#ff4466', 100, 0.6, 4);
+        if (target.hp <= 0 && target.alive) killEnemy(target, 'hero');
+        playSound('phase');
+        addToast('Shadow Strike!');
+      }
+      break;
+    }
+    case 'oracle': {
+      // Restoration Wave — heal lives and hero
+      const livesBack = ab.livesRestore + heroState.abilityExtraBonus;
+      G.lives = Math.min(G.maxLives, G.lives + livesBack);
+      heroState.heroHp = heroState.heroMaxHp;
+      emitP(heroState.heroX, heroState.heroY, 25, '#ffcc00', 100, 0.8, 6);
+      playSound('ability');
+      addToast('+' + livesBack + ' lives restored!');
+      break;
+    }
+  }
+  heroState.abilityCd = ab.cd - heroState.abilityCdBonus;
+  playSound('ability');
+}
+
+function useHeroUltimate() {
+  if (heroState.selectedHeroIdx < 0 || !heroState.deployed) return;
+  if (heroState.ultimateCd > 0 || heroState.deathTimer > 0) { playSound('error'); return; }
+  const hero = HEROES[heroState.selectedHeroIdx];
+  const ult = hero.ultimate;
+
+  switch (hero.id) {
+    case 'vanguard':
+      heroState.ultimateActive = ult.dur + heroState.ultDurBonus;
+      playSound('orbital');
+      addToast('TOTAL WAR! All towers empowered!');
+      break;
+    case 'technomancer': {
+      const count = ult.turretCount + heroState.ultExtraBonus;
+      for (let i = 0; i < count; i++) {
+        const angle = (i / count) * Math.PI * 2;
+        const tx = heroState.heroX + Math.cos(angle) * cellSize * 2;
+        const ty = heroState.heroY + Math.sin(angle) * cellSize * 2;
+        heroState.tempTurrets.push({
+          x: tx, y: ty, active: true, cd: 0, range: 3, angle: 0,
+          timer: ult.dur + heroState.ultDurBonus, maxTimer: ult.dur + heroState.ultDurBonus
+        });
+      }
+      playSound('ability');
+      addToast('Tech Singularity! Auto-turrets deployed!');
+      break;
+    }
+    case 'warden':
+      heroState.invuln = true;
+      heroState.reflectDmg = true;
+      heroState.ultimateActive = ult.dur + heroState.ultDurBonus;
+      playSound('ability');
+      addToast('Citadel Protocol! Invulnerable + reflect!');
+      break;
+    case 'phantom':
+      heroState.ultimateActive = ult.dur + heroState.ultDurBonus;
+      for (const e of G.enemies) {
+        if (e.alive) heroState.markedEnemies.add(e.id);
+      }
+      playSound('ability');
+      addToast('Death Sentence! All enemies marked!');
+      break;
+    case 'oracle':
+      heroState.ultimateActive = ult.dur + heroState.ultDurBonus;
+      playSound('ability');
+      addToast('Prophecy! Enemies weakened and slowed!');
+      break;
+  }
+  heroState.ultimateCd = ult.cd;
+}
+
+function findNearestPathPoint(x, y) {
+  let best = null, bestD = Infinity;
+  for (let pi = 0; pi < currentPaths.length; pi++) {
+    const pts = getPathPts(pi);
+    for (const p of pts) {
+      const d = Math.sqrt((p.x - x) ** 2 + (p.y - y) ** 2);
+      if (d < bestD) { bestD = d; best = p; }
+    }
+  }
+  return best;
+}
+
+function getHeroDamageBonus(towerX, towerY) {
+  if (heroState.selectedHeroIdx < 0 || !heroState.deployed || heroState.deathTimer > 0) return 1;
+  const hero = HEROES[heroState.selectedHeroIdx];
+  let mult = 1;
+
+  // Vanguard passive: towers in range deal more damage
+  if (hero.id === 'vanguard') {
+    const bonuses = computeHeroLevelBonuses();
+    const pRange = (hero.passive.range + (bonuses?.rangeBonus || 0)) * cellSize;
+    const d = Math.sqrt((towerX - heroState.heroX) ** 2 + (towerY - heroState.heroY) ** 2);
+    if (d < pRange) mult *= 1.15 + heroState.passiveStr;
+  }
+
+  // Vanguard ultimate: all towers fire 2x
+  if (hero.id === 'vanguard' && heroState.ultimateActive > 0) mult *= 2;
+
+  // Phantom mark: target enemy takes extra damage
+  // (handled via enemy-side check)
+
+  // Oracle ultimate: all enemies take 50% more damage (handled via enemy check)
+  return mult;
+}
+
+function getHeroFireRateBonus(towerX, towerY) {
+  if (heroState.selectedHeroIdx < 0 || !heroState.deployed || heroState.deathTimer > 0) return 1;
+  const hero = HEROES[heroState.selectedHeroIdx];
+  let mult = 1;
+  // Technomancer overclock
+  if (hero.id === 'technomancer' && heroState.abilityActive > 0) {
+    const bonuses = computeHeroLevelBonuses();
+    const pRange = (hero.passive.range + (bonuses?.rangeBonus || 0)) * cellSize;
+    const d = Math.sqrt((towerX - heroState.heroX) ** 2 + (towerY - heroState.heroY) ** 2);
+    if (d < pRange) mult *= 0.5; // 50% faster = half cooldown
+  }
+  // Vanguard ultimate
+  if (hero.id === 'vanguard' && heroState.ultimateActive > 0) mult *= 0.5;
+  return mult;
+}
+
+function getEnemyDamageMultiplier(enemyId) {
+  if (heroState.selectedHeroIdx < 0 || !heroState.deployed || heroState.deathTimer > 0) return 1;
+  const hero = HEROES[heroState.selectedHeroIdx];
+  let mult = 1;
+  // Phantom passive: marked target takes 25% more
+  if (hero.id === 'phantom' && heroState._phantomTarget === enemyId) {
+    mult *= 1.25 + heroState.passiveStr;
+  }
+  // Phantom ultimate: all marked take 3x
+  if (hero.id === 'phantom' && heroState.ultimateActive > 0 && heroState.markedEnemies.has(enemyId)) {
+    mult *= 3;
+  }
+  // Oracle ultimate: all take 50% more, move 30% slower
+  if (hero.id === 'oracle' && heroState.ultimateActive > 0) {
+    mult *= 1.5;
+  }
+  return mult;
+}
+
+function getEnemySpeedMultiplier(enemy) {
+  if (heroState.selectedHeroIdx < 0 || !heroState.deployed || heroState.deathTimer > 0) return 1;
+  const hero = HEROES[heroState.selectedHeroIdx];
+  // Oracle ultimate slows all enemies
+  if (hero.id === 'oracle' && heroState.ultimateActive > 0) return 0.7;
+  return 1;
+}
+
+
+function spawnProjectile(sx, sy, tx, ty, color) {
+  const p = projectilePool.pool.find(p => !p.active);
+  if (!p) return;
+  p.active = true; p.x = sx; p.y = sy; p.tx = tx; p.ty = ty;
+  p.color = color || '#ffffff'; p.timer = 0.3;
+}
+
 function startWave(){
 if(allied.active){startAlliedWave();return;}
 if(clash.active&&clash.phase==='defend'&&clash._clashWaves){
@@ -1196,7 +1994,7 @@ function drawBottomPanel(){const py=H-bottomBarH;ctx.fillStyle=C_SUR;ctx.fillRec
 if(G.showTowerInfo&&G.towerInfoIdx>=0&&G.towerInfoIdx<G.towers.length)drawTowerInfoPanel(py);
 else if(G.phase==='build')drawBuildPanel(py);
 else if(G.phase==='wave')drawWavePanel(py);
-if(G.phase==='build'||G.phase==='wave')drawGlobalAbilities(py);}
+if(G.phase==='build'||G.phase==='wave')drawGlobalAbilities(py);drawHeroHUD();}
 
 function drawGlobalAbilities(py){const bs=36,gap=8,sx=8,by=py+bottomBarH-bs-8;
 const abs=[{n:'💥',l:'Strike',cd:G.orbitalCD,mcd:60,ac:G.orbitalTargeting},{n:'⚡',l:'Surge',cd:G.chronoCD,mcd:90,ac:G.chronoActive>0},{n:'🔧',l:'Repair',cd:G.repairCD,mcd:120,ac:false}];
@@ -2403,7 +3201,7 @@ startAmbient(mapRef.biome);}
 
 function drawClashAttack(){
 drawMap();if(!settings.reduceMotion)VFX.drawTrails(ctx);
-for(const t of G.towers)drawTower(t);for(const e of G.enemies)if(e.alive)drawEnemy(e);
+for(const t of G.towers)drawTower(t);for(const e of G.enemies)if(e.alive)drawEnemy(e);drawHeroOnField();drawShieldWall();drawTempTurrets();
 drawProjectiles();drawChains();if(!settings.reduceMotion)VFX.drawDeathRings(ctx);drawParticles();drawDmgNums();
 // HUD
 ctx.fillStyle='rgba(10,14,26,0.9)';ctx.fillRect(0,0,W,44);
@@ -2715,6 +3513,7 @@ let menuItems=[
 {label:'SWARM COMMANDER',key:'menuOffense',color:'#ff4466',icon:'🐛'},
 {label:'ALLIED DEFENSE',key:'menuAllied',color:'#00dddd',icon:'👥'},
 {label:'SECTOR CLASH',key:'menuClash',color:'#ffcc00',icon:'⚡'},
+{label:'HEROES',key:'menuHeroes',color:'#ff8844',icon:'⚔',glow:true},
 {label:'LOADOUT',key:'menuLoadout',color:'#aa66ff',icon:'🃏'},
 {label:'PROFILE',key:'menuProfile',color:'#88aacc',icon:'👤'},
 {label:'SETTINGS',key:'menuSettings',color:'#88aacc',icon:'⚙'},
@@ -2728,7 +3527,7 @@ const startY=H*0.22;
 for(let i=0;i<menuItems.length;i++){
 const mi=menuItems[i];const by=startY+i*(bh+gap);
 const bx=W/2-bw/2;
-const isNew=mi.key==='menuAllied'||mi.key==='menuClash';
+const isNew=mi.key==='menuAllied'||mi.key==='menuClash'||mi.key==='menuHeroes';
 const isTut=mi.key==='menuTutorial';
 const isGameMode=i<6;
 // Button background with gradient
@@ -2756,6 +3555,257 @@ G._btns[mi.key]={x:bx,y:by,w:bw,h:bh};}
 // Commander level indicator at bottom
 ctx.font='500 10px '+FB;ctx.textAlign='center';ctx.fillStyle='rgba(104,128,160,0.4)';
 ctx.fillText('Commander Level '+prog.level,W/2,H*0.94);
+}
+
+
+// === HERO SELECTION SCREEN ===
+function drawHeroSelect() {
+  ctx.fillStyle = C_BG; ctx.fillRect(0, 0, W, H);
+  // Starfield
+  ctx.globalAlpha = 0.3;
+  for (let i = 0; i < 40; i++) {
+    const sx = ((i * 137) % W), sy = ((i * 211 + animTime * 5) % H);
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(sx, sy, 1, 1);
+  }
+  ctx.globalAlpha = 1;
+
+  // Title
+  const ts = Math.min(22, W * 0.055);
+  ctx.font = '800 ' + ts + 'px ' + FD; ctx.textAlign = 'center';
+  ctx.fillStyle = C_ACC; ctx.shadowColor = C_ACC; ctx.shadowBlur = 10;
+  ctx.fillText('SELECT HERO', W / 2, safeTop + 36);
+  ctx.shadowBlur = 0;
+  ctx.font = '500 ' + Math.min(10, W * 0.025) + 'px ' + FB;
+  ctx.fillStyle = C_MUT;
+  ctx.fillText('Choose a commander for this battle', W / 2, safeTop + 52);
+
+  // Hero cards
+  const cw = Math.min(W * 0.88, 320), ch = 58;
+  const gap = 6;
+  const startY = safeTop + 68;
+  G._btns.heroCards = [];
+  G._btns.heroNone = null;
+
+  for (let i = 0; i < HEROES.length; i++) {
+    const h = HEROES[i];
+    const cy = startY + i * (ch + gap);
+    const cx = (W - cw) / 2;
+    const lvl = getHeroLevel(h.id);
+    const isSelected = heroState.selectedHeroIdx === i;
+
+    // Card background
+    const cg = ctx.createLinearGradient(cx, cy, cx + cw, cy);
+    cg.addColorStop(0, 'rgba(10,20,40,0.92)');
+    cg.addColorStop(1, 'rgba(15,25,50,0.92)');
+    ctx.fillStyle = cg;
+    ctx.strokeStyle = isSelected ? h.color : h.color + '44';
+    ctx.lineWidth = isSelected ? 2 : 1;
+    if (isSelected) { ctx.shadowColor = h.color; ctx.shadowBlur = 8; }
+    ctx.beginPath(); ctx.roundRect(cx, cy, cw, ch, 8); ctx.fill(); ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Left color accent
+    ctx.fillStyle = h.color; ctx.globalAlpha = 0.7;
+    ctx.beginPath(); ctx.roundRect(cx + 2, cy + ch * 0.15, 3, ch * 0.7, 2); ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Hero icon circle
+    const iconR = 18;
+    const iconX = cx + 28, iconY = cy + ch / 2;
+    ctx.fillStyle = h.color + '22';
+    ctx.beginPath(); ctx.arc(iconX, iconY, iconR, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = h.color + '66'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(iconX, iconY, iconR, 0, Math.PI * 2); ctx.stroke();
+    // Draw hero shape
+    drawHeroIcon(ctx, iconX, iconY, iconR * 0.6, h);
+
+    // Name + title
+    ctx.textAlign = 'left';
+    ctx.font = '700 ' + Math.min(13, W * 0.033) + 'px ' + FD;
+    ctx.fillStyle = h.color;
+    ctx.fillText(h.name, cx + 52, cy + 20);
+    ctx.font = '500 ' + Math.min(9, W * 0.023) + 'px ' + FB;
+    ctx.fillStyle = C_MUT;
+    ctx.fillText(h.title + '  •  Lv.' + lvl, cx + 52, cy + 33);
+
+    // Passive description
+    ctx.font = '400 ' + Math.min(8, W * 0.02) + 'px ' + FB;
+    ctx.fillStyle = 'rgba(160,190,220,0.7)';
+    ctx.fillText(h.passive.name + ': ' + h.passive.desc, cx + 52, cy + 48);
+
+    // Level pips
+    const pipX = cx + cw - 40;
+    for (let p = 0; p < 5; p++) {
+      ctx.fillStyle = p < lvl - 1 ? h.color : h.color + '33';
+      ctx.beginPath(); ctx.arc(pipX + p * 8, cy + ch / 2, 2.5, 0, Math.PI * 2); ctx.fill();
+    }
+
+    G._btns.heroCards.push({x: cx, y: cy, w: cw, h: ch, idx: i});
+  }
+
+  // "No Hero" option
+  const noneY = startY + HEROES.length * (ch + gap) + 4;
+  const noneCx = (W - cw) / 2;
+  ctx.fillStyle = heroState.selectedHeroIdx === -1 ? 'rgba(30,40,60,0.9)' : 'rgba(15,20,35,0.8)';
+  ctx.strokeStyle = heroState.selectedHeroIdx === -1 ? C_MUT : 'rgba(100,128,160,0.3)';
+  ctx.lineWidth = heroState.selectedHeroIdx === -1 ? 2 : 1;
+  ctx.beginPath(); ctx.roundRect(noneCx, noneY, cw, 32, 6); ctx.fill(); ctx.stroke();
+  ctx.font = '600 ' + Math.min(11, W * 0.028) + 'px ' + FD;
+  ctx.textAlign = 'center'; ctx.fillStyle = C_MUT;
+  ctx.fillText('NO HERO — Classic Mode', W / 2, noneY + 20);
+  G._btns.heroNone = {x: noneCx, y: noneY, w: cw, h: 32};
+
+  // Deploy button
+  const btnW = Math.min(200, W * 0.5), btnH = 38;
+  const btnX = (W - btnW) / 2, btnY = noneY + 50;
+  const hasHero = heroState.selectedHeroIdx >= 0;
+  const btnLabel = hasHero ? 'DEPLOY ' + HEROES[heroState.selectedHeroIdx].name.split(' ').pop().toUpperCase() : 'START WITHOUT HERO';
+  const btnColor = hasHero ? HEROES[heroState.selectedHeroIdx].color : C_ACC;
+  ctx.fillStyle = 'rgba(10,20,40,0.9)';
+  ctx.strokeStyle = btnColor; ctx.lineWidth = 2;
+  ctx.shadowColor = btnColor; ctx.shadowBlur = 10;
+  ctx.beginPath(); ctx.roundRect(btnX, btnY, btnW, btnH, 8); ctx.fill(); ctx.stroke();
+  ctx.shadowBlur = 0;
+  ctx.font = '700 ' + Math.min(13, W * 0.033) + 'px ' + FD;
+  ctx.fillStyle = btnColor; ctx.textAlign = 'center';
+  ctx.fillText(btnLabel, W / 2, btnY + btnH / 2 + 4);
+  G._btns.heroDeploy = {x: btnX, y: btnY, w: btnW, h: btnH};
+
+  // Back button
+  const bbw = 60, bbh = 28;
+  ctx.fillStyle = 'rgba(20,30,50,0.8)'; ctx.strokeStyle = C_MUT + '44'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.roundRect(10, safeTop + 10, bbw, bbh, 6); ctx.fill(); ctx.stroke();
+  ctx.font = '600 10px ' + FD; ctx.textAlign = 'center'; ctx.fillStyle = C_MUT;
+  ctx.fillText('← BACK', 10 + bbw / 2, safeTop + 10 + bbh / 2 + 3);
+  G._btns.heroBack = {x: 10, y: safeTop + 10, w: bbw, h: bbh};
+}
+
+function drawHeroIcon(ctx2, x, y, r, hero) {
+  ctx2.save();
+  ctx2.fillStyle = hero.color;
+  ctx2.strokeStyle = hero.color;
+  ctx2.lineWidth = 1.5;
+  if (hero.shape === 'shield') {
+    ctx2.beginPath();
+    ctx2.moveTo(x, y - r); ctx2.lineTo(x + r, y - r * 0.4); ctx2.lineTo(x + r * 0.7, y + r);
+    ctx2.lineTo(x, y + r * 0.6); ctx2.lineTo(x - r * 0.7, y + r); ctx2.lineTo(x - r, y - r * 0.4);
+    ctx2.closePath(); ctx2.fill();
+  } else if (hero.shape === 'diamond') {
+    ctx2.beginPath();
+    ctx2.moveTo(x, y - r); ctx2.lineTo(x + r, y); ctx2.lineTo(x, y + r); ctx2.lineTo(x - r, y);
+    ctx2.closePath(); ctx2.fill();
+  } else if (hero.shape === 'hexagon') {
+    ctx2.beginPath();
+    for (let a = 0; a < 6; a++) {
+      const ang = Math.PI / 6 + a * Math.PI / 3;
+      ctx2.lineTo(x + Math.cos(ang) * r, y + Math.sin(ang) * r);
+    }
+    ctx2.closePath(); ctx2.fill();
+  } else if (hero.shape === 'triangle') {
+    ctx2.beginPath();
+    ctx2.moveTo(x, y - r); ctx2.lineTo(x + r * 0.87, y + r * 0.5); ctx2.lineTo(x - r * 0.87, y + r * 0.5);
+    ctx2.closePath(); ctx2.fill();
+  } else if (hero.shape === 'star') {
+    ctx2.beginPath();
+    for (let a = 0; a < 5; a++) {
+      const ang = -Math.PI / 2 + a * Math.PI * 2 / 5;
+      ctx2.lineTo(x + Math.cos(ang) * r, y + Math.sin(ang) * r);
+      const inner = -Math.PI / 2 + (a + 0.5) * Math.PI * 2 / 5;
+      ctx2.lineTo(x + Math.cos(inner) * r * 0.4, y + Math.sin(inner) * r * 0.4);
+    }
+    ctx2.closePath(); ctx2.fill();
+  }
+  ctx2.restore();
+}
+
+
+// === HERO ROSTER SCREEN (from menu) ===
+function drawHeroRoster() {
+  ctx.fillStyle = C_BG; ctx.fillRect(0, 0, W, H);
+  // Starfield
+  ctx.globalAlpha = 0.3;
+  for (let i = 0; i < 40; i++) {
+    const sx = ((i * 137) % W), sy = ((i * 211 + animTime * 5) % H);
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(sx, sy, 1, 1);
+  }
+  ctx.globalAlpha = 1;
+  const ts = Math.min(22, W * 0.055);
+  ctx.font = '800 ' + ts + 'px ' + FD; ctx.textAlign = 'center';
+  ctx.fillStyle = '#ff8844'; ctx.shadowColor = '#ff8844'; ctx.shadowBlur = 10;
+  ctx.fillText('HERO ROSTER', W / 2, safeTop + 36);
+  ctx.shadowBlur = 0;
+
+  const cw = Math.min(W * 0.9, 340), ch = 78;
+  const gap = 8, startY = safeTop + 56;
+  G._btns.rosterCards = [];
+
+  for (let i = 0; i < HEROES.length; i++) {
+    const h = HEROES[i];
+    const cy = startY + i * (ch + gap);
+    const cx = (W - cw) / 2;
+    const lvl = getHeroLevel(h.id);
+    const hp = heroProg[h.id];
+    const xpNeeded = getHeroXpForNext(h.id);
+
+    // Card
+    ctx.fillStyle = 'rgba(10,20,40,0.92)';
+    ctx.strokeStyle = h.color + '66'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(cx, cy, cw, ch, 8); ctx.fill(); ctx.stroke();
+
+    // Left accent
+    ctx.fillStyle = h.color; ctx.globalAlpha = 0.7;
+    ctx.beginPath(); ctx.roundRect(cx + 2, cy + ch * 0.1, 3, ch * 0.8, 2); ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Icon
+    drawHeroIcon(ctx, cx + 28, cy + 28, 14, h);
+
+    // Name + level
+    ctx.textAlign = 'left';
+    ctx.font = '700 ' + Math.min(13, W * 0.033) + 'px ' + FD;
+    ctx.fillStyle = h.color;
+    ctx.fillText(h.name, cx + 50, cy + 18);
+    ctx.font = '500 ' + Math.min(9, W * 0.023) + 'px ' + FB;
+    ctx.fillStyle = C_MUT;
+    ctx.fillText(h.title + '  |  Level ' + lvl + '/6', cx + 50, cy + 31);
+
+    // XP bar
+    const barX = cx + 50, barY = cy + 38, barW = cw - 65, barH = 5;
+    ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.fillRect(barX, barY, barW, barH);
+    if (xpNeeded > 0) {
+      const thresholds = [0, 100, 300, 650, 1200, 2000];
+      const prevThresh = thresholds[lvl - 1];
+      const nextThresh = thresholds[lvl];
+      const curInLevel = hp.xp - prevThresh;
+      const levelRange = nextThresh - prevThresh;
+      const pct = Math.min(1, curInLevel / levelRange);
+      ctx.fillStyle = h.color;
+      ctx.fillRect(barX, barY, barW * pct, barH);
+    } else {
+      ctx.fillStyle = h.color; ctx.fillRect(barX, barY, barW, barH);
+    }
+    ctx.font = '400 7px ' + FB; ctx.fillStyle = C_MUT;
+    ctx.fillText(xpNeeded > 0 ? hp.xp + ' XP  (need ' + xpNeeded + ' more)' : 'MAX LEVEL', barX, barY + 13);
+
+    // Stats
+    ctx.font = '400 8px ' + FB; ctx.fillStyle = 'rgba(160,190,220,0.7)';
+    ctx.fillText('Matches: ' + hp.matchesPlayed + '  |  Kills: ' + hp.totalKills, cx + 50, cy + 66);
+
+    // Ability + passive preview
+    ctx.textAlign = 'right'; ctx.font = '500 7px ' + FD; ctx.fillStyle = h.color + 'aa';
+    ctx.fillText(h.ability.name, cx + cw - 8, cy + 18);
+    ctx.font = '400 7px ' + FB; ctx.fillStyle = C_MUT;
+    ctx.fillText(h.passive.desc.substring(0, 30), cx + cw - 8, cy + 30);
+    ctx.textAlign = 'left';
+  }
+
+  // Back button
+  const bbw = 60, bbh = 28;
+  ctx.fillStyle = 'rgba(20,30,50,0.8)'; ctx.strokeStyle = C_MUT + '44'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.roundRect(10, safeTop + 10, bbw, bbh, 6); ctx.fill(); ctx.stroke();
+  ctx.font = '600 10px ' + FD; ctx.textAlign = 'center'; ctx.fillStyle = C_MUT;
+  ctx.fillText('← BACK', 10 + bbw / 2, safeTop + 10 + bbh / 2 + 3);
+  G._btns.rosterBack = {x: 10, y: safeTop + 10, w: bbw, h: bbh};
 }
 
 // === SPLASH SCREEN ===
@@ -2798,7 +3848,7 @@ if(splashActive&&settings.reduceMotion){splashActive=false;G.phase='menu';Music.
 if(splashActive){drawSplashScreen();return;}
 // Auto-manage music based on phase
 if(audioCtx&&audioEnabled){
-const menuPhases=['menu','mapSelect','diffSelect','biomeSelect','howToPlay','profile','loadout','settings','achievements','offenseMapSelect','campaignMap'];
+const menuPhases=['menu','mapSelect','diffSelect','biomeSelect','howToPlay','profile','loadout','settings','achievements','offenseMapSelect','campaignMap','heroSelect','heroRoster'];
 const isMenu=menuPhases.includes(G.phase);
 if(isMenu&&Music.currentTrack!=='menu'){Music.play('menu');}
 else if(!isMenu&&G.phase!=='paused'&&Music.currentTrack==='menu'&&ambientBiome){Music.play(ambientBiome);}
@@ -2819,6 +3869,8 @@ else if(G.phase==='offenseResult')drawOffenseResult();
 else if(G.phase==='loadout')drawLoadoutScreen();
 else if(G.phase==='profile')drawProfileScreenV2();
 else if(G.phase==='howToPlay')drawHowToPlay();
+else if(G.phase==='heroSelect')drawHeroSelect();
+else if(G.phase==='heroRoster')drawHeroRoster();
 else if(G.phase==='settings')drawSettingsScreen();
 else if(G.phase==='mapSelect')drawMapSelect();
 else if(G.phase==='diffSelect')drawDiffSelect();
@@ -2827,7 +3879,7 @@ else if(G.phase==='offenseGame'){drawOffenseGame();}
 else{
 drawMap();if(G.showTowerInfo)drawRangeIndicator();drawPlacementAnims();
 if(!settings.reduceMotion)VFX.drawTrails(ctx);
-for(const t of G.towers)drawTower(t);for(const e of G.enemies)if(e.alive)drawEnemy(e);
+for(const t of G.towers)drawTower(t);for(const e of G.enemies)if(e.alive)drawEnemy(e);drawHeroOnField();drawShieldWall();drawTempTurrets();
 drawProjectiles();drawChains();if(!settings.reduceMotion)VFX.drawDeathRings(ctx);drawParticles();drawDmgNums();drawHUD();drawBottomPanel();drawMinimap();
 // Vignette
 ctx.globalAlpha=VFX.vignetteAlpha;const vg=ctx.createRadialGradient(W/2,H/2,W*0.3,W/2,H/2,W*0.8);vg.addColorStop(0,'transparent');vg.addColorStop(1,'rgba(0,0,0,0.6)');ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);ctx.globalAlpha=1;
@@ -2864,7 +3916,7 @@ if(VFX.waveFlash>0)VFX.waveFlash-=dt*3;if(VFX.lowHealthPulse>0)VFX.lowHealthPuls
 if(splashActive){splashTimer+=dt;if(splashTimer>2.5)splashActive=false;return;}
 // Tutorial: auto-advance from waveSummary to build (skip wave summary screen)
 if(TUTORIAL.active&&TUTORIAL.waitingFor==='wait_wave_end'&&G.phase==='waveSummary'){TUTORIAL.advance();G.phase='build';G.shakeTimer=0;}
-if(['paused','wavePreview','waveSummary','menu','mapSelect','diffSelect','howToPlay','gameover','victory','settings','biomeSelect','campaign','campaignMap','campaignSwarmAttack','swarmCommander','offenseMapSelect','offenseResult','loadout','profile','campaignVictory','campaignDefeat','alliedVictory','clashFinal','clashAttackResult','achievements'].includes(G.phase))return;
+if(['paused','wavePreview','waveSummary','menu','mapSelect','diffSelect','howToPlay','gameover','victory','settings','biomeSelect','campaign','campaignMap','campaignSwarmAttack','swarmCommander','offenseMapSelect','offenseResult','loadout','profile','campaignVictory','campaignDefeat','alliedVictory','clashFinal','clashAttackResult','achievements','heroSelect','heroRoster'].includes(G.phase))return;
 const sdt=dt*G.gameSpeed;if(G.shakeTimer>0)G.shakeTimer-=dt;
 if(pressedBtnTimer>0){pressedBtnTimer-=dt;}else{pressedBtn=null;}
 if(G.phase==='offenseGame'){updateOffenseGame(dt);updateSwarmEnhanced(dt);return;}
@@ -2873,7 +3925,7 @@ updateToasts(dt);updateScreenFade(dt);updateNexGen(dt);updateCritAlarm(dt);lastT
 if(allied.active)updateAlliedAI(dt);
 if(G.orbitalCD>0)G.orbitalCD-=dt;if(G.chronoCD>0)G.chronoCD-=dt;if(G.repairCD>0)G.repairCD-=dt;if(G.chronoActive>0)G.chronoActive-=dt;
 updatePlacementAnims(dt);
-if(G.phase==='wave'){updateWaveSpawning(sdt);updateEnemies(sdt);updateTowers(sdt);if(loadoutBonuses.frostField){for(const e2 of G.enemies)if(e2.alive&&!e2.slowTimer)e2.slowTimer=Math.max(e2.slowTimer||0,0.5);}updateProjectiles(sdt);updateParticles(sdt);updateDmgNums(sdt);updateChains(sdt);
+if(G.phase==='wave'){updateHero(dt);updateWaveSpawning(sdt);updateEnemies(sdt);updateTowers(sdt);if(loadoutBonuses.frostField){for(const e2 of G.enemies)if(e2.alive&&!e2.slowTimer)e2.slowTimer=Math.max(e2.slowTimer||0,0.5);}updateProjectiles(sdt);updateParticles(sdt);updateDmgNums(sdt);updateChains(sdt);
 if(isWaveComplete()){playWaveStinger();tryVibrate(50);
 if(allied.active){allied.wave++;if(allied.wave>=allied.totalWaves){G.phase='alliedVictory';playVictoryFanfare();prog.totalMatches++;checkAchievement('first_blood');checkAchievement('allied_victory');if(G.lives>=G.maxLives)checkAchievement('no_scratch');}else{const bonus=50+allied.wave*10;G.nexium+=bonus;G.totalNexEarned+=bonus;G.phase='build';}}
 else if(clash.active&&clash.phase==='defend'){
@@ -2882,8 +3934,9 @@ const clashWaveIdx=G.wave;G.wave++;
 if(G.wave>=5){handleClashResult();}
 else{const bonus=40+G.wave*10;G.nexium+=bonus;G.totalNexEarned+=bonus;G.phase='build';}}
 else if(G.endlessMode){G.endlessWave++;if(G.endlessWave>=50)checkAchievement('endless_legend');const bonus=50+G.endlessWave*10;G.nexium+=bonus;G.totalNexEarned+=bonus;G.phase='build';}
-else{G.wave++;if(G.wave>=TOTAL_WAVES){G.phase='victory';playVictoryFanfare();tryVibrate([50,30,50,30,100]);addXP(G.wave,G.totalKills,G.lives>=G.maxLives?3:G.lives>=G.maxLives*0.5?2:1);prog.totalMatches++;prog.totalKills+=G.totalKills;checkAchievement('first_blood');if(G.lives>=G.maxLives)checkAchievement('no_scratch');saveAllState();}else{const bonus=50+G.wave*10;G.nexium+=bonus;G.totalNexEarned+=bonus;G.phase='waveSummary';}}}}
-else{updateParticles(sdt);updateProjectiles(sdt);updateDmgNums(sdt);updateChains(sdt);}}
+else{G.wave++;if(G.wave>=TOTAL_WAVES){G.phase='victory';playVictoryFanfare();tryVibrate([50,30,50,30,100]);addXP(G.wave,G.totalKills,G.lives>=G.maxLives?3:G.lives>=G.maxLives*0.5?2:1);
+if(heroState.deployed&&heroState.selectedHeroIdx>=0){const _hid=HEROES[heroState.selectedHeroIdx].id;const _hxp=G.wave*5+G.totalKills*2+(G.lives>=G.maxLives?100:50);addHeroXp(_hid,_hxp);heroProg[_hid].matchesPlayed++;heroProg[_hid].totalKills+=G.totalKills;}prog.totalMatches++;prog.totalKills+=G.totalKills;checkAchievement('first_blood');if(G.lives>=G.maxLives)checkAchievement('no_scratch');saveAllState();}else{const bonus=50+G.wave*10;G.nexium+=bonus;G.totalNexEarned+=bonus;G.phase='waveSummary';}}}}
+else{updateHero(dt);updateParticles(sdt);updateProjectiles(sdt);updateDmgNums(sdt);updateChains(sdt);}}
 
 // Game loop
 let lastTime=0,_frames=0,_lastFps=performance.now(),_fps=0;
@@ -2984,8 +4037,22 @@ if(offense.bioMass>=oe.cost&&offense.spawnCooldown<=0){offense.bioMass-=oe.cost;
 else playSound('error');return;}}return;}
 if(G.phase==='clashAttackResult'){if(G._btns.clashContinue&&hitTest(px,py,G._btns.clashContinue)){
 handleClashResult();playSound('click');}return;}
+if(G.phase==='heroRoster'){
+  if(G._btns.rosterBack&&hitTest(px,py,G._btns.rosterBack)){G.phase='menu';playSound('click');}return;}
+if(G.phase==='heroSelect'){
+  if(G._btns.heroBack&&hitTest(px,py,G._btns.heroBack)){G.phase='diffSelect';playSound('click');return;}
+  if(G._btns.heroCards)for(const hc of G._btns.heroCards){if(hitTest(px,py,hc)){heroState.selectedHeroIdx=hc.idx;playSound('click');return;}}
+  if(G._btns.heroNone&&hitTest(px,py,G._btns.heroNone)){heroState.selectedHeroIdx=-1;playSound('click');return;}
+  if(G._btns.heroDeploy&&hitTest(px,py,G._btns.heroDeploy)){
+    const wantHero=heroState.selectedHeroIdx>=0;
+    if(!wantHero){resetHeroState();}
+    startGame();
+    if(wantHero){deployHero(0);computeHeroLevelBonuses();}
+    return;}
+  return;}
 if(G.phase==='menu'){if(hitTest(px,py,G._btns.menuPlay)){G.phase='mapSelect';playSound('click');}
 else if(hitTest(px,py,G._btns.menuEndless)){G.phase='biomeSelect';playSound('click');}
+else if(G._btns.menuHeroes&&hitTest(px,py,G._btns.menuHeroes)){G.phase='heroRoster';playSound('click');}
 else if(hitTest(px,py,G._btns.menuCampaign)){initCampaign();G.phase='campaignMap';playSound('click');}
 else if(hitTest(px,py,G._btns.menuOffense)){G.phase='offenseMapSelect';playSound('click');}
 else if(G._btns.menuAllied&&hitTest(px,py,G._btns.menuAllied)){startAlliedDefense();playSound('click');}
@@ -3023,7 +4090,7 @@ if(hitTest(px,py,G._btns.biomeBack)){G.phase='menu';playSound('click');}return;}
 if(G.phase==='mapSelect'){if(G._btns.biomeTabs)for(const bt of G._btns.biomeTabs){if(hitTest(px,py,bt)){G.biomeTab=bt.tab;playSound('click');return;}}
 if(G._btns.maps)for(let i=0;i<G._btns.maps.length;i++){if(hitTest(px,py,G._btns.maps[i])){G.mapIdx=G._btns.maps[i].origIdx;G.phase='diffSelect';playSound('click');return;}}
 if(hitTest(px,py,G._btns.mapBack)){G.phase='menu';playSound('click');}return;}
-if(G.phase==='diffSelect'){if(G._btns.diffs)for(let i=0;i<G._btns.diffs.length;i++){if(hitTest(px,py,G._btns.diffs[i])){G.diffIdx=G._btns.diffs[i].idx;startGame();playSound('click');return;}}
+if(G.phase==='diffSelect'){if(G._btns.diffs)for(let i=0;i<G._btns.diffs.length;i++){if(hitTest(px,py,G._btns.diffs[i])){G.diffIdx=G._btns.diffs[i].idx;heroState.selectedHeroIdx=-1;G.phase='heroSelect';playSound('click');return;}}
 if(hitTest(px,py,G._btns.diffBack)){G.phase='mapSelect';playSound('click');}return;}
 if(G.phase==='gameover'||G.phase==='victory'){
 if(hitTest(px,py,G._btns.restart)){
@@ -3049,6 +4116,8 @@ if(G.showRadialMenu){let tapped=false;if(G._btns.radial)for(const btn of G._btns
 }else playSound('error');tapped=true;break;}}G.showRadialMenu=false;G._btns.radial=null;G.hoveredRadialIdx=-1;if(tapped)return;playSound('click');return;}
 if(G._btns.globals)for(let i=0;i<G._btns.globals.length;i++){if(hitTest(px,py,G._btns.globals[i])){if(i===0){if(G.orbitalCD<=0){G.orbitalTargeting=true;playSound('click');}else playSound('error');}
 else if(i===1)useTemporalSurge();else if(i===2)useFieldRepair();return;}}
+if(G._btns.heroAbility&&hitTest(px,py,G._btns.heroAbility)){useHeroAbility();return;}
+if(G._btns.heroUltimate&&hitTest(px,py,G._btns.heroUltimate)){useHeroUltimate();return;}
 if(G.showTowerInfo){if(hitTest(px,py,G._btns.closeInfo)){G.showTowerInfo=false;G.towerInfoIdx=-1;playSound('click');return;}
 if(G._btns.upgrade&&hitTest(px,py,G._btns.upgrade)){if(!upgradeTower(G.towerInfoIdx))playSound('error');return;}
 if(G._btns.ability&&hitTest(px,py,G._btns.ability)){if(!activateAbility(G.towerInfoIdx))playSound('error');return;}
@@ -3075,7 +4144,9 @@ canvas.addEventListener('click',e=>handleTap(e.clientX,e.clientY));
 canvas.addEventListener('mousemove',e=>{if(G.showRadialMenu&&G._btns.radial){G.hoveredRadialIdx=-1;for(const btn of G._btns.radial)if(hitCircle(e.clientX,e.clientY,btn)){G.hoveredRadialIdx=btn.idx;break;}}});
 
 // Start game
-function startGame(){calculateLoadoutBonuses();setupMap(G.mapIdx);const d=DIFFS[G.diffIdx];G.nexium=d.nex+loadoutBonuses.extraNexium;G.maxLives=d.lives+loadoutBonuses.extraLives;G.lives=d.lives+loadoutBonuses.extraLives;G.wave=0;G.score=0;G.towers=[];G.enemies=[];G.spawnQueue=[];G.spawnTimer=0;G.showRadialMenu=false;G.showTowerInfo=false;G.towerInfoIdx=-1;G.hoveredRadialIdx=-1;G.totalKills=0;G.totalNexEarned=0;G.totalNexSpent=0;G.towersPlaced=0;G.enemiesAlive=0;G.gameSpeed=settings.defaultSpeed;G.orbitalCD=0;G.chronoCD=0;G.repairCD=0;G.chronoActive=0;G.orbitalTargeting=false;G.waveKills=0;G.waveNex=0;G.shakeTimer=0;G.placementAnims=[];G._btns={};G.endlessMode=false;nextEnemyId=0;particlePool.pool.forEach(p=>p.active=false);projectilePool.pool.forEach(p=>p.active=false);dmgNumPool.pool.forEach(d=>d.active=false);chainPool.pool.forEach(c=>c.active=false);G.phase='build';playSound('transition');startAmbient(MAPS[G.mapIdx].biome);}
+function startGame(){calculateLoadoutBonuses();setupMap(G.mapIdx);const d=DIFFS[G.diffIdx];G.nexium=d.nex+loadoutBonuses.extraNexium;G.maxLives=d.lives+loadoutBonuses.extraLives;G.lives=d.lives+loadoutBonuses.extraLives;G.wave=0;G.score=0;G.towers=[];G.enemies=[];G.spawnQueue=[];G.spawnTimer=0;G.showRadialMenu=false;G.showTowerInfo=false;G.towerInfoIdx=-1;G.hoveredRadialIdx=-1;G.totalKills=0;G.totalNexEarned=0;G.totalNexSpent=0;G.towersPlaced=0;G.enemiesAlive=0;G.gameSpeed=settings.defaultSpeed;G.orbitalCD=0;G.chronoCD=0;G.repairCD=0;G.chronoActive=0;G.orbitalTargeting=false;G.waveKills=0;G.waveNex=0;G.shakeTimer=0;G.placementAnims=[];G._btns={};G.endlessMode=false;nextEnemyId=0;particlePool.pool.forEach(p=>p.active=false);projectilePool.pool.forEach(p=>p.active=false);dmgNumPool.pool.forEach(d=>d.active=false);chainPool.pool.forEach(c=>c.active=false);// Deploy hero if selected
+if(heroState.selectedHeroIdx>=0&&heroState.deployed){computeHeroLevelBonuses();}
+G.phase='build';playSound('transition');startAmbient(MAPS[G.mapIdx].biome);}
 
 function startEndlessGame(){G.endlessMode=true;G.endlessBiome=G.endlessBiome||'urban';G.endlessWave=0;G.diffIdx=0;
 const eMap=generateEndlessMap(G.endlessBiome);currentCols=eMap.cols;currentRows=eMap.rows;currentPaths=eMap.paths;pathSets=[];for(const p of currentPaths){const s=new Set();p.forEach(([c,r])=>s.add(c+','+r));pathSets.push(s);}recalcLayout();
@@ -3088,6 +4159,8 @@ G.phase='build';playSound('transition');startAmbient(G.endlessBiome);}
 window.render_game_to_text=function(){return JSON.stringify({phase:G.phase,wave:G.endlessMode?G.endlessWave:G.wave,nexium:G.nexium,lives:G.lives,score:G.score,mapIdx:G.mapIdx,diffIdx:G.diffIdx,towerCount:G.towers.length,towers:G.towers.map(t=>({col:t.col,row:t.row,type:TT[t.typeIdx].id,level:t.level})),enemyCount:G.enemies.filter(e=>e.alive).length,spawnQueueLength:G.spawnQueue.length,showRadialMenu:G.showRadialMenu,showTowerInfo:G.showTowerInfo,gameSpeed:G.gameSpeed,totalKills:G.totalKills,endless:G.endlessMode,fps:_fps,storageAvailable:storageAvailable,level:prog.level,totalMatches:prog.totalMatches,achievementsCount:achievements.unlocked.size,clashElo:clash.elo});};
 window.advanceTime=function(ms){const steps=Math.max(1,Math.round(ms/(1000/60)));for(let i=0;i<steps;i++)update(1/60);render();};
 window._setGamePhase=function(phase){G.phase=phase;render();};
+window._getBtns=function(){return JSON.parse(JSON.stringify(G._btns));};
+window._getHeroState=function(){return JSON.parse(JSON.stringify({sel:heroState.selectedHeroIdx,deployed:heroState.deployed,hp:heroState.heroHp,maxHp:heroState.heroMaxHp,abCd:heroState.abilityCd,ultCd:heroState.ultimateCd,xp:heroState.heroXpGained}));};
 
 
 loadAllState();
