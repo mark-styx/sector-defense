@@ -894,6 +894,119 @@ const SKIN_VARIANTS=['default','crimson','frostbite'];
 const SKIN_COLORS={crimson:{shift:t=>{const c=t.color;return c.replace(/#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i,(m,r,g,b)=>{const ri=Math.min(255,parseInt(r,16)+60);return '#'+ri.toString(16).padStart(2,'0')+Math.max(0,parseInt(g,16)-30).toString(16).padStart(2,'0')+Math.max(0,parseInt(b,16)-30).toString(16).padStart(2,'0');});}},frostbite:{shift:t=>{const c=t.color;return c.replace(/#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i,(m,r,g,b)=>{const bi=Math.min(255,parseInt(b,16)+60);return '#'+Math.max(0,parseInt(r,16)-30).toString(16).padStart(2,'0')+Math.max(0,parseInt(g,16)+20).toString(16).padStart(2,'0')+bi.toString(16).padStart(2,'0');});}}};
 function getTowerColor(t){const type=TT[t.typeIdx];const skin=loadout.equippedSkins[type.id]||'default';if(skin==='default')return type.color;if(SKIN_COLORS[skin])return SKIN_COLORS[skin].shift(type);return type.color;}
 
+// === PHASE 6: MONETIZATION — HELIX STORE ===
+// Premium currency
+let helixCredits = 0;
+
+// Hero skin definitions
+const HERO_SKINS = {
+  vanguard: [
+    {id:'default',name:'Default',color:'#00ccff',cost:0},
+    {id:'inferno_vex',name:'Inferno Vex',color:'#ff4400',cost:300,desc:'Forged in volcanic fire'},
+    {id:'ghost_vex',name:'Ghost Vex',color:'#aabbcc',cost:500,desc:'Stealth protocols engaged'},
+    {id:'golden_vex',name:'Golden Vex',color:'#ffcc00',cost:800,desc:'Legendary commander skin'}
+  ],
+  technomancer: [
+    {id:'default',name:'Default',color:'#aa66ff',cost:0},
+    {id:'neon_lyra',name:'Neon Lyra',color:'#00ff88',cost:300,desc:'Hacker aesthetic'},
+    {id:'void_lyra',name:'Void Lyra',color:'#6622aa',cost:500,desc:'Dark energy variant'},
+    {id:'solar_lyra',name:'Solar Lyra',color:'#ff8800',cost:800,desc:'Powered by the sun'}
+  ],
+  warden: [
+    {id:'default',name:'Default',color:'#44ff88',cost:0},
+    {id:'iron_kael',name:'Iron Kael',color:'#889999',cost:300,desc:'Hardened steel plating'},
+    {id:'ember_kael',name:'Ember Kael',color:'#ff6633',cost:500,desc:'Burning hot defense'},
+    {id:'arctic_kael',name:'Arctic Kael',color:'#66ddff',cost:800,desc:'Frozen fortress'}
+  ],
+  phantom: [
+    {id:'default',name:'Default',color:'#ff4466',cost:0},
+    {id:'shadow_nyx',name:'Shadow Nyx',color:'#332244',cost:300,desc:'Pure darkness'},
+    {id:'blood_nyx',name:'Blood Nyx',color:'#cc0022',cost:500,desc:'Crimson assassin'},
+    {id:'prism_nyx',name:'Prism Nyx',color:'#ff66ff',cost:800,desc:'Chromatic refraction'}
+  ],
+  oracle: [
+    {id:'default',name:'Default',color:'#ffcc00',cost:0},
+    {id:'crystal_zara',name:'Crystal Zara',color:'#88eeff',cost:300,desc:'Clear foresight'},
+    {id:'cosmic_zara',name:'Cosmic Zara',color:'#aa44ff',cost:500,desc:'Stellar prophecy'},
+    {id:'radiant_zara',name:'Radiant Zara',color:'#ffffff',cost:800,desc:'Blinding brilliance'}
+  ]
+};
+
+// Tower skin packs (bundles of 3 new skins per tower)
+const TOWER_SKIN_PACKS = [
+  {id:'pack_neon',name:'Neon Pack',cost:400,desc:'Cyberpunk glow skins for all towers',skinId:'neon',
+   colorShift:t=>{const c=t.color;return c.replace(/#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i,(m,r,g,b)=>{const ri=parseInt(r,16),gi=parseInt(g,16),bi=parseInt(b,16);return '#'+Math.min(255,ri+40).toString(16).padStart(2,'0')+Math.min(255,gi+60).toString(16).padStart(2,'0')+Math.min(255,bi+20).toString(16).padStart(2,'0');});}},
+  {id:'pack_void',name:'Void Pack',cost:400,desc:'Dark matter skins for all towers',skinId:'void',
+   colorShift:t=>{const c=t.color;return c.replace(/#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i,(m,r,g,b)=>{const ri=parseInt(r,16),gi=parseInt(g,16),bi=parseInt(b,16);return '#'+Math.max(0,ri-40).toString(16).padStart(2,'0')+Math.max(0,gi-20).toString(16).padStart(2,'0')+Math.min(255,bi+50).toString(16).padStart(2,'0');});}},
+  {id:'pack_ember',name:'Ember Pack',cost:400,desc:'Lava-forged skins for all towers',skinId:'ember',
+   colorShift:t=>{const c=t.color;return c.replace(/#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i,(m,r,g,b)=>{const ri=parseInt(r,16);return '#'+Math.min(255,ri+70).toString(16).padStart(2,'0')+'4400';});}}
+];
+
+// Map theme cosmetics
+const MAP_THEMES = [
+  {id:'theme_matrix',name:'Matrix Grid',cost:250,desc:'Green scanline terrain overlay'},
+  {id:'theme_bloodmoon',name:'Blood Moon',cost:250,desc:'Red-tinted atmosphere and crimson paths'},
+  {id:'theme_aurora',name:'Aurora',cost:350,desc:'Northern lights particle effects'}
+];
+
+// Bundles
+const STORE_BUNDLES = [
+  {id:'starter_bundle',name:'Starter Bundle',cost:500,realPrice:'$2.99',desc:'600 Helix Credits + 1 random hero skin',contents:'600 ◇ + Hero Skin'},
+  {id:'commander_bundle',name:'Commander Bundle',cost:1200,realPrice:'$6.99',desc:'1500 Helix Credits + 2 hero skins + 1 tower pack',contents:'1500 ◇ + 2 Skins + Pack'},
+  {id:'ultimate_bundle',name:'Ultimate Bundle',cost:2500,realPrice:'$14.99',desc:'All hero skins + all tower packs + all map themes',contents:'Everything'}
+];
+
+// IAP credit tiers (simulated)
+const CREDIT_TIERS = [
+  {id:'credits_100',amount:100,price:'$0.99',bonus:0},
+  {id:'credits_500',amount:500,price:'$3.99',bonus:50},
+  {id:'credits_1200',amount:1200,price:'$7.99',bonus:200},
+  {id:'credits_3000',amount:3000,price:'$17.99',bonus:750}
+];
+
+// Store state
+const store = {
+  tab: 0, // 0=Hero Skins, 1=Tower Packs, 2=Map Themes, 3=Bundles, 4=Credits
+  heroSkinTab: 0, // which hero
+  unlockedHeroSkins: {}, // heroId -> Set of skinIds
+  equippedHeroSkins: {}, // heroId -> skinId
+  unlockedTowerPacks: new Set(),
+  unlockedMapThemes: new Set(),
+  unlockedBundles: new Set(),
+  confirmPurchase: null, // {type, id, cost, name} or null
+  purchaseToast: null, // {text, timer}
+  scrollY: 0
+};
+// Init hero skin defaults
+HEROES.forEach(h => {
+  store.unlockedHeroSkins[h.id] = new Set(['default']);
+  store.equippedHeroSkins[h.id] = 'default';
+});
+
+// Register tower skin packs with the color system
+for (const pack of TOWER_SKIN_PACKS) {
+  if (!SKIN_VARIANTS.includes(pack.skinId)) SKIN_VARIANTS.push(pack.skinId);
+  SKIN_COLORS[pack.skinId] = {shift: pack.colorShift};
+}
+
+// Get the active hero color (applying skin)
+function getHeroColor(heroId) {
+  const skinId = store.equippedHeroSkins[heroId] || 'default';
+  const hero = HEROES.find(h => h.id === heroId);
+  if (!hero) return '#ffffff';
+  if (skinId === 'default') return hero.color;
+  const skins = HERO_SKINS[heroId];
+  if (!skins) return hero.color;
+  const skin = skins.find(s => s.id === skinId);
+  return skin ? skin.color : hero.color;
+}
+
+// Award credits from gameplay
+function awardHelixCredits(amount) {
+  helixCredits += amount;
+  addToast('+' + amount + ' ◇ Helix Credits');
+}
+
 // Campaign state — BFME2 War of the Ring inspired
 const TERRITORY_INCOME=[25,20,15,20,15,10,10,15,10,10,20,15,10,10,10,10,10,10,30,15];
 const campaign={active:false,turn:0,territories:null,selectedTerritory:-1,phase:'overworld',
@@ -960,6 +1073,14 @@ function saveAllState() {
   saveState('clash', {elo: clash.elo, totalPvpWins: clash.totalPvpWins});
   saveState('swarm', {mapsCleared: swarmEnhanced.mapsCleared, hiveTitanUnlocked: swarmEnhanced.hiveTitanUnlocked});
   saveState('heroProg', heroProg);
+  saveState('store', {
+    helixCredits: helixCredits,
+    unlockedHeroSkins: Object.fromEntries(Object.entries(store.unlockedHeroSkins).map(([k,v])=>[k,[...v]])),
+    equippedHeroSkins: store.equippedHeroSkins,
+    unlockedTowerPacks: [...store.unlockedTowerPacks],
+    unlockedMapThemes: [...store.unlockedMapThemes],
+    unlockedBundles: [...store.unlockedBundles]
+  });
 }
 
 function loadAllState() {
@@ -995,6 +1116,28 @@ function loadAllState() {
 
   const hp2 = loadState('heroProg');
   if (hp2) { for (const k in hp2) { if (heroProg[k]) Object.assign(heroProg[k], hp2[k]); } }
+
+  const st = loadState('store');
+  if (st) {
+    if (st.helixCredits !== undefined) helixCredits = st.helixCredits;
+    if (st.unlockedHeroSkins) {
+      for (const k in st.unlockedHeroSkins) {
+        if (store.unlockedHeroSkins[k]) store.unlockedHeroSkins[k] = new Set(st.unlockedHeroSkins[k]);
+      }
+    }
+    if (st.equippedHeroSkins) Object.assign(store.equippedHeroSkins, st.equippedHeroSkins);
+    if (st.unlockedTowerPacks) store.unlockedTowerPacks = new Set(st.unlockedTowerPacks);
+    if (st.unlockedMapThemes) store.unlockedMapThemes = new Set(st.unlockedMapThemes);
+    if (st.unlockedBundles) store.unlockedBundles = new Set(st.unlockedBundles);
+    // Re-register purchased tower skin packs
+    for (const pack of TOWER_SKIN_PACKS) {
+      if (store.unlockedTowerPacks.has(pack.id)) {
+        for (const t of TT) {
+          if (!loadout.unlockedSkins[t.id].includes(pack.skinId)) loadout.unlockedSkins[t.id].push(pack.skinId);
+        }
+      }
+    }
+  }
 }
 
 // Offense mode state
@@ -1261,6 +1404,7 @@ function drawHeroOnField() {
     return;
   }
   const hero = HEROES[heroState.selectedHeroIdx];
+  const heroCol = getHeroColor(hero.id);
   const x = heroState.heroX, y = heroState.heroY;
   const s = hero.stats.size * cellSize;
   const lvl = getHeroLevel(hero.id);
@@ -1269,10 +1413,10 @@ function drawHeroOnField() {
   const pRange = (hero.passive.range + (computeHeroLevelBonuses()?.rangeBonus || 0)) * cellSize;
   if (pRange > 0) {
     ctx.globalAlpha = 0.06 + 0.02 * Math.sin(animTime * 2);
-    ctx.fillStyle = hero.color;
+    ctx.fillStyle = heroCol;
     ctx.beginPath(); ctx.arc(x, y, pRange, 0, Math.PI * 2); ctx.fill();
     ctx.globalAlpha = 0.2;
-    ctx.strokeStyle = hero.color; ctx.lineWidth = 1;
+    ctx.strokeStyle = heroCol; ctx.lineWidth = 1;
     ctx.setLineDash([4, 4]);
     ctx.beginPath(); ctx.arc(x, y, pRange, 0, Math.PI * 2); ctx.stroke();
     ctx.setLineDash([]);
@@ -1288,23 +1432,24 @@ function drawHeroOnField() {
   }
 
   // Hero platform glow
-  ctx.shadowColor = hero.color; ctx.shadowBlur = 12 + 4 * Math.sin(animTime * 3);
-  ctx.fillStyle = hero.color + '33';
+  ctx.shadowColor = heroCol; ctx.shadowBlur = 12 + 4 * Math.sin(animTime * 3);
+  ctx.fillStyle = heroCol + '33';
   ctx.beginPath(); ctx.arc(x, y, s + 4, 0, Math.PI * 2); ctx.fill();
   ctx.shadowBlur = 0;
 
-  // Hero body shape
+  // Hero body shape — pass skinned hero
+  const skinnedHero = Object.assign({}, hero, {color: heroCol});
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(heroState.heroAngle);
-  drawHeroIcon(ctx, 0, 0, s, hero);
+  drawHeroIcon(ctx, 0, 0, s, skinnedHero);
 
   // Inner detail
   ctx.fillStyle = 'rgba(255,255,255,0.3)';
   ctx.beginPath(); ctx.arc(0, -s * 0.15, s * 0.25, 0, Math.PI * 2); ctx.fill();
 
   // Level indicator ring
-  ctx.strokeStyle = hero.color; ctx.lineWidth = 2;
+  ctx.strokeStyle = heroCol; ctx.lineWidth = 2;
   for (let i = 0; i < lvl; i++) {
     const a = -Math.PI / 2 + i * Math.PI * 2 / 6;
     const ae = a + Math.PI * 2 / 6 - 0.15;
@@ -1322,7 +1467,7 @@ function drawHeroOnField() {
 
   // Name plate
   ctx.font = '600 8px ' + FD; ctx.textAlign = 'center';
-  ctx.fillStyle = hero.color;
+  ctx.fillStyle = heroCol;
   ctx.fillText(hero.name.split(' ').pop(), x, barY - 4);
 }
 
@@ -2312,7 +2457,7 @@ by+=50;ctx.fillStyle='#331111';ctx.strokeStyle=C_DNG;ctx.lineWidth=1;ctx.beginPa
 function drawGameOverScreen(){ctx.fillStyle='rgba(10,14,26,0.92)';ctx.fillRect(0,0,W,H);
 const isV=G.phase==='victory';const ts=Math.min(28,W*0.07);ctx.font='800 '+ts+'px '+FD;ctx.textAlign='center';ctx.fillStyle=isV?'#44ff88':C_DNG;ctx.shadowColor=isV?'#44ff88':C_DNG;ctx.shadowBlur=15;ctx.fillText(isV?'VICTORY!':'GAME OVER',W/2,H*0.18);ctx.shadowBlur=0;
 if(isV){const lr=G.lives/G.maxLives;const sc=lr>=1?3:lr>=0.5?2:1;ctx.font=Math.min(30,W*0.075)+'px '+FB;let ss='';for(let i=0;i<3;i++)ss+=i<sc?'★':'☆';ctx.fillStyle='#ffcc00';ctx.fillText(ss,W/2,H*0.26);
-prog.totalStars+=sc;const wvKey=MAPS[G.mapIdx].id+'_'+DIFFS[G.diffIdx].id;prog.highestWaves[wvKey]=Math.max(prog.highestWaves[wvKey]||0,G.wave);}
+prog.totalStars+=sc;helixCredits+=sc*5;const wvKey=MAPS[G.mapIdx].id+'_'+DIFFS[G.diffIdx].id;prog.highestWaves[wvKey]=Math.max(prog.highestWaves[wvKey]||0,G.wave);}
 const fs=Math.min(13,W*0.033),sy=isV?H*0.32:H*0.28;ctx.font='600 '+fs+'px '+FB;ctx.fillStyle=C_TXT;
 const waveReached=G.endlessMode?G.endlessWave:G.wave;
 const stats=['Wave Reached: '+waveReached+'/'+(G.endlessMode?'∞':TOTAL_WAVES),'Total Score: '+G.score,'Lives Remaining: '+G.lives,'Total Kills: '+G.totalKills,'Nexium Earned: '+G.totalNexEarned,'Towers Placed: '+G.towersPlaced];
@@ -2946,7 +3091,10 @@ if(locked.length>0){const card=locked[Math.floor(Math.random()*locked.length)];l
 if(loadout.matchCount%5===0){
 const allSkins=[];
 for(const t of TT)for(const s of SKIN_VARIANTS){if(!loadout.unlockedSkins[t.id].includes(s))allSkins.push({tid:t.id,skin:s});}
-if(allSkins.length>0){const pick=allSkins[Math.floor(Math.random()*allSkins.length)];loadout.unlockedSkins[pick.tid].push(pick.skin);}}}
+if(allSkins.length>0){const pick=allSkins[Math.floor(Math.random()*allSkins.length)];loadout.unlockedSkins[pick.tid].push(pick.skin);}}
+// Award Helix Credits
+helixCredits += 10; // base match completion
+}
 
 
 // ============================================================
@@ -2965,6 +3113,7 @@ const ACHIEVEMENTS=[
 {id:'full_arsenal',name:'Full Arsenal',desc:'Own all tower skins',icon:'🎨'}
 ];
 const achievements={unlocked:new Set(),toasts:[]};
+function addToast(text,dur){achievements.toasts.push({text:text,desc:'',timer:dur||2.5});}
 function checkAchievement(id){if(achievements.unlocked.has(id))return;achievements.unlocked.add(id);const a=ACHIEVEMENTS.find(x=>x.id===id);if(a){achievements.toasts.push({text:a.icon+' '+a.name,desc:a.desc,timer:3.0});saveAllState();playSound('levelup');tryVibrate(50);}}
 function updateToasts(dt){for(let i=achievements.toasts.length-1;i>=0;i--){achievements.toasts[i].timer-=dt;if(achievements.toasts[i].timer<=0)achievements.toasts.splice(i,1);}}
 function drawToasts(){for(let i=0;i<achievements.toasts.length;i++){const t=achievements.toasts[i];const a=Math.min(1,t.timer/0.3,1-(Math.max(0,0.3-t.timer)/0.3));const ty=44+i*55;ctx.globalAlpha=a;
@@ -3514,6 +3663,7 @@ let menuItems=[
 {label:'ALLIED DEFENSE',key:'menuAllied',color:'#00dddd',icon:'👥'},
 {label:'SECTOR CLASH',key:'menuClash',color:'#ffcc00',icon:'⚡'},
 {label:'HEROES',key:'menuHeroes',color:'#ff8844',icon:'⚔',glow:true},
+{label:'STORE',key:'menuStore',color:'#ffaa22',icon:'◇',glow:true},
 {label:'LOADOUT',key:'menuLoadout',color:'#aa66ff',icon:'🃏'},
 {label:'PROFILE',key:'menuProfile',color:'#88aacc',icon:'👤'},
 {label:'SETTINGS',key:'menuSettings',color:'#88aacc',icon:'⚙'},
@@ -3527,7 +3677,7 @@ const startY=H*0.22;
 for(let i=0;i<menuItems.length;i++){
 const mi=menuItems[i];const by=startY+i*(bh+gap);
 const bx=W/2-bw/2;
-const isNew=mi.key==='menuAllied'||mi.key==='menuClash'||mi.key==='menuHeroes';
+const isNew=mi.key==='menuAllied'||mi.key==='menuClash'||mi.key==='menuHeroes'||mi.key==='menuStore';
 const isTut=mi.key==='menuTutorial';
 const isGameMode=i<6;
 // Button background with gradient
@@ -3557,6 +3707,475 @@ ctx.font='500 10px '+FB;ctx.textAlign='center';ctx.fillStyle='rgba(104,128,160,0
 ctx.fillText('Commander Level '+prog.level,W/2,H*0.94);
 }
 
+
+// === PHASE 6: HELIX STORE SCREEN ===
+function drawStoreScreen() {
+  ctx.fillStyle = C_BG; ctx.fillRect(0, 0, W, H);
+  // Starfield
+  ctx.globalAlpha = 0.3;
+  for (let i = 0; i < 40; i++) {
+    const sx = ((i * 137) % W), sy = ((i * 211 + animTime * 5) % H);
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(sx, sy, 1, 1);
+  }
+  ctx.globalAlpha = 1;
+  G._btns.storeItems = []; G._btns.storeTabs = []; G._btns.storeHeroTabs = [];
+
+  // Title
+  const ts = Math.min(22, W * 0.055);
+  ctx.save();
+  ctx.font = '800 ' + ts + 'px ' + FD; ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffaa22'; ctx.shadowColor = '#ffaa22'; ctx.shadowBlur = 10;
+  ctx.fillText('HELIX STORE', W / 2, safeTop + 30);
+  ctx.shadowBlur = 0;
+  ctx.restore();
+
+  // Credits display
+  ctx.font = '700 ' + Math.min(14, W * 0.035) + 'px ' + FD; ctx.textAlign = 'center';
+  ctx.fillStyle = '#ffcc00';
+  ctx.fillText('\u25c7 ' + helixCredits, W / 2, safeTop + 50);
+  ctx.font = '500 ' + Math.min(9, W * 0.022) + 'px ' + FB;
+  ctx.fillStyle = C_MUT; ctx.fillText('Helix Credits', W / 2, safeTop + 62);
+
+  // Tab bar
+  const tabNames = ['HEROES', 'TOWERS', 'MAPS', 'BUNDLES', 'CREDITS'];
+  const tabColors = ['#ff8844', '#4488ff', '#44ff88', '#ffcc00', '#aa66ff'];
+  const tabW = Math.min(60, (W - 20) / 5 - 2), tabH = 26;
+  const tabStartX = (W - tabNames.length * (tabW + 3) + 3) / 2;
+  const tabY = safeTop + 70;
+  for (let i = 0; i < tabNames.length; i++) {
+    const tx = tabStartX + i * (tabW + 3);
+    const active = store.tab === i;
+    ctx.fillStyle = active ? tabColors[i] + '33' : 'rgba(10,15,30,0.8)';
+    ctx.strokeStyle = active ? tabColors[i] : tabColors[i] + '44'; ctx.lineWidth = active ? 1.5 : 0.5;
+    ctx.beginPath(); ctx.roundRect(tx, tabY, tabW, tabH, 4); ctx.fill(); ctx.stroke();
+    ctx.font = '600 ' + Math.min(8, W * 0.02) + 'px ' + FD; ctx.textAlign = 'center';
+    ctx.fillStyle = active ? tabColors[i] : C_MUT;
+    ctx.fillText(tabNames[i], tx + tabW / 2, tabY + tabH / 2 + 3);
+    G._btns.storeTabs.push({x: tx, y: tabY, w: tabW, h: tabH, idx: i});
+  }
+
+  const contentY = tabY + tabH + 10;
+  const contentH = H - contentY - 55;
+
+  // Tab content
+  if (store.tab === 0) drawStoreHeroSkins(contentY, contentH);
+  else if (store.tab === 1) drawStoreTowerPacks(contentY, contentH);
+  else if (store.tab === 2) drawStoreMapThemes(contentY, contentH);
+  else if (store.tab === 3) drawStoreBundles(contentY, contentH);
+  else if (store.tab === 4) drawStoreCredits(contentY, contentH);
+
+  // Purchase confirmation overlay
+  if (store.confirmPurchase) drawPurchaseConfirm();
+
+  // Back button
+  const by = H - 46, bw = 120, bh = 34;
+  ctx.fillStyle = 'rgba(20,30,50,0.8)'; ctx.strokeStyle = C_MUT; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.roundRect(W / 2 - bw / 2, by, bw, bh, 6); ctx.fill(); ctx.stroke();
+  ctx.font = '600 ' + Math.min(12, W * 0.03) + 'px ' + FD; ctx.textAlign = 'center';
+  ctx.fillStyle = C_MUT; ctx.fillText('BACK', W / 2, by + bh / 2 + 1);
+  G._btns.storeBack = {x: W / 2 - bw / 2, y: by, w: bw, h: bh};
+}
+
+function drawStoreHeroSkins(cy, ch) {
+  // Hero sub-tabs
+  const stW = Math.min(55, (W - 20) / 5 - 2), stH = 22;
+  const stStartX = (W - HEROES.length * (stW + 3) + 3) / 2;
+  for (let i = 0; i < HEROES.length; i++) {
+    const tx = stStartX + i * (stW + 3);
+    const hero = HEROES[i], active = store.heroSkinTab === i;
+    const hCol = getHeroColor(hero.id);
+    ctx.fillStyle = active ? hCol + '33' : 'rgba(10,15,30,0.6)';
+    ctx.strokeStyle = active ? hCol : hCol + '44'; ctx.lineWidth = active ? 1.5 : 0.5;
+    ctx.beginPath(); ctx.roundRect(tx, cy, stW, stH, 4); ctx.fill(); ctx.stroke();
+    ctx.font = '600 ' + Math.min(7, W * 0.018) + 'px ' + FD; ctx.textAlign = 'center';
+    ctx.fillStyle = active ? hCol : C_MUT;
+    ctx.fillText(hero.name.split(' ').pop(), tx + stW / 2, cy + stH / 2 + 2.5);
+    G._btns.storeHeroTabs.push({x: tx, y: cy, w: stW, h: stH, idx: i});
+  }
+
+  // Skins for selected hero
+  const hero = HEROES[store.heroSkinTab];
+  const skins = HERO_SKINS[hero.id] || [];
+  const cardW = Math.min((W - 30) / 2 - 6, 160), cardH = 100, gap = 8;
+  const cols = 2;
+  const startX = (W - (cols * (cardW + gap) - gap)) / 2;
+  let itemY = cy + stH + 12;
+
+  // Hero preview
+  const previewR = 22;
+  const previewCol = getHeroColor(hero.id);
+  const previewHero = Object.assign({}, hero, {color: previewCol});
+  drawHeroIcon(ctx, W / 2, itemY + previewR, previewR, previewHero);
+  ctx.font = '600 10px ' + FD; ctx.textAlign = 'center'; ctx.fillStyle = previewCol;
+  ctx.fillText(hero.name, W / 2, itemY + previewR * 2 + 14);
+  const equipSkin = store.equippedHeroSkins[hero.id] || 'default';
+  const equipName = (skins.find(s => s.id === equipSkin) || {}).name || 'Default';
+  ctx.font = '500 8px ' + FB; ctx.fillStyle = C_MUT;
+  ctx.fillText('Equipped: ' + equipName, W / 2, itemY + previewR * 2 + 26);
+  itemY += previewR * 2 + 38;
+
+  for (let i = 0; i < skins.length; i++) {
+    const skin = skins[i];
+    const col = i % cols, row = Math.floor(i / cols);
+    const cx = startX + col * (cardW + gap), ry = itemY + row * (cardH + gap);
+    const owned = store.unlockedHeroSkins[hero.id].has(skin.id);
+    const equipped = store.equippedHeroSkins[hero.id] === skin.id;
+
+    // Card bg
+    ctx.fillStyle = equipped ? skin.color + '22' : 'rgba(15,20,35,0.9)';
+    ctx.strokeStyle = equipped ? skin.color : owned ? skin.color + '66' : '#333'; ctx.lineWidth = equipped ? 2 : 1;
+    ctx.beginPath(); ctx.roundRect(cx, ry, cardW, cardH, 8); ctx.fill(); ctx.stroke();
+
+    // Skin preview circle
+    ctx.fillStyle = skin.color; ctx.beginPath();
+    ctx.arc(cx + 28, ry + cardH / 2 - 6, 14, 0, Math.PI * 2); ctx.fill();
+    // Mini hero shape inside
+    const miniHero = Object.assign({}, hero, {color: skin.color});
+    drawHeroIcon(ctx, cx + 28, ry + cardH / 2 - 6, 10, miniHero);
+
+    // Skin name
+    ctx.font = '700 ' + Math.min(10, W * 0.025) + 'px ' + FD; ctx.textAlign = 'left';
+    ctx.fillStyle = owned ? skin.color : C_MUT;
+    ctx.fillText(skin.name, cx + 50, ry + 22);
+
+    // Description
+    if (skin.desc) {
+      ctx.font = '500 ' + Math.min(8, W * 0.02) + 'px ' + FB;
+      ctx.fillStyle = C_MUT; ctx.fillText(skin.desc, cx + 50, ry + 36);
+    }
+
+    // Status / price
+    if (skin.cost === 0) {
+      ctx.font = '600 8px ' + FD; ctx.fillStyle = '#44ff88'; ctx.fillText('FREE', cx + 50, ry + cardH - 16);
+    } else if (owned) {
+      if (equipped) {
+        ctx.font = '600 8px ' + FD; ctx.fillStyle = skin.color; ctx.fillText('\u2713 EQUIPPED', cx + 50, ry + cardH - 16);
+      } else {
+        ctx.font = '600 8px ' + FD; ctx.fillStyle = '#88aacc'; ctx.fillText('TAP TO EQUIP', cx + 50, ry + cardH - 16);
+      }
+    } else {
+      ctx.font = '700 9px ' + FD; ctx.fillStyle = '#ffcc00'; ctx.fillText('\u25c7 ' + skin.cost, cx + 50, ry + cardH - 16);
+      if (helixCredits < skin.cost) {
+        ctx.font = '500 7px ' + FB; ctx.fillStyle = '#ff4466'; ctx.fillText('Not enough credits', cx + 50, ry + cardH - 6);
+      }
+    }
+
+    G._btns.storeItems.push({x: cx, y: ry, w: cardW, h: cardH, type: 'heroSkin', heroId: hero.id, skinId: skin.id, cost: skin.cost, name: skin.name, owned: owned});
+  }
+}
+
+function drawStoreTowerPacks(cy, ch) {
+  const cardW = Math.min(W - 30, 300), cardH = 80, gap = 10;
+  const startX = (W - cardW) / 2;
+  let itemY = cy + 5;
+
+  ctx.font = '500 9px ' + FB; ctx.textAlign = 'center'; ctx.fillStyle = C_MUT;
+  ctx.fillText('Unlock new skins for ALL towers at once', W / 2, itemY);
+  itemY += 18;
+
+  for (let i = 0; i < TOWER_SKIN_PACKS.length; i++) {
+    const pack = TOWER_SKIN_PACKS[i];
+    const owned = store.unlockedTowerPacks.has(pack.id);
+    const ry = itemY + i * (cardH + gap);
+
+    ctx.fillStyle = owned ? 'rgba(0,100,200,0.15)' : 'rgba(15,20,35,0.9)';
+    ctx.strokeStyle = owned ? C_ACC : '#445'; ctx.lineWidth = owned ? 1.5 : 1;
+    ctx.beginPath(); ctx.roundRect(startX, ry, cardW, cardH, 8); ctx.fill(); ctx.stroke();
+
+    // Tower color previews
+    const prevR = 8, prevGap = 6;
+    const prevStartX = startX + 16;
+    for (let j = 0; j < Math.min(5, TT.length); j++) {
+      const pColor = pack.colorShift(TT[j]);
+      ctx.fillStyle = pColor; ctx.beginPath();
+      ctx.arc(prevStartX + j * (prevR * 2 + prevGap), ry + 26, prevR, 0, Math.PI * 2); ctx.fill();
+    }
+
+    ctx.font = '700 ' + Math.min(12, W * 0.03) + 'px ' + FD; ctx.textAlign = 'left';
+    ctx.fillStyle = owned ? C_ACC : C_TXT;
+    ctx.fillText(pack.name, startX + 16, ry + 54);
+    ctx.font = '500 ' + Math.min(8, W * 0.02) + 'px ' + FB;
+    ctx.fillStyle = C_MUT; ctx.fillText(pack.desc, startX + 16, ry + 68);
+
+    ctx.textAlign = 'right';
+    if (owned) {
+      ctx.font = '600 10px ' + FD; ctx.fillStyle = '#44ff88'; ctx.fillText('\u2713 OWNED', startX + cardW - 16, ry + 44);
+    } else {
+      ctx.font = '700 11px ' + FD; ctx.fillStyle = '#ffcc00'; ctx.fillText('\u25c7 ' + pack.cost, startX + cardW - 16, ry + 44);
+    }
+    ctx.textAlign = 'left';
+
+    G._btns.storeItems.push({x: startX, y: ry, w: cardW, h: cardH, type: 'towerPack', id: pack.id, cost: pack.cost, name: pack.name, owned: owned});
+  }
+}
+
+function drawStoreMapThemes(cy, ch) {
+  const cardW = Math.min(W - 30, 300), cardH = 70, gap = 10;
+  const startX = (W - cardW) / 2;
+  let itemY = cy + 5;
+
+  ctx.font = '500 9px ' + FB; ctx.textAlign = 'center'; ctx.fillStyle = C_MUT;
+  ctx.fillText('Cosmetic overlays for all maps', W / 2, itemY);
+  itemY += 18;
+
+  const themeColors = {theme_matrix: '#00ff44', theme_bloodmoon: '#ff2222', theme_aurora: '#66ddff'};
+
+  for (let i = 0; i < MAP_THEMES.length; i++) {
+    const theme = MAP_THEMES[i];
+    const owned = store.unlockedMapThemes.has(theme.id);
+    const ry = itemY + i * (cardH + gap);
+    const tc = themeColors[theme.id] || C_ACC;
+
+    ctx.fillStyle = owned ? tc + '15' : 'rgba(15,20,35,0.9)';
+    ctx.strokeStyle = owned ? tc : '#445'; ctx.lineWidth = owned ? 1.5 : 1;
+    ctx.beginPath(); ctx.roundRect(startX, ry, cardW, cardH, 8); ctx.fill(); ctx.stroke();
+
+    // Theme color swatch
+    ctx.fillStyle = tc; ctx.globalAlpha = 0.3;
+    ctx.beginPath(); ctx.roundRect(startX + 12, ry + 12, 36, 36, 4); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = tc; ctx.font = '18px ' + FB; ctx.textAlign = 'center';
+    ctx.fillText(theme.id === 'theme_matrix' ? '\u2588' : theme.id === 'theme_bloodmoon' ? '\u263d' : '\u2728', startX + 30, ry + 38);
+
+    ctx.font = '700 ' + Math.min(11, W * 0.028) + 'px ' + FD; ctx.textAlign = 'left';
+    ctx.fillStyle = owned ? tc : C_TXT;
+    ctx.fillText(theme.name, startX + 58, ry + 28);
+    ctx.font = '500 ' + Math.min(8, W * 0.02) + 'px ' + FB;
+    ctx.fillStyle = C_MUT; ctx.fillText(theme.desc, startX + 58, ry + 44);
+
+    ctx.textAlign = 'right';
+    if (owned) {
+      ctx.font = '600 10px ' + FD; ctx.fillStyle = '#44ff88'; ctx.fillText('\u2713 OWNED', startX + cardW - 16, ry + 36);
+    } else {
+      ctx.font = '700 11px ' + FD; ctx.fillStyle = '#ffcc00'; ctx.fillText('\u25c7 ' + theme.cost, startX + cardW - 16, ry + 36);
+    }
+    ctx.textAlign = 'left';
+
+    G._btns.storeItems.push({x: startX, y: ry, w: cardW, h: cardH, type: 'mapTheme', id: theme.id, cost: theme.cost, name: theme.name, owned: owned});
+  }
+}
+
+function drawStoreBundles(cy, ch) {
+  const cardW = Math.min(W - 30, 300), cardH = 90, gap = 10;
+  const startX = (W - cardW) / 2;
+  let itemY = cy + 5;
+
+  ctx.font = '500 9px ' + FB; ctx.textAlign = 'center'; ctx.fillStyle = C_MUT;
+  ctx.fillText('Best value — save big with bundles', W / 2, itemY);
+  itemY += 18;
+
+  for (let i = 0; i < STORE_BUNDLES.length; i++) {
+    const bundle = STORE_BUNDLES[i];
+    const owned = store.unlockedBundles.has(bundle.id);
+    const ry = itemY + i * (cardH + gap);
+
+    // Gold gradient border for bundles
+    ctx.fillStyle = owned ? 'rgba(255,204,0,0.08)' : 'rgba(15,20,35,0.9)';
+    ctx.strokeStyle = owned ? '#ffcc00' : '#ffcc00' + '66'; ctx.lineWidth = owned ? 2 : 1;
+    ctx.beginPath(); ctx.roundRect(startX, ry, cardW, cardH, 8); ctx.fill(); ctx.stroke();
+
+    // BEST VALUE tag on last bundle
+    if (i === STORE_BUNDLES.length - 1 && !owned) {
+      ctx.fillStyle = '#ffcc00'; ctx.beginPath(); ctx.roundRect(startX + cardW - 72, ry + 4, 60, 16, 4); ctx.fill();
+      ctx.font = '700 7px ' + FD; ctx.textAlign = 'center'; ctx.fillStyle = '#000';
+      ctx.fillText('BEST VALUE', startX + cardW - 42, ry + 15);
+    }
+
+    ctx.font = '700 ' + Math.min(13, W * 0.033) + 'px ' + FD; ctx.textAlign = 'left';
+    ctx.fillStyle = owned ? '#ffcc00' : C_TXT;
+    ctx.fillText(bundle.name, startX + 16, ry + 24);
+
+    ctx.font = '500 ' + Math.min(9, W * 0.022) + 'px ' + FB;
+    ctx.fillStyle = C_MUT; ctx.fillText(bundle.desc, startX + 16, ry + 40);
+    ctx.font = '600 8px ' + FD; ctx.fillStyle = '#88aacc';
+    ctx.fillText('Contents: ' + bundle.contents, startX + 16, ry + 56);
+
+    ctx.textAlign = 'right';
+    if (owned) {
+      ctx.font = '600 10px ' + FD; ctx.fillStyle = '#44ff88'; ctx.fillText('\u2713 PURCHASED', startX + cardW - 16, ry + 52);
+    } else {
+      ctx.font = '700 11px ' + FD; ctx.fillStyle = '#ffcc00'; ctx.fillText(bundle.realPrice, startX + cardW - 16, ry + 24);
+      ctx.font = '500 8px ' + FD; ctx.fillStyle = C_MUT; ctx.fillText('or \u25c7 ' + bundle.cost, startX + cardW - 16, ry + 38);
+    }
+    ctx.textAlign = 'left';
+
+    G._btns.storeItems.push({x: startX, y: ry, w: cardW, h: cardH, type: 'bundle', id: bundle.id, cost: bundle.cost, name: bundle.name, owned: owned});
+  }
+}
+
+function drawStoreCredits(cy, ch) {
+  const cardW = Math.min(W - 30, 300), cardH = 64, gap = 10;
+  const startX = (W - cardW) / 2;
+  let itemY = cy + 5;
+
+  ctx.font = '500 9px ' + FB; ctx.textAlign = 'center'; ctx.fillStyle = C_MUT;
+  ctx.fillText('Purchase Helix Credits (\u25c7)', W / 2, itemY);
+  itemY += 14;
+  ctx.font = '500 8px ' + FB; ctx.fillStyle = '#88aacc';
+  ctx.fillText('Also earned: 10\u25c7 per match + 5\u25c7 per star', W / 2, itemY);
+  itemY += 18;
+
+  for (let i = 0; i < CREDIT_TIERS.length; i++) {
+    const tier = CREDIT_TIERS[i];
+    const ry = itemY + i * (cardH + gap);
+
+    const tierGrad = ctx.createLinearGradient(startX, ry, startX + cardW, ry);
+    tierGrad.addColorStop(0, 'rgba(30,25,50,0.9)'); tierGrad.addColorStop(1, 'rgba(20,15,40,0.9)');
+    ctx.fillStyle = tierGrad;
+    ctx.strokeStyle = '#aa66ff' + '66'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(startX, ry, cardW, cardH, 8); ctx.fill(); ctx.stroke();
+
+    // Credit amount
+    ctx.font = '800 ' + Math.min(20, W * 0.05) + 'px ' + FD; ctx.textAlign = 'left';
+    ctx.fillStyle = '#ffcc00';
+    ctx.fillText('\u25c7 ' + tier.amount, startX + 16, ry + 30);
+
+    // Bonus
+    if (tier.bonus > 0) {
+      ctx.font = '600 9px ' + FD; ctx.fillStyle = '#44ff88';
+      ctx.fillText('+' + tier.bonus + ' bonus', startX + 16, ry + 48);
+    }
+
+    // Price button
+    const pbW = 70, pbH = 30, pbX = startX + cardW - pbW - 12, pbY = ry + (cardH - pbH) / 2;
+    ctx.fillStyle = '#aa66ff'; ctx.beginPath(); ctx.roundRect(pbX, pbY, pbW, pbH, 6); ctx.fill();
+    ctx.font = '700 11px ' + FD; ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
+    ctx.fillText(tier.price, pbX + pbW / 2, pbY + pbH / 2 + 4);
+    ctx.textAlign = 'left';
+
+    G._btns.storeItems.push({x: startX, y: ry, w: cardW, h: cardH, type: 'credits', id: tier.id, amount: tier.amount, bonus: tier.bonus, price: tier.price});
+  }
+
+  // Free credits info
+  const freeY = itemY + CREDIT_TIERS.length * (cardH + gap) + 10;
+  ctx.font = '600 9px ' + FD; ctx.textAlign = 'center'; ctx.fillStyle = C_ACC;
+  ctx.fillText('FREE WAYS TO EARN', W / 2, freeY);
+  const freeItems = ['Complete matches: +10\u25c7', 'Earn stars: +5\u25c7 each', 'Win streaks: +25\u25c7 bonus', 'Daily first win: +15\u25c7'];
+  ctx.font = '500 8px ' + FB; ctx.fillStyle = C_MUT;
+  for (let i = 0; i < freeItems.length; i++) {
+    ctx.fillText(freeItems[i], W / 2, freeY + 16 + i * 14);
+  }
+}
+
+function drawPurchaseConfirm() {
+  const p = store.confirmPurchase;
+  if (!p) return;
+  // Dimmer
+  ctx.fillStyle = 'rgba(0,0,0,0.75)'; ctx.fillRect(0, 0, W, H);
+
+  const mW = Math.min(280, W * 0.85), mH = 160;
+  const mx = (W - mW) / 2, my = (H - mH) / 2;
+
+  // Modal bg
+  ctx.fillStyle = '#0d1220'; ctx.strokeStyle = '#ffcc00'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.roundRect(mx, my, mW, mH, 12); ctx.fill(); ctx.stroke();
+
+  ctx.font = '700 14px ' + FD; ctx.textAlign = 'center'; ctx.fillStyle = '#ffcc00';
+  ctx.fillText('CONFIRM PURCHASE', W / 2, my + 30);
+
+  ctx.font = '600 11px ' + FD; ctx.fillStyle = C_TXT;
+  ctx.fillText(p.name, W / 2, my + 56);
+
+  ctx.font = '700 16px ' + FD; ctx.fillStyle = '#ffcc00';
+  ctx.fillText('\u25c7 ' + p.cost, W / 2, my + 82);
+
+  ctx.font = '500 9px ' + FB; ctx.fillStyle = C_MUT;
+  ctx.fillText('Remaining: \u25c7 ' + (helixCredits - p.cost), W / 2, my + 98);
+
+  // Confirm button
+  const cbW = 100, cbH = 34;
+  ctx.fillStyle = '#006644'; ctx.strokeStyle = '#44ff88'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.roundRect(W / 2 - cbW - 8, my + mH - 48, cbW, cbH, 6); ctx.fill(); ctx.stroke();
+  ctx.font = '700 11px ' + FD; ctx.fillStyle = '#44ff88'; ctx.textAlign = 'center';
+  ctx.fillText('BUY', W / 2 - cbW / 2 - 8, my + mH - 48 + cbH / 2 + 4);
+  G._btns.confirmBuy = {x: W / 2 - cbW - 8, y: my + mH - 48, w: cbW, h: cbH};
+
+  // Cancel button
+  ctx.fillStyle = 'rgba(30,20,20,0.9)'; ctx.strokeStyle = C_DNG; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.roundRect(W / 2 + 8, my + mH - 48, cbW, cbH, 6); ctx.fill(); ctx.stroke();
+  ctx.font = '700 11px ' + FD; ctx.fillStyle = C_DNG;
+  ctx.fillText('CANCEL', W / 2 + cbW / 2 + 8, my + mH - 48 + cbH / 2 + 4);
+  G._btns.confirmCancel = {x: W / 2 + 8, y: my + mH - 48, w: cbW, h: cbH};
+}
+
+function handleStorePurchase(item) {
+  if (item.type === 'heroSkin') {
+    if (item.owned) {
+      // Equip
+      store.equippedHeroSkins[item.heroId] = item.skinId;
+      playSound('place'); saveAllState();
+      return;
+    }
+    if (item.cost === 0) return; // Default
+    if (helixCredits < item.cost) { addToast('Not enough Helix Credits'); playSound('error'); return; }
+    store.confirmPurchase = {type: 'heroSkin', heroId: item.heroId, skinId: item.skinId, cost: item.cost, name: item.name};
+    playSound('click');
+  } else if (item.type === 'towerPack') {
+    if (item.owned) return;
+    if (helixCredits < item.cost) { addToast('Not enough Helix Credits'); playSound('error'); return; }
+    store.confirmPurchase = {type: 'towerPack', id: item.id, cost: item.cost, name: item.name};
+    playSound('click');
+  } else if (item.type === 'mapTheme') {
+    if (item.owned) return;
+    if (helixCredits < item.cost) { addToast('Not enough Helix Credits'); playSound('error'); return; }
+    store.confirmPurchase = {type: 'mapTheme', id: item.id, cost: item.cost, name: item.name};
+    playSound('click');
+  } else if (item.type === 'bundle') {
+    if (item.owned) return;
+    if (helixCredits < item.cost) { addToast('Not enough Helix Credits'); playSound('error'); return; }
+    store.confirmPurchase = {type: 'bundle', id: item.id, cost: item.cost, name: item.name};
+    playSound('click');
+  } else if (item.type === 'credits') {
+    // Simulate IAP (in real app, this would trigger StoreKit)
+    helixCredits += item.amount + (item.bonus || 0);
+    addToast('+' + (item.amount + (item.bonus || 0)) + ' \u25c7 Credits (simulated IAP)');
+    playSound('levelup'); saveAllState();
+  }
+}
+
+function confirmStorePurchase() {
+  const p = store.confirmPurchase;
+  if (!p) return;
+  helixCredits -= p.cost;
+  if (p.type === 'heroSkin') {
+    store.unlockedHeroSkins[p.heroId].add(p.skinId);
+    store.equippedHeroSkins[p.heroId] = p.skinId;
+    addToast('Unlocked: ' + p.name);
+  } else if (p.type === 'towerPack') {
+    store.unlockedTowerPacks.add(p.id);
+    const pack = TOWER_SKIN_PACKS.find(pk => pk.id === p.id);
+    if (pack) { for (const t of TT) { if (!loadout.unlockedSkins[t.id].includes(pack.skinId)) loadout.unlockedSkins[t.id].push(pack.skinId); } }
+    addToast('Unlocked: ' + p.name);
+  } else if (p.type === 'mapTheme') {
+    store.unlockedMapThemes.add(p.id);
+    addToast('Unlocked: ' + p.name);
+  } else if (p.type === 'bundle') {
+    store.unlockedBundles.add(p.id);
+    // Unlock bundle contents
+    if (p.id === 'starter_bundle') {
+      helixCredits += 600;
+      // Unlock 1 random hero skin
+      const allLocked = [];
+      for (const hid in HERO_SKINS) { for (const s of HERO_SKINS[hid]) { if (s.cost > 0 && !store.unlockedHeroSkins[hid].has(s.id)) allLocked.push({hid, sid: s.id}); } }
+      if (allLocked.length > 0) { const pick = allLocked[Math.floor(Math.random() * allLocked.length)]; store.unlockedHeroSkins[pick.hid].add(pick.sid); }
+      addToast('Starter Bundle activated!');
+    } else if (p.id === 'commander_bundle') {
+      helixCredits += 1500;
+      const allLocked = [];
+      for (const hid in HERO_SKINS) { for (const s of HERO_SKINS[hid]) { if (s.cost > 0 && !store.unlockedHeroSkins[hid].has(s.id)) allLocked.push({hid, sid: s.id}); } }
+      for (let k = 0; k < 2 && allLocked.length > 0; k++) { const idx = Math.floor(Math.random() * allLocked.length); const pick = allLocked.splice(idx, 1)[0]; store.unlockedHeroSkins[pick.hid].add(pick.sid); }
+      if (TOWER_SKIN_PACKS.length > 0) { const pk = TOWER_SKIN_PACKS.find(p2 => !store.unlockedTowerPacks.has(p2.id)); if (pk) { store.unlockedTowerPacks.add(pk.id); for (const t of TT) { if (!loadout.unlockedSkins[t.id].includes(pk.skinId)) loadout.unlockedSkins[t.id].push(pk.skinId); } } }
+      addToast('Commander Bundle activated!');
+    } else if (p.id === 'ultimate_bundle') {
+      for (const hid in HERO_SKINS) { for (const s of HERO_SKINS[hid]) { store.unlockedHeroSkins[hid].add(s.id); } }
+      for (const pk of TOWER_SKIN_PACKS) { store.unlockedTowerPacks.add(pk.id); for (const t of TT) { if (!loadout.unlockedSkins[t.id].includes(pk.skinId)) loadout.unlockedSkins[t.id].push(pk.skinId); } }
+      for (const th of MAP_THEMES) { store.unlockedMapThemes.add(th.id); }
+      addToast('Ultimate Bundle — EVERYTHING unlocked!');
+    }
+  }
+  store.confirmPurchase = null;
+  playSound('levelup'); saveAllState();
+}
 
 // === HERO SELECTION SCREEN ===
 function drawHeroSelect() {
@@ -3848,7 +4467,7 @@ if(splashActive&&settings.reduceMotion){splashActive=false;G.phase='menu';Music.
 if(splashActive){drawSplashScreen();return;}
 // Auto-manage music based on phase
 if(audioCtx&&audioEnabled){
-const menuPhases=['menu','mapSelect','diffSelect','biomeSelect','howToPlay','profile','loadout','settings','achievements','offenseMapSelect','campaignMap','heroSelect','heroRoster'];
+const menuPhases=['menu','mapSelect','diffSelect','biomeSelect','howToPlay','profile','loadout','settings','achievements','offenseMapSelect','campaignMap','heroSelect','heroRoster','store'];
 const isMenu=menuPhases.includes(G.phase);
 if(isMenu&&Music.currentTrack!=='menu'){Music.play('menu');}
 else if(!isMenu&&G.phase!=='paused'&&Music.currentTrack==='menu'&&ambientBiome){Music.play(ambientBiome);}
@@ -3871,6 +4490,7 @@ else if(G.phase==='profile')drawProfileScreenV2();
 else if(G.phase==='howToPlay')drawHowToPlay();
 else if(G.phase==='heroSelect')drawHeroSelect();
 else if(G.phase==='heroRoster')drawHeroRoster();
+else if(G.phase==='store')drawStoreScreen();
 else if(G.phase==='settings')drawSettingsScreen();
 else if(G.phase==='mapSelect')drawMapSelect();
 else if(G.phase==='diffSelect')drawDiffSelect();
@@ -3916,7 +4536,7 @@ if(VFX.waveFlash>0)VFX.waveFlash-=dt*3;if(VFX.lowHealthPulse>0)VFX.lowHealthPuls
 if(splashActive){splashTimer+=dt;if(splashTimer>2.5)splashActive=false;return;}
 // Tutorial: auto-advance from waveSummary to build (skip wave summary screen)
 if(TUTORIAL.active&&TUTORIAL.waitingFor==='wait_wave_end'&&G.phase==='waveSummary'){TUTORIAL.advance();G.phase='build';G.shakeTimer=0;}
-if(['paused','wavePreview','waveSummary','menu','mapSelect','diffSelect','howToPlay','gameover','victory','settings','biomeSelect','campaign','campaignMap','campaignSwarmAttack','swarmCommander','offenseMapSelect','offenseResult','loadout','profile','campaignVictory','campaignDefeat','alliedVictory','clashFinal','clashAttackResult','achievements','heroSelect','heroRoster'].includes(G.phase))return;
+if(['paused','wavePreview','waveSummary','menu','mapSelect','diffSelect','howToPlay','gameover','victory','settings','biomeSelect','campaign','campaignMap','campaignSwarmAttack','swarmCommander','offenseMapSelect','offenseResult','loadout','profile','campaignVictory','campaignDefeat','alliedVictory','clashFinal','clashAttackResult','achievements','heroSelect','heroRoster','store'].includes(G.phase))return;
 const sdt=dt*G.gameSpeed;if(G.shakeTimer>0)G.shakeTimer-=dt;
 if(pressedBtnTimer>0){pressedBtnTimer-=dt;}else{pressedBtn=null;}
 if(G.phase==='offenseGame'){updateOffenseGame(dt);updateSwarmEnhanced(dt);return;}
@@ -4039,6 +4659,21 @@ if(G.phase==='clashAttackResult'){if(G._btns.clashContinue&&hitTest(px,py,G._btn
 handleClashResult();playSound('click');}return;}
 if(G.phase==='heroRoster'){
   if(G._btns.rosterBack&&hitTest(px,py,G._btns.rosterBack)){G.phase='menu';playSound('click');}return;}
+if(G.phase==='store'){
+  // Purchase confirmation modal takes priority
+  if(store.confirmPurchase){
+    if(G._btns.confirmBuy&&hitTest(px,py,G._btns.confirmBuy)){confirmStorePurchase();return;}
+    if(G._btns.confirmCancel&&hitTest(px,py,G._btns.confirmCancel)){store.confirmPurchase=null;playSound('click');return;}
+    return; // Block taps behind modal
+  }
+  if(G._btns.storeBack&&hitTest(px,py,G._btns.storeBack)){G.phase='menu';playSound('click');return;}
+  // Tab switching
+  if(G._btns.storeTabs)for(const tb of G._btns.storeTabs){if(hitTest(px,py,tb)){store.tab=tb.idx;store.scrollY=0;playSound('click');return;}}
+  // Hero sub-tab switching
+  if(G._btns.storeHeroTabs)for(const ht of G._btns.storeHeroTabs){if(hitTest(px,py,ht)){store.heroSkinTab=ht.idx;playSound('click');return;}}
+  // Item taps
+  if(G._btns.storeItems)for(const si of G._btns.storeItems){if(hitTest(px,py,si)){handleStorePurchase(si);return;}}
+  return;}
 if(G.phase==='heroSelect'){
   if(G._btns.heroBack&&hitTest(px,py,G._btns.heroBack)){G.phase='diffSelect';playSound('click');return;}
   if(G._btns.heroCards)for(const hc of G._btns.heroCards){if(hitTest(px,py,hc)){heroState.selectedHeroIdx=hc.idx;playSound('click');return;}}
@@ -4053,6 +4688,7 @@ if(G.phase==='heroSelect'){
 if(G.phase==='menu'){if(hitTest(px,py,G._btns.menuPlay)){G.phase='mapSelect';playSound('click');}
 else if(hitTest(px,py,G._btns.menuEndless)){G.phase='biomeSelect';playSound('click');}
 else if(G._btns.menuHeroes&&hitTest(px,py,G._btns.menuHeroes)){G.phase='heroRoster';playSound('click');}
+else if(G._btns.menuStore&&hitTest(px,py,G._btns.menuStore)){G.phase='store';store.tab=0;store.confirmPurchase=null;playSound('click');}
 else if(hitTest(px,py,G._btns.menuCampaign)){initCampaign();G.phase='campaignMap';playSound('click');}
 else if(hitTest(px,py,G._btns.menuOffense)){G.phase='offenseMapSelect';playSound('click');}
 else if(G._btns.menuAllied&&hitTest(px,py,G._btns.menuAllied)){startAlliedDefense();playSound('click');}
@@ -4161,6 +4797,8 @@ window.advanceTime=function(ms){const steps=Math.max(1,Math.round(ms/(1000/60)))
 window._setGamePhase=function(phase){G.phase=phase;render();};
 window._getBtns=function(){return JSON.parse(JSON.stringify(G._btns));};
 window._getHeroState=function(){return JSON.parse(JSON.stringify({sel:heroState.selectedHeroIdx,deployed:heroState.deployed,hp:heroState.heroHp,maxHp:heroState.heroMaxHp,abCd:heroState.abilityCd,ultCd:heroState.ultimateCd,xp:heroState.heroXpGained}));};
+window._getStoreState=function(){return JSON.parse(JSON.stringify({credits:helixCredits,tab:store.tab,heroSkinTab:store.heroSkinTab,unlockedHeroSkins:Object.fromEntries(Object.entries(store.unlockedHeroSkins).map(([k,v])=>[k,[...v]])),equippedHeroSkins:store.equippedHeroSkins,unlockedTowerPacks:[...store.unlockedTowerPacks],unlockedMapThemes:[...store.unlockedMapThemes]}));};
+window._addCredits=function(n){helixCredits+=n;};
 
 
 loadAllState();

@@ -93,7 +93,49 @@ Original prompt: build an iphone game that is a knockoff of starcraft2 tower def
 - **Phase 1**: Persistence + Core UX (localStorage, safe areas, auto-pause, button feedback)
 - **Phase 2**: Audio Overhaul (procedural music, multi-oscillator SFX, 10 tower profiles)
 
+---
+
+## Phase 5: Hero System — COMPLETE
+
+### Changes Applied
+- **5 unique heroes**: Commander Vex (Vanguard), Dr. Lyra Sol (Technomancer), Kael Ironhart (Warden), Nyx Shade (Phantom), Zara Prime (Oracle)
+- **Hero abilities**: Passive + active + ultimate per hero
+- **XP/leveling system**: Heroes gain XP from kills, level up with stat boosts
+- **Hero select screen**: Pre-battle hero selection with stats and ability descriptions
+- **In-game hero rendering**: Draggable hero unit on battlefield with health bar, range indicator
+- **Hero respawn system**: 15-second respawn timer on death
+
+---
+
+## Phase 6: Monetization & Business Model — COMPLETE
+
+### Changes Applied
+- **Helix Store UI**: Full 5-tab store screen (Hero Skins, Tower Packs, Map Themes, Bundles, Credits)
+- **Hero Skins**: 5 heroes × 4 skins each (Default + 3 purchasable), unique color schemes per skin
+- **Tower Skin Packs**: 3 packs (Neon, Void, Ember) at 400 credits each, reskin all towers at once
+- **Map Themes**: 3 themes (Matrix Grid, Blood Moon, Aurora) at 250-350 credits
+- **Bundles**: Starter ($2.99), Commander ($6.99), Ultimate (BEST VALUE) with USD + credit pricing
+- **Credit Tiers**: 4 IAP tiers (100/$0.99 to 3000/$17.99) with bonus amounts
+- **Purchase confirmation modal**: Shows item name, cost, remaining balance, BUY/CANCEL
+- **Helix Credits currency**: Diamond icon, earned +10 per match and +5 per star
+- **Cosmetic rendering**: Hero skins change in-game hero color/icon, equipped skins visible on hero select and battlefield
+- **Persistence**: All purchases, credits, equipped skins saved to localStorage
+- **Toast notifications**: addToast() function for purchase confirmations and game events
+- **Free-to-play friendly**: "Free Ways to Earn" section showing match/star/streak rewards
+
+### Bugs Found & Fixed During QA
+- Missing closing brace `}` in drawGameOverScreen (if(isV) block unclosed after helixCredits line)
+- `addToast` function undefined — added general-purpose toast that uses achievement toast system
+
+### QA Results
+- All 5 store tabs render correctly with distinct layouts
+- Purchase flow: tap item → confirmation modal → BUY → credits deducted, item unlocked/equipped
+- Hero skin changes visible in store (icon color), hero select screen, and in-game battlefield
+- Tower pack purchase shows OWNED badge after purchase
+- Credits persist across menu navigation and page reload
+- No console errors after fixes
+- All 5 hero sub-tabs functional with unique skins per hero
+
 ## TODO / Next Steps
-- Phase 4: Social features, achievements display, leaderboards
-- Phase 5: Additional content (new towers, enemies, maps)
-- App Store packaging (PWA → native wrapper)
+- Phase 7: Legal & Compliance (privacy policy, age rating, GDPR)
+- Phase 8: Native Packaging (Capacitor wrapper, Xcode, App Store submission)
