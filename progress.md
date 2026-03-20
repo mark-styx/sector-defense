@@ -29,6 +29,41 @@ Original prompt: build an iphone game that is a knockoff of starcraft2 tower def
 
 ---
 
+## Phase 5: Hero System — COMPLETE
+
+### Heroes Added
+- **Commander Vex** (The Vanguard) — Shield shape, cyan. Passive: +15% tower damage in range. Ability: Battle Cry (AOE buff). Ultimate: Vanguard Override (massive damage boost)
+- **Dr. Lyra Sol** (The Technomancer) — Diamond shape, magenta. Passive: -10% tower upgrade cost. Ability: Nano Repair (heal towers). Ultimate: Overdrive Protocol (all towers fire faster)
+- **Kael Ironhart** (The Warden) — Hexagon shape, green. Passive: Enemies move 20% slower in range. Ability: Shield Wall (block path). Ultimate: Fortification (massive slow field)
+- **Nyx Shade** (The Phantom) — Triangle shape, red. Passive: +25% damage to strongest enemy. Ability: Shadow Strike (instant kill weak enemies). Ultimate: Assassin's Mark (all enemies take extra damage)
+- **Zara Prime** (The Oracle) — Star shape, gold. Passive: +2 Nexium/sec. Ability: Temporal Pulse (slow all enemies). Ultimate: Nexium Surge (big Nexium generation)
+
+### Features
+- Hero Selection screen between difficulty select and game start
+- Hero Roster accessible from main menu ("HEROES" with NEW badge)
+- Heroes render on battlefield with unique shape icons, health bars, name labels, range circles
+- Active ability (Q button) with cooldown timers
+- Ultimate ability (ULT button) with cooldown
+- Passive abilities apply automatically in range
+- Hero XP gained from kills in range
+- Hero leveling with 5 level tiers, persistent across games
+- Level bonuses (HP, range, ability damage, cooldown reduction, etc.)
+- "No Hero — Classic Mode" option for unmodified gameplay
+- Hero death/respawn mechanic with timer
+
+### Bugs Found & Fixed During QA
+- **Deploy button crash**: `deployHero(0)` called before `setupMap()`, causing `getPathPts()` to fail on empty `currentPaths`. Fix: call `startGame()` first (sets up map), then `deployHero(0)`
+- **hitTest in render()**: Two hero ability hitTest calls were placed inside `render()` instead of `handleTap()`, causing `px is not defined` ReferenceError during rendering. Fix: moved to handleTap after globals handling
+- **Stray drawColorBlindMarker**: A `drawColorBlindMarker(ctx, x, y, s*cellSize, e.type)` line was accidentally inserted into `drawParticles()`, referencing undefined `x`, `y`, `e`. Fix: removed the stray line
+
+### Known Issues / TODOs for Next Phase
+- Hero doesn't deal direct damage to enemies (only provides buffs) — could add auto-attack
+- Hero portrait/icon on HUD could be more detailed
+- Hero unlock progression could be more gradual (all heroes available from start)
+- Consider adding hero-specific sound effects for abilities
+
+---
+
 ## Phase 3: Visual Polish & Animation — COMPLETE
 
 ### Changes Applied
