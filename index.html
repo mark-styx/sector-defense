@@ -998,7 +998,7 @@ attackResult:null,swarmAttackTarget:-1,researchChoice:-1,battlesWon:0,nexiumBank
 researchPicked:'',totalNexiumFromTerritories:0,defending:false,
 actionPoints:0,maxAP:2,subAction:'',attackSource:-1,attackTarget:-1,swarmThreat:1,
 message:'',messageTimer:0};
-function initCampaign(){campaign.active=true;campaign.turn=1;campaign.battlesWon=0;campaign.nexiumBank=100;campaign.selectedTerritory=-1;campaign.phase='overworld';campaign.defending=false;campaign.researchChoice=-1;campaign.researchPicked='';
+function initCampaign(){campaign.active=true;campaign.turn=1;campaign.battlesWon=0;campaign.nexiumBank=150;campaign.selectedTerritory=-1;campaign.phase='overworld';campaign.defending=false;campaign.researchChoice=-1;campaign.researchPicked='';
 campaign.actionPoints=2;campaign.maxAP=2;campaign.subAction='';campaign.attackSource=-1;campaign.attackTarget=-1;campaign.swarmThreat=1;campaign.message='';campaign.messageTimer=0;
 campaign.territories=TERRITORIES.map((t,i)=>({...t,buildings:[],garrison:0,army:{infantry:0,armor:0,artillery:0},income:TERRITORY_INCOME[i]||15}));}
 function getCampaignPlayerTerritories(){return campaign.territories?campaign.territories.filter(t=>t.owner==='player'):[];}
@@ -2442,7 +2442,10 @@ ctx.font='800 '+Math.min(28,W*0.07)+'px '+FD;ctx.textAlign='center';ctx.fillStyl
 const bw=180,bh=46,bx=W/2-bw/2;let by=H*0.45;
 ctx.fillStyle='#003344';ctx.strokeStyle=C_ACC;ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(bx,by,bw,bh,8);ctx.fill();ctx.stroke();ctx.font='700 '+Math.min(16,W*0.04)+'px '+FD;ctx.fillStyle=C_ACC;ctx.fillText('RESUME',W/2,by+bh/2+2);G._btns.resume={x:bx,y:by,w:bw,h:bh};
 by+=bh+12;ctx.fillStyle='rgba(20,30,50,0.8)';ctx.strokeStyle=C_MUT;ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(bx,by,bw,40,6);ctx.fill();ctx.stroke();ctx.font='600 '+Math.min(14,W*0.035)+'px '+FD;ctx.fillStyle=C_MUT;ctx.fillText('SETTINGS',W/2,by+22);G._btns.pauseSettings={x:bx,y:by,w:bw,h:40};
-by+=50;ctx.fillStyle='#331111';ctx.strokeStyle=C_DNG;ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(bx,by,bw,40,6);ctx.fill();ctx.stroke();ctx.font='600 '+Math.min(14,W*0.035)+'px '+FD;ctx.fillStyle=C_DNG;ctx.fillText('QUIT TO MENU',W/2,by+22);G._btns.quit={x:bx,y:by,w:bw,h:40};}
+by+=50;ctx.fillStyle='#331111';ctx.strokeStyle=C_DNG;ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(bx,by,bw,40,6);ctx.fill();ctx.stroke();ctx.font='600 '+Math.min(14,W*0.035)+'px '+FD;ctx.fillStyle=C_DNG;
+const quitLabel=(campaign.active&&(campaign.defending||offense.campaignAttacking))?'FORFEIT BATTLE':'QUIT TO MENU';
+ctx.fillText(quitLabel,W/2,by+22);G._btns.quit={x:bx,y:by,w:bw,h:40};
+if(campaign.active&&(campaign.defending||offense.campaignAttacking)){by+=46;ctx.font='500 '+Math.min(10,W*0.025)+'px '+FB;ctx.fillStyle='#ff6644';ctx.fillText('(counts as a loss — territory may be lost)',W/2,by+8);}}
 
 function drawGameOverScreen(){ctx.fillStyle='rgba(10,14,26,0.92)';ctx.fillRect(0,0,W,H);
 const isV=G.phase==='victory';const ts=Math.min(28,W*0.07);ctx.font='800 '+ts+'px '+FD;ctx.textAlign='center';ctx.fillStyle=isV?'#44ff88':C_DNG;ctx.shadowColor=isV?'#44ff88':C_DNG;ctx.shadowBlur=15;ctx.fillText(isV?'VICTORY!':'GAME OVER',W/2,H*0.18);ctx.shadowBlur=0;
@@ -2464,6 +2467,72 @@ function drawOrbitalTargeting(){if(!G.orbitalTargeting)return;ctx.font='600 '+Ma
 // ============================================================
 // PHASE 2: CAMPAIGN MODE - THE HELIX WAR (BFME2 Inspired)
 // ============================================================
+function hasSavedCampaign(){return campaign.territories!==null&&campaign.turn>0;}
+
+function drawCampaignMenu(){
+drawStarfield();
+ctx.save();ctx.shadowColor='rgba(68,255,136,0.4)';ctx.shadowBlur=15;
+ctx.font='800 '+Math.min(24,W*0.06)+'px '+FD;ctx.textAlign='center';ctx.fillStyle='#44ff88';
+ctx.fillText('THE HELIX WAR',W/2,H*0.12);ctx.restore();
+const sepW=W*0.35;const sepGrad=ctx.createLinearGradient(W/2-sepW/2,0,W/2+sepW/2,0);
+sepGrad.addColorStop(0,'transparent');sepGrad.addColorStop(0.5,'#44ff88');sepGrad.addColorStop(1,'transparent');
+ctx.strokeStyle=sepGrad;ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(W/2-sepW/2,H*0.15);ctx.lineTo(W/2+sepW/2,H*0.15);ctx.stroke();
+const hasSave=hasSavedCampaign();
+const bw=220,bh=50,bx=W/2-bw/2;
+G._btns.campaignMenuNew=null;G._btns.campaignMenuResume=null;G._btns.campaignMenuBack=null;
+if(hasSave){
+// Resume button
+let by=H*0.28;
+ctx.fillStyle='rgba(10,40,30,0.9)';ctx.strokeStyle='#44ff88';ctx.lineWidth=2;
+ctx.beginPath();ctx.roundRect(bx,by,bw,bh,8);ctx.fill();ctx.stroke();
+ctx.font='700 '+Math.min(16,W*0.04)+'px '+FD;ctx.textAlign='center';ctx.fillStyle='#44ff88';
+ctx.fillText('RESUME CAMPAIGN',W/2,by+bh/2+2);
+G._btns.campaignMenuResume={x:bx,y:by,w:bw,h:bh};
+// Campaign info
+const pc=getCampaignPlayerTerritories().length;
+const sc=getCampaignSwarmTerritories().length;
+ctx.font='500 '+Math.min(11,W*0.028)+'px '+FB;ctx.fillStyle=C_MUT;
+ctx.fillText('Turn '+campaign.turn+' · '+pc+' territories · ◆'+campaign.nexiumBank,W/2,by+bh+18);
+ctx.fillText(campaign.battlesWon+' battles won · Swarm: '+sc+' territories',W/2,by+bh+34);
+// Draw mini territory overview
+const overY=by+bh+54;const barW=bw-20;const barH=12;
+ctx.fillStyle='#1a2235';ctx.beginPath();ctx.roundRect(bx+10,overY,barW,barH,4);ctx.fill();
+const playerPct=pc/20;const swarmPct=sc/20;
+if(playerPct>0){ctx.fillStyle='#0088ff';ctx.beginPath();ctx.roundRect(bx+10,overY,barW*playerPct,barH,4);ctx.fill();}
+if(swarmPct>0){ctx.fillStyle='#ff3344';ctx.beginPath();ctx.roundRect(bx+10+barW*(1-swarmPct),overY,barW*swarmPct,barH,4);ctx.fill();}
+ctx.font='500 9px '+FB;ctx.fillStyle=C_TXT;
+ctx.textAlign='left';ctx.fillText('Vanguard',bx+14,overY+barH+14);
+ctx.textAlign='right';ctx.fillText('Swarm',bx+10+barW-4,overY+barH+14);
+ctx.textAlign='center';
+// New Campaign button (smaller, below)
+by=H*0.55;
+ctx.fillStyle='rgba(40,20,10,0.8)';ctx.strokeStyle=C_WRN;ctx.lineWidth=1.5;
+ctx.beginPath();ctx.roundRect(bx+30,by,bw-60,40,6);ctx.fill();ctx.stroke();
+ctx.font='600 '+Math.min(12,W*0.03)+'px '+FD;ctx.fillStyle=C_WRN;
+ctx.fillText('NEW CAMPAIGN',W/2,by+22);
+ctx.font='500 9px '+FB;ctx.fillStyle=C_MUT;ctx.fillText('Erases current progress',W/2,by+36);
+G._btns.campaignMenuNew={x:bx+30,y:by,w:bw-60,h:40};
+} else {
+// No save - just show New Campaign
+let by=H*0.32;
+ctx.fillStyle='rgba(10,40,30,0.9)';ctx.strokeStyle='#44ff88';ctx.lineWidth=2;
+ctx.beginPath();ctx.roundRect(bx,by,bw,bh,8);ctx.fill();ctx.stroke();
+ctx.font='700 '+Math.min(16,W*0.04)+'px '+FD;ctx.textAlign='center';ctx.fillStyle='#44ff88';
+ctx.fillText('BEGIN CAMPAIGN',W/2,by+bh/2+2);
+G._btns.campaignMenuNew={x:bx,y:by,w:bw,h:bh};
+// Flavor text
+ctx.font='500 '+Math.min(11,W*0.028)+'px '+FB;ctx.fillStyle=C_MUT;
+ctx.fillText('Command the Vanguard forces.',W/2,by+bh+20);
+ctx.fillText('Conquer the Swarm Hive to win.',W/2,by+bh+36);
+ctx.fillText('20 territories · Strategic turn-based warfare',W/2,by+bh+52);}
+// Back button
+const backY=H*0.82;const backW=100,backH=36;
+ctx.fillStyle='rgba(20,30,50,0.8)';ctx.strokeStyle=C_MUT;ctx.lineWidth=1;
+ctx.beginPath();ctx.roundRect(W/2-backW/2,backY,backW,backH,6);ctx.fill();ctx.stroke();
+ctx.font='600 '+Math.min(12,W*0.03)+'px '+FD;ctx.fillStyle=C_MUT;
+ctx.fillText('BACK',W/2,backY+backH/2+2);
+G._btns.campaignMenuBack={x:W/2-backW/2,y:backY,w:backW,h:backH};}
+
 function drawCampaignMap(){
 ctx.fillStyle=C_BG;ctx.fillRect(0,0,W,H);
 const panelH=200,mapAreaH=H-panelH;
@@ -2471,14 +2540,18 @@ const panelH=200,mapAreaH=H-panelH;
 ctx.font='800 '+Math.min(16,W*0.04)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=C_ACC;
 ctx.shadowColor=C_ACC;ctx.shadowBlur=8;ctx.fillText('THE HELIX WAR',W/2,20);ctx.shadowBlur=0;
 const pc=getCampaignPlayerTerritories().length,sc=getCampaignSwarmTerritories().length;
-ctx.font='500 '+Math.min(10,W*0.025)+'px '+FB;ctx.fillStyle=C_MUT;
-ctx.fillText('Turn '+campaign.turn+' | Vanguard: '+pc+' | Swarm: '+sc+' | ◆'+campaign.nexiumBank+' | AP: '+campaign.actionPoints+'/'+campaign.maxAP,W/2,36);
+const incomePerTurn=getCampaignIncome();
+// Stats bar — two rows for clarity
+ctx.font='600 '+Math.min(10,W*0.025)+'px '+FB;ctx.fillStyle=C_TXT;
+ctx.fillText('Turn '+campaign.turn+' | ◆'+campaign.nexiumBank+' (+'+incomePerTurn+'/turn) | AP: '+campaign.actionPoints+'/'+campaign.maxAP,W/2,34);
+ctx.font='500 '+Math.min(9,W*0.022)+'px '+FB;ctx.fillStyle=C_MUT;
+ctx.fillText('Territories: '+pc+'/'+campaign.territories.length+' | Swarm: '+sc+' | Battles Won: '+campaign.battlesWon+' | Threat: '+campaign.swarmThreat.toFixed(1),W/2,47);
 // Hex grid - compact to fit above panel
 const hexR=Math.min(W*0.075,34),hexH=hexR*Math.sqrt(3);
 const availH=mapAreaH-70;
 const gapX=hexR*2.2,gapY=Math.min(hexH*1.6,availH/4.5);
 const gridW=5,gridH=5;
-const startX=W/2-(gridW-1)*gapX/2,startY=58;
+const startX=W/2-(gridW-1)*gapX/2,startY=62;
 G._btns.campaignHexes=[];
 if(!campaign.territories)return;
 // Draw connections
@@ -2748,16 +2821,16 @@ const mi=getCampaignMapIdx(tid);const di=getCampaignDiffIdx(tid);
 offense.active=true;offense.campaignAttacking=true;offense.mapIdx=0;
 offense.unitsPast=0;offense.spawnCooldown=0;
 // Scale difficulty based on territory distance (di)
-const bioBase=180+source.army.infantry*30+source.army.armor*20+source.army.artillery*40;
+const bioBase=220+source.army.infantry*35+source.army.armor*25+source.army.artillery*50;
 offense.bioMass=bioBase;
-const goalBase=8+di*3+(campaign.territories[tid].garrison||0)*2;
+const goalBase=6+di*2+(campaign.territories[tid].garrison||0)*2;
 offense.goalUnits=goalBase;
 offense.waveCurrent=1;
 // Setup map
 G.mapIdx=mi;setupMap(mi);
 // Place AI defender towers based on territory difficulty & garrison
 G.towers=[];G.enemies=[];G.spawnQueue=[];G.spawnTimer=0;
-const towerBudget=3+di*2+(campaign.territories[tid].garrison||0);
+const towerBudget=2+di*2+(campaign.territories[tid].garrison||0);
 const availableCells=[];
 for(let r=0;r<currentRows;r++)for(let c=0;c<currentCols;c++){if(isValidPlacement(c,r))availableCells.push({col:c,row:r});}
 // Shuffle and pick tower positions
@@ -2992,7 +3065,7 @@ t.buildings.push(opt.id);
 if(opt.id==='garrison')t.garrison=Math.min(3,t.garrison+1);
 campaign.nexiumBank-=opt.cost;campaign.actionPoints--;campaign.subAction='';
 campaign.message='Built '+opt.id+' on '+t.name;campaign.messageTimer=2;
-playSound('place');}else playSound('error');return;}}return;}
+saveAllState();playSound('place');}else playSound('error');return;}}return;}
 // RECRUIT sub-action options
 if(campaign.subAction==='recruit'&&G._btns.campaignRecruitOpts){
 for(const opt of G._btns.campaignRecruitOpts){if(hitTest(px,py,opt)){
@@ -3001,7 +3074,7 @@ const t=campaign.territories[campaign.selectedTerritory];
 t.army[opt.id]=(t.army[opt.id]||0)+1;
 campaign.nexiumBank-=opt.cost;campaign.actionPoints--;campaign.subAction='';
 campaign.message='Recruited '+opt.id+' at '+t.name;campaign.messageTimer=2;
-playSound('place');}else playSound('error');return;}}return;}
+saveAllState();playSound('place');}else playSound('error');return;}}return;}
 // ATTACK target selection - clicking a hex
 if(campaign.subAction==='attackSelect'){
 if(G._btns.campaignHexes)for(const h of G._btns.campaignHexes){if(hitTest(px,py,h)){
@@ -3018,7 +3091,7 @@ startCampaignOffense(tid,source);
 // Consume army units (bonuses already factored into bio-mass)
 source.army={infantry:0,armor:0,artillery:0};
 campaign.subAction='';
-playSound('wave_start');return;
+saveAllState();playSound('wave_start');return;
 }else{playSound('error');}return;}}return;}
 // Action buttons
 if(G._btns.campaignBuild&&hitTest(px,py,G._btns.campaignBuild)){campaign.subAction='build';playSound('click');return;}
@@ -3049,18 +3122,18 @@ playSound('wave_start');return;}
 if(G._btns.campaignAbandon&&hitTest(px,py,G._btns.campaignAbandon)){
 campaign.territories[campaign.swarmAttackTarget].owner='swarm';
 campaign.territories[campaign.swarmAttackTarget].buildings=[];campaign.territories[campaign.swarmAttackTarget].army={infantry:0,armor:0,artillery:0};campaign.territories[campaign.swarmAttackTarget].garrison=0;
-checkCampaignDefeat();playSound('click');return;}
+saveAllState();checkCampaignDefeat();playSound('click');return;}
 if(G._btns.campaignContinue&&hitTest(px,py,G._btns.campaignContinue)){
-campaign.turn++;campaign.maxAP=getCampaignAP();campaign.actionPoints=campaign.maxAP;campaign.selectedTerritory=-1;campaign.subAction='';G.phase='campaignMap';playSound('click');return;}}
+campaign.turn++;campaign.maxAP=getCampaignAP();campaign.actionPoints=campaign.maxAP;campaign.selectedTerritory=-1;campaign.subAction='';saveAllState();G.phase='campaignMap';playSound('click');return;}}
 
 function checkCampaignDefeat(){
 const pc=getCampaignPlayerTerritories().length;
-if(pc<2||campaign.territories[0].owner!=='player'){G.phase='campaignDefeat';playSound('gameover');return;}
-campaign.turn++;campaign.maxAP=getCampaignAP();campaign.actionPoints=campaign.maxAP;campaign.selectedTerritory=-1;campaign.subAction='';G.phase='campaignMap';}
+if(pc<2||campaign.territories[0].owner!=='player'){G.phase='campaignDefeat';saveAllState();playSound('gameover');return;}
+campaign.turn++;campaign.maxAP=getCampaignAP();campaign.actionPoints=campaign.maxAP;campaign.selectedTerritory=-1;campaign.subAction='';saveAllState();G.phase='campaignMap';}
 
 function checkCampaignVictory(){
-if(campaign.territories[18].owner==='player'){G.phase='campaignVictory';playVictoryFanfare();return true;}
-if(getCampaignPlayerTerritories().length>=15){G.phase='campaignVictory';playVictoryFanfare();return true;}
+if(campaign.territories[18].owner==='player'){G.phase='campaignVictory';saveAllState();playVictoryFanfare();return true;}
+if(getCampaignPlayerTerritories().length>=15){G.phase='campaignVictory';saveAllState();playVictoryFanfare();return true;}
 return false;}
 
 function processCampaignAfterBattle(won){
@@ -3078,30 +3151,32 @@ const tid=campaign.attackTarget>=0?campaign.attackTarget:campaign.selectedTerrit
 campaign.territories[tid].owner='player';campaign.battlesWon++;
 if(checkCampaignVictory())return;
 // After attack, check if player still has AP
-if(campaign.actionPoints>0){G.phase='campaignMap';}
+if(campaign.actionPoints>0){saveAllState();G.phase='campaignMap';}
 else{campaign.nexiumBank+=getCampaignIncome();doSwarmTurn();}}
 else{
-if(campaign.actionPoints>0){G.phase='campaignMap';}
+if(campaign.actionPoints>0){saveAllState();G.phase='campaignMap';}
 else{campaign.nexiumBank+=getCampaignIncome();doSwarmTurn();}}}
 
 function doSwarmTurn(){
-campaign.swarmThreat+=0.5;
+campaign.swarmThreat+=0.35;
 const swarmTerritories=getCampaignSwarmTerritories();
 const playerTerritories=getCampaignPlayerTerritories().filter(t=>t.canLose);
 // Swarm builds on random territory
-if(swarmTerritories.length>0&&Math.random()<0.3){
+if(swarmTerritories.length>0&&Math.random()<0.45){
 const st=swarmTerritories[Math.floor(Math.random()*swarmTerritories.length)];
 if((st.buildings||[]).length<3){const types=['outpost','garrison','lab'];st.buildings.push(types[Math.floor(Math.random()*types.length)]);if(st.buildings[st.buildings.length-1]==='garrison')st.garrison=Math.min(3,st.garrison+1);}}
-// Swarm expands to neutral territories
+// Swarm expands to neutral territories (probabilistic, not guaranteed)
 const neutralAdj=campaign.territories.filter(t=>t.owner==='neutral'&&isTerritoryAdjacentToSwarm(t.id));
-if(neutralAdj.length>0){const pick=neutralAdj[Math.floor(Math.random()*neutralAdj.length)];pick.owner='swarm';}
+const expandChance=Math.min(0.85,0.5+campaign.swarmThreat*0.03);
+if(neutralAdj.length>0&&Math.random()<expandChance){const pick=neutralAdj[Math.floor(Math.random()*neutralAdj.length)];pick.owner='swarm';}
 // Swarm attacks player?
 const attackable=playerTerritories.filter(t=>isTerritoryAdjacentToSwarm(t.id));
-const attackChance=Math.min(0.8,0.3+campaign.swarmThreat*0.05);
+const attackChance=Math.min(0.7,0.15+campaign.swarmThreat*0.04);
 if(attackable.length>0&&Math.random()<attackChance){
 campaign.swarmAttackTarget=attackable[Math.floor(Math.random()*attackable.length)].id;
 G.phase='campaignSwarmAttack';}
-else{campaign.swarmAttackTarget=-1;G.phase='campaignSwarmAttack';}}
+else{campaign.swarmAttackTarget=-1;G.phase='campaignSwarmAttack';}
+saveAllState();}
 
 function awardPostMatchRewards(){
 loadout.matchCount++;
@@ -4488,7 +4563,7 @@ if(splashActive&&settings.reduceMotion){splashActive=false;G.phase='menu';Music.
 if(splashActive){drawSplashScreen();return;}
 // Auto-manage music based on phase
 if(audioCtx&&audioEnabled){
-const menuPhases=['menu','mapSelect','diffSelect','biomeSelect','howToPlay','profile','loadout','settings','achievements','offenseMapSelect','campaignMap','heroSelect','heroRoster','store'];
+const menuPhases=['menu','mapSelect','diffSelect','biomeSelect','howToPlay','profile','loadout','settings','achievements','offenseMapSelect','campaignMenu','campaignMap','heroSelect','heroRoster','store'];
 const isMenu=menuPhases.includes(G.phase);
 if(isMenu&&Music.currentTrack!=='menu'){Music.play('menu');}
 else if(!isMenu&&G.phase!=='paused'&&Music.currentTrack==='menu'&&ambientBiome){Music.play(ambientBiome);}
@@ -4500,6 +4575,7 @@ else if(G.phase==='clashFinal')drawClashFinal();
 else if(G.phase==='clashAttack'){drawClashAttack();}
 else if(G.phase==='clashAttackResult')drawClashAttackResult();
 else if(G.phase==='achievements')drawAchievementsScreen();
+else if(G.phase==='campaignMenu')drawCampaignMenu();
 else if(G.phase==='campaignMap')drawCampaignMap();
 else if(G.phase==='campaignSwarmAttack')drawCampaignSwarmAttack();
 else if(G.phase==='campaignVictory')drawCampaignVictory();
@@ -4557,7 +4633,7 @@ if(VFX.waveFlash>0)VFX.waveFlash-=dt*3;if(VFX.lowHealthPulse>0)VFX.lowHealthPuls
 if(splashActive){splashTimer+=dt;if(splashTimer>2.5)splashActive=false;return;}
 // Tutorial: auto-advance from waveSummary to build (skip wave summary screen)
 if(TUTORIAL.active&&TUTORIAL.waitingFor==='wait_wave_end'&&G.phase==='waveSummary'){TUTORIAL.advance();G.phase='build';G.shakeTimer=0;}
-if(['paused','wavePreview','waveSummary','menu','mapSelect','diffSelect','howToPlay','gameover','victory','settings','biomeSelect','campaign','campaignMap','campaignSwarmAttack','swarmCommander','offenseMapSelect','offenseResult','loadout','profile','campaignVictory','campaignDefeat','alliedVictory','clashFinal','clashAttackResult','achievements','heroSelect','heroRoster','store'].includes(G.phase))return;
+if(['paused','wavePreview','waveSummary','menu','mapSelect','diffSelect','howToPlay','gameover','victory','settings','biomeSelect','campaign','campaignMenu','campaignMap','campaignSwarmAttack','swarmCommander','offenseMapSelect','offenseResult','loadout','profile','campaignVictory','campaignDefeat','alliedVictory','clashFinal','clashAttackResult','achievements','heroSelect','heroRoster','store'].includes(G.phase))return;
 const sdt=dt*G.gameSpeed;if(G.shakeTimer>0)G.shakeTimer-=dt;
 if(pressedBtnTimer>0){pressedBtnTimer-=dt;}else{pressedBtn=null;}
 if(G.phase==='offenseGame'){updateOffenseGame(dt);updateSwarmEnhanced(dt);return;}
@@ -4638,6 +4714,10 @@ if(TUTORIAL.active){
 }
 
 
+if(G.phase==='campaignMenu'){
+if(G._btns.campaignMenuResume&&hitTest(px,py,G._btns.campaignMenuResume)){campaign.active=true;G.phase='campaignMap';playSound('click');return;}
+if(G._btns.campaignMenuNew&&hitTest(px,py,G._btns.campaignMenuNew)){initCampaign();G.phase='campaignMap';playSound('click');return;}
+if(G._btns.campaignMenuBack&&hitTest(px,py,G._btns.campaignMenuBack)){G.phase='menu';playSound('click');}return;}
 if(G.phase==='campaignMap'){handleCampaignMapTap(px,py);return;}
 if(G.phase==='campaignSwarmAttack'){handleCampaignSwarmAttackTap(px,py);return;}
 if(G.phase==='campaignVictory'){if(G._btns.campaignVictoryMenu&&hitTest(px,py,G._btns.campaignVictoryMenu)){G.phase='menu';campaign.active=false;saveAllState();playSound('click');}return;}
@@ -4715,7 +4795,7 @@ if(G.phase==='menu'){if(hitTest(px,py,G._btns.menuPlay)){G.phase='mapSelect';pla
 else if(hitTest(px,py,G._btns.menuEndless)){G.phase='biomeSelect';playSound('click');}
 else if(G._btns.menuHeroes&&hitTest(px,py,G._btns.menuHeroes)){G.phase='heroRoster';playSound('click');}
 else if(G._btns.menuStore&&hitTest(px,py,G._btns.menuStore)){G.phase='store';store.tab=0;store.confirmPurchase=null;playSound('click');}
-else if(hitTest(px,py,G._btns.menuCampaign)){initCampaign();G.phase='campaignMap';playSound('click');}
+else if(hitTest(px,py,G._btns.menuCampaign)){G.phase='campaignMenu';playSound('click');}
 else if(hitTest(px,py,G._btns.menuOffense)){G.phase='offenseMapSelect';playSound('click');}
 else if(G._btns.menuAllied&&hitTest(px,py,G._btns.menuAllied)){startAlliedDefense();playSound('click');}
 else if(G._btns.menuClash&&hitTest(px,py,G._btns.menuClash)){startSectorClash();playSound('click');}
@@ -4770,7 +4850,14 @@ if(G.phase==='wavePreview'){startWave();return;}
 if(G.phase==='waveSummary'){G.phase='build';playSound('click');return;}
 if(G.phase==='paused'){if(hitTest(px,py,G._btns.resume)){G.phase=G.previousPhase;playSound('click');}
 else if(hitTest(px,py,G._btns.pauseSettings)){G.phase='settings';playSound('click');}
-else if(hitTest(px,py,G._btns.quit)){G.phase='menu';saveAllState();playSound('click');}return;}
+else if(hitTest(px,py,G._btns.quit)){
+if(campaign.active&&campaign.defending){
+// Forfeiting mid-defense = loss
+processCampaignAfterBattle(false);saveAllState();playSound('click');}
+else if(campaign.active&&offense.campaignAttacking){
+// Forfeiting mid-offense = loss
+offense.active=false;offense.campaignAttacking=false;stopAmbient();processCampaignAfterBattle(false);saveAllState();playSound('click');}
+else{G.phase='menu';saveAllState();playSound('click');}}return;}
 if(G.orbitalTargeting){const cell=getGridCell(px,py);if(cell)useVanguardStrike(px,py);else G.orbitalTargeting=false;return;}
 if(hitTest(px,py,G._btns.speed)){G.gameSpeed=G.gameSpeed===1?2:G.gameSpeed===2?3:1;playSound('click');return;}
 if(hitTest(px,py,G._btns.pause)){if(G.phase==='build'||G.phase==='wave'){G.previousPhase=G.phase;G.phase='paused';G.showRadialMenu=false;G.showTowerInfo=false;G.towerInfoIdx=-1;G.orbitalTargeting=false;playSound('click');}return;}
