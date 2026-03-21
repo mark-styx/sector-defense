@@ -74,7 +74,6 @@ Note: IAP is currently simulated in the web version. Real StoreKit integration w
 |---|---|---|
 | JetBrains Mono (Google Fonts) | SIL Open Font License 1.1 | Allowed |
 | Inter (Google Fonts) | SIL Open Font License 1.1 | Allowed |
-| Perplexity Computer attribution | Required | Included |
 
 No other third-party libraries, SDKs, or assets are used. All game code, art, sound, and music are original.
 
