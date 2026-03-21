@@ -1126,7 +1126,7 @@ function loadAllState() {
 
 // Offense mode state
 const offense={active:false,mapIdx:0,bioMass:150,unitsPast:0,goalUnits:10,waveCurrent:1,
-spawnCooldown:0,selectedEnemy:-1,enemies:[],aiTowers:[],totalWaves:5};
+spawnCooldown:0,selectedEnemy:-1,enemies:[],aiTowers:[],totalWaves:5,campaignAttacking:false};
 
 // Active loadout bonuses (calculated at game start)
 const loadoutBonuses={extraNexium:0,extraLives:0,damageMultiplier:1.0,rangeMultiplier:1.0,
@@ -2741,13 +2741,46 @@ G.enemies=[];G.spawnQueue=[];G.spawnTimer=0;G.nexium=0;G.lives=999;G.maxLives=99
 G.orbitalCD=999;G.chronoCD=999;G.repairCD=999;G.chronoActive=0;G.orbitalTargeting=false;
 G.showRadialMenu=false;G.showTowerInfo=false;G.towerInfoIdx=-1;G._btns={};G.endlessMode=false;
 nextEnemyId=0;particlePool.pool.forEach(p=>p.active=false);projectilePool.pool.forEach(p=>p.active=false);dmgNumPool.pool.forEach(d2=>d2.active=false);chainPool.pool.forEach(c=>c.active=false);
-G.phase='offenseGame';}
+G.phase='offenseGame';offense.campaignAttacking=false;}
+
+function startCampaignOffense(tid,source){
+const mi=getCampaignMapIdx(tid);const di=getCampaignDiffIdx(tid);
+offense.active=true;offense.campaignAttacking=true;offense.mapIdx=0;
+offense.unitsPast=0;offense.spawnCooldown=0;
+// Scale difficulty based on territory distance (di)
+const bioBase=180+source.army.infantry*30+source.army.armor*20+source.army.artillery*40;
+offense.bioMass=bioBase;
+const goalBase=8+di*3+(campaign.territories[tid].garrison||0)*2;
+offense.goalUnits=goalBase;
+offense.waveCurrent=1;
+// Setup map
+G.mapIdx=mi;setupMap(mi);
+// Place AI defender towers based on territory difficulty & garrison
+G.towers=[];G.enemies=[];G.spawnQueue=[];G.spawnTimer=0;
+const towerBudget=3+di*2+(campaign.territories[tid].garrison||0);
+const availableCells=[];
+for(let r=0;r<currentRows;r++)for(let c=0;c<currentCols;c++){if(isValidPlacement(c,r))availableCells.push({col:c,row:r});}
+// Shuffle and pick tower positions
+for(let i=availableCells.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[availableCells[i],availableCells[j]]=[availableCells[j],availableCells[i]];}
+const maxTowers=Math.min(towerBudget,availableCells.length,TT.length);
+for(let i=0;i<maxTowers;i++){
+const cell=availableCells[i];const typeIdx=Math.min(i%TT.length,TT.length-1);
+G.towers.push({col:cell.col,row:cell.row,typeIdx:typeIdx,level:Math.min(di,2),cooldown:0,totalSpent:0,abilityCooldown:0,abilityActive:0,overcharged:false,beamTarget:null,disabled:0,chainTargets:null,overloadNext:false,droneCount:3,kills:0});}
+G.nexium=0;G.lives=999;G.maxLives=999;G.wave=0;G.score=0;G.totalKills=0;G.totalNexEarned=0;G.totalNexSpent=0;G.towersPlaced=0;G.gameSpeed=1;
+G.orbitalCD=999;G.chronoCD=999;G.repairCD=999;G.chronoActive=0;G.orbitalTargeting=false;
+G.showRadialMenu=false;G.showTowerInfo=false;G.towerInfoIdx=-1;G._btns={};G.endlessMode=false;
+nextEnemyId=0;particlePool.pool.forEach(p=>p.active=false);projectilePool.pool.forEach(p=>p.active=false);
+dmgNumPool.pool.forEach(d2=>d2.active=false);chainPool.pool.forEach(c=>c.active=false);
+G.phase='offenseGame';
+startAmbient(MAPS[mi].biome);}
 
 function drawOffenseHUD(){
 ctx.fillStyle=C_SUR;ctx.fillRect(0,0,W,topBarH);ctx.strokeStyle=C_BOR;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,topBarH);ctx.lineTo(W,topBarH);ctx.stroke();
 const fs=Math.min(13,W*0.033);ctx.font='700 '+fs+'px '+FD;ctx.textAlign='left';ctx.textBaseline='middle';const y=topBarH/2-6;
 ctx.fillStyle='#ff8844';ctx.fillText('Bio: '+Math.floor(offense.bioMass),10,y);
-ctx.textAlign='right';ctx.fillStyle=C_MUT;ctx.fillText('Wave '+offense.waveCurrent,W-10,y);
+ctx.textAlign='right';ctx.fillStyle=C_MUT;
+if(offense.campaignAttacking){ctx.fillText('HELIX WAR — ATTACK',W-10,y);}
+else{ctx.fillText('Wave '+offense.waveCurrent,W-10,y);}
 // Progress bar
 const barX=10,barY=topBarH/2+4,barW2=W-20,barH2=10;
 ctx.fillStyle='#1a2235';ctx.beginPath();ctx.roundRect(barX,barY,barW2,barH2,3);ctx.fill();
@@ -2785,21 +2818,34 @@ function drawOffenseResult(){
 ctx.fillStyle='rgba(10,14,26,0.95)';ctx.fillRect(0,0,W,H);
 const won=offense.unitsPast>=offense.goalUnits;
 ctx.font='800 '+Math.min(26,W*0.065)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=won?'#44ff88':'#ff4466';
-ctx.shadowColor=won?'#44ff88':'#ff4466';ctx.shadowBlur=15;ctx.fillText(won?'FORTRESS BREACHED!':'ASSAULT FAILED',W/2,H*0.25);ctx.shadowBlur=0;
+ctx.shadowColor=won?'#44ff88':'#ff4466';ctx.shadowBlur=15;
+if(offense.campaignAttacking){
+ctx.fillText(won?'TERRITORY CAPTURED!':'ASSAULT REPELLED',W/2,H*0.25);}
+else{ctx.fillText(won?'FORTRESS BREACHED!':'ASSAULT FAILED',W/2,H*0.25);}
+ctx.shadowBlur=0;
 ctx.font='600 '+Math.min(14,W*0.035)+'px '+FB;ctx.fillStyle=C_TXT;
 ctx.fillText('Units Past: '+offense.unitsPast+'/'+offense.goalUnits,W/2,H*0.38);
-const bw=160,bh=44,bx=W/2-bw/2;let by=H*0.55;
+const bw=180,bh=44,bx=W/2-bw/2;let by=H*0.55;
+if(offense.campaignAttacking){
+// Campaign mode - single Continue button
+ctx.fillStyle='#003344';ctx.strokeStyle=C_ACC;ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(bx,by,bw,bh,8);ctx.fill();ctx.stroke();
+ctx.font='700 '+Math.min(14,W*0.035)+'px '+FD;ctx.fillStyle=C_ACC;ctx.fillText('CONTINUE',W/2,by+bh/2+2);
+G._btns.offenseCampaignReturn={x:bx,y:by,w:bw,h:bh};
+G._btns.offenseRetry=null;G._btns.offenseToMenu=null;}
+else{
 ctx.fillStyle='#003344';ctx.strokeStyle=C_ACC;ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(bx,by,bw,bh,8);ctx.fill();ctx.stroke();
 ctx.font='700 '+Math.min(14,W*0.035)+'px '+FD;ctx.fillStyle=C_ACC;ctx.fillText('PLAY AGAIN',W/2,by+bh/2+2);
 G._btns.offenseRetry={x:bx,y:by,w:bw,h:bh};
 by+=bh+12;ctx.fillStyle='rgba(20,30,50,0.8)';ctx.strokeStyle=C_MUT;ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(bx,by,bw,36,6);ctx.fill();ctx.stroke();
 ctx.font='600 '+Math.min(12,W*0.03)+'px '+FD;ctx.fillStyle=C_MUT;ctx.fillText('MAIN MENU',W/2,by+20);
-G._btns.offenseToMenu={x:bx,y:by,w:bw,h:36};}
+G._btns.offenseToMenu={x:bx,y:by,w:bw,h:36};G._btns.offenseCampaignReturn=null;}}
 
 function updateOffenseGame(dt){
 const sdt=dt*G.gameSpeed;
 // Spawn cooldown
 if(offense.spawnCooldown>0)offense.spawnCooldown-=dt;
+// Bio-mass regeneration
+offense.bioMass+=dt*1.5;
 // Update enemies (they walk the path)
 for(let i=G.enemies.length-1;i>=0;i--){
 const e=G.enemies[i];if(!e.alive)continue;
@@ -2963,29 +3009,14 @@ const target=campaign.territories[h.id];
 const source=campaign.territories[campaign.attackSource];
 if(target.owner!=='player'&&source.adj.includes(h.id)){
 campaign.attackTarget=h.id;campaign.selectedTerritory=h.id;
-// Launch battle!
-const tid=h.id;const mi=getCampaignMapIdx(tid);const di=getCampaignDiffIdx(tid);
-G.mapIdx=mi;G.diffIdx=di;campaign.defending=false;
-// Calculate army bonuses
-campaignResearch.damageBonus=source.army.armor*0.15;
-campaignResearch.extraLives=source.army.infantry*3;
-campaignResearch.nexiumBonus=0;
-// Count outposts for nexium bonus
-let outpostCount=0;for(const b of source.buildings)if(b==='outpost')outpostCount++;
-// Count labs for damage bonus
-let labCount=0;for(const b of source.buildings)if(b==='lab')labCount++;
-campaignResearch.damageBonus+=labCount*0.05;
+// Launch offense battle!
+const tid=h.id;
+campaign.defending=false;
 campaign.actionPoints-=2;
-// Consume army units
+// Start offense mode — player sends units to overwhelm AI defenses
+startCampaignOffense(tid,source);
+// Consume army units (bonuses already factored into bio-mass)
 source.army={infantry:0,armor:0,artillery:0};
-startGame();
-// Apply campaign bonuses
-G.nexium+=outpostCount*50+loadoutBonuses.extraNexium;
-G.lives+=campaignResearch.extraLives;G.maxLives+=campaignResearch.extraLives;
-// Artillery bonus: place free sentinel
-if(source.army.artillery>0||campaign.territories[campaign.attackSource].army.artillery>0){
-// Handled above - army already consumed; bonus applied via startGame lives
-}
 campaign.subAction='';
 playSound('wave_start');return;
 }else{playSound('error');}return;}}return;}
@@ -4621,8 +4652,13 @@ const oe=OFFENSE_ENEMIES[os.idx];
 if(offense.bioMass>=oe.cost&&offense.spawnCooldown<=0){offense.bioMass-=oe.cost;offense.spawnCooldown=0.2;spawnOffenseEnemy(oe.id);playSound('place');tryVibrate(10);}
 else playSound('error');return;}}return;}
 if(G.phase==='offenseResult'){
+if(G._btns.offenseCampaignReturn&&hitTest(px,py,G._btns.offenseCampaignReturn)){
+// Return to campaign map after offense battle
+const won=offense.unitsPast>=offense.goalUnits;
+offense.active=false;offense.campaignAttacking=false;stopAmbient();
+processCampaignAfterBattle(won);saveAllState();playSound('click');return;}
 if(G._btns.offenseRetry&&hitTest(px,py,G._btns.offenseRetry)){startOffenseGame(offense.mapIdx);playSound('click');return;}
-if(G._btns.offenseToMenu&&hitTest(px,py,G._btns.offenseToMenu)){G.phase='menu';offense.active=false;playSound('click');}return;}
+if(G._btns.offenseToMenu&&hitTest(px,py,G._btns.offenseToMenu)){G.phase='menu';offense.active=false;offense.campaignAttacking=false;playSound('click');}return;}
 if(G.phase==='loadout'){
 if(G._btns.loadoutBack&&hitTest(px,py,G._btns.loadoutBack)){calculateLoadoutBonuses();G.phase='menu';playSound('click');return;}
 if(G._btns.loadoutCards)for(const lc of G._btns.loadoutCards){if(hitTest(px,py,lc)){
@@ -4792,6 +4828,10 @@ window._getBtns=function(){return JSON.parse(JSON.stringify(G._btns));};
 window._getHeroState=function(){return JSON.parse(JSON.stringify({sel:heroState.selectedHeroIdx,deployed:heroState.deployed,hp:heroState.heroHp,maxHp:heroState.heroMaxHp,abCd:heroState.abilityCd,ultCd:heroState.ultimateCd,xp:heroState.heroXpGained}));};
 window._getStoreState=function(){return JSON.parse(JSON.stringify({credits:helixCredits,tab:store.tab,heroSkinTab:store.heroSkinTab,unlockedHeroSkins:Object.fromEntries(Object.entries(store.unlockedHeroSkins).map(([k,v])=>[k,[...v]])),equippedHeroSkins:store.equippedHeroSkins,unlockedTowerPacks:[...store.unlockedTowerPacks],unlockedMapThemes:[...store.unlockedMapThemes]}));};
 window._addCredits=function(n){helixCredits+=n;};
+window._getCampaignState=function(){return JSON.parse(JSON.stringify(campaign));};
+window._setCampaignField=function(field,val){campaign[field]=val;};
+window._setCampaignTerritory=function(idx,field,val){if(campaign.territories[idx])campaign.territories[idx][field]=val;};
+window._setCampaignArmy=function(idx,army){if(campaign.territories[idx])campaign.territories[idx].army=army;};
 
 
 loadAllState();
