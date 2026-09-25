@@ -48,7 +48,7 @@ An automated test suite boots the game headlessly (Node VM with a stubbed canvas
 npm test
 ```
 
-Covers: match economy (one-time finalization), offense-mode tower targeting, Clash attack unit movement, mode-flag leak prevention, endless restart, store purchases, hero deployment, pause/settings navigation, a full build→wave→summary loop, and crash-free rendering of every screen.
+Covers: match economy (one-time finalization), offense-mode tower targeting, Clash attack unit movement, mode-flag leak prevention, endless restart, store purchases, hero deployment, pause/settings navigation, a full build→wave→summary loop, crash-free rendering of every screen, and two winnability soaks (a scripted bot clears the full 40-wave Standard campaign; a second bot wins a fortress assault using bio-abilities).
 
 ## License
 

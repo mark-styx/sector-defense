@@ -177,13 +177,25 @@ Original prompt: build an iphone game that is a knockoff of starcraft2 tower def
 - **clash `enemiesAlive` could go negative** — clamped.
 - **Legendary difficulty gated at Commander level 75** (~285k XP, effectively unreachable) — lowered to 20.
 
+### Critical Bugs Found & Fixed (round 2 — winnability verification)
+- **Projectile pool exhaustion (game-killer)**: projectiles that overshoot their target point (step > remaining distance) oscillated around it forever without satisfying the 3px hit check, permanently leaking pool slots (400 max). Over a match the pool filled with ghost projectiles and towers silently stopped shooting — mid-to-late waves became unwinnable for reasons invisible to the player. Fix: a projectile now hits when it can cover the remaining distance in the current frame (`dist <= max(3, speed*dt)`). Verified via pool-count instrumentation: pre-fix the pool pinned at 400 with frozen projectiles by wave 9; post-fix it stays at 0-2 and kills flow.
+- **Wave preview lied in three modes**: endless preview read the not-yet-generated wave (empty list), Allied and Clash previews showed classic wave tables instead of the actual generated waves. Fixed all three; endless wave is generated when entering preview.
+- **Hero ability cooldowns ignored game speed** (recharged 3x slower at 3x speed) — now scaled by sdt like all combat timers.
+- **Fusion beam DPS was frame-rate dependent** (`damage*dt*10` per shot halved at 120Hz) — replaced with fixed per-shot damage matching 60fps behavior.
+- **Swarm Commander biomass regen too starved** once defense towers actually shoot (the targeting fix made assaults go from trivial to near-impossible): regen 1.5/s → 3/s.
+- **Tutorial carried stale loadout bonuses / hero state from the previous match** — now recalculated and reset on tutorial start.
+- **Dead code removed**: drawMenuScreen (V1), drawProfileScreen (V1), CB_PATTERNS, updateSwarmEnhanced no-op loops + tunnelingCount.
+
+### Balance Evidence (new)
+- `test/balance.test.mjs`: a scripted bot plays Classic Standard on Outpost Alpha through all 40 waves using only real tap events (radial placement, upgrades, wave start) — **wins with lives to spare**. A second bot assaults Swarm Commander's first fortress using bio-abilities (armor/tunnel/frenzy) — **wins**. Both are CI regression tests now.
+
 ### Test Suite (new)
 - `test/harness.mjs`: boots index.html in a Node VM with stubbed DOM/canvas/localStorage; drives real tap events and simulated frames via the game's own `advanceTime` hook.
-- `test/game.test.mjs`: 13 tests covering economy idempotency, offense targeting regression, clash movement regression, mode-flag leaks, endless restart, store IAP grants, hero deploy, pause/settings flow, full build→wave→summary loop, and crash-free rendering of all 26 screens. `npm test`.
+- `test/game.test.mjs`: 13 tests covering economy idempotency, offense targeting regression, clash movement regression, mode-flag leaks, endless restart, store IAP grants, hero deploy, pause/settings flow, full build→wave→summary loop, and crash-free rendering of all 26 screens.
+- `test/balance.test.mjs`: 2 winnability soak tests (full 40-wave Standard campaign; fortress assault with abilities). `npm test` — 15 tests total.
 
 ## TODO / Next Steps
 - Phase 9: Native Packaging (Capacitor wrapper, Xcode, App Store submission)
-- Balance pass: wave 25-40 difficulty curve, hero ability cooldown tuning per difficulty
-- Dead code removal (unused drawMenuScreen V1, drawProfileScreen V1, getCellAt duplicate)
+- Balance pass: Veteran/Elite/Legendary curves + hero ability cooldown tuning per difficulty (Standard now verified winnable)
 - Cloud save / account system for cross-device progression
 - Real multiplayer for Sector Clash (currently AI simulation)
