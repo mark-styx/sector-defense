@@ -252,6 +252,8 @@ Campaign attack action called `startGame()` which launched a standard tower defe
 
 ### Real-Browser Verification (final)
 - The game had never been loaded in a real browser engine by any test (all coverage used a stubbed canvas). Added `npm run test:browser` (Playwright, iPhone viewport, real input events), running the same session in **two engines: Chromium AND WebKit** (WebKit is the same core as iOS Safari/WKWebView — the actual shipping target). Session: loads the page, menu → map/difficulty/hero select → radial tower placement → live wave → pause/quit → store credits tab → campaign menu. Result: **zero console errors, zero page errors, 60.5 fps (Chromium) / 60.0 fps (WebKit)** with kills confirming live combat. Kept out of `npm test` (browser download optional).
+- **Pixel-level render verification**: samples canvas pixels at menu and mid-combat (501+ / 316+ distinct colors in both engines) — a blank or garbled canvas can no longer pass silently.
+- **Touch-input path verified**: dedicated WebKit session (iOS engine + iOS input modality) navigates splash → menu → full match setup via `touchstart` events only; mid-game viewport resize (orientation change) handled with zero errors.
 - `npm run serve` now uses the port-authority assignment (8021) instead of an arbitrary port.
 - Verified NOT available on this machine: Xcode/CocoaPods — Capacitor iOS build (Phase 9) must run on an Xcode machine.
 - `mkgh` (git remote) is an unresolvable host here — push remains a user action; general network is fine.

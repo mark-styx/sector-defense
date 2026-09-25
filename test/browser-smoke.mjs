@@ -27,6 +27,18 @@ await page.waitForFunction(() => window.render_game_to_text != null, null, {time
 const state = async () => JSON.parse(await page.evaluate(() => window.render_game_to_text()));
 const waitForPhase = phase =>
   page.waitForFunction(p => JSON.parse(window.render_game_to_text()).phase === p, phase, {timeout: 15000});
+
+// Pixel-level render check: the canvas must actually draw (not blank/black).
+const colorDiversity = () => page.evaluate(() => {
+  const c = document.getElementById('gameCanvas');
+  const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+  const seen = new Set();
+  for (let i = 0; i < d.length; i += 4 * 97) { // sample every 97th pixel
+    seen.add((d[i] << 16) | (d[i + 1] << 8) | d[i + 2]);
+    if (seen.size > 500) break;
+  }
+  return seen.size;
+});
 const btn = async name => {
   const b = await page.evaluate(n => window._getBtns()[n], name);
   if (!b) throw new Error('missing button ' + name);
@@ -44,7 +56,10 @@ await page.mouse.click(195, 400);
 await page.waitForFunction(() => JSON.parse(window.render_game_to_text()).phase === 'menu', null, {timeout: 6000});
 // Wait for the first menu render to populate hitboxes (engine-dependent timing).
 await page.waitForFunction(() => window._getBtns().menuPlay != null, null, {timeout: 10000});
-console.log(`✓ [${engineName}] loaded in real browser, reached menu`);
+// Visual render check: menu must actually paint (starfield, gradients, buttons).
+const menuColors = await colorDiversity();
+assert.ok(menuColors >= 50, `[${engineName}] menu looks blank: ${menuColors} colors sampled`);
+console.log(`✓ [${engineName}] loaded in real browser, reached menu (${menuColors}+ colors rendered)`);
 
 // --- Classic flow ---
 await clickBtn('menuPlay');
@@ -83,7 +98,9 @@ const fps = await page.evaluate(() => new Promise(resolve => {
 }));
 s = await state();
 assert.ok(s.enemyCount > 0 || s.totalKills > 0, 'wave 1 should have activity');
-console.log(`✓ [${engineName}] wave running: ${fps.toFixed(1)} fps, enemies=${s.enemyCount}, kills=${s.totalKills}`);
+const waveColors = await colorDiversity();
+assert.ok(waveColors >= 50, `[${engineName}] battlefield looks blank: ${waveColors} colors sampled`);
+console.log(`✓ [${engineName}] wave running: ${fps.toFixed(1)} fps, enemies=${s.enemyCount}, kills=${s.totalKills}, ${waveColors}+ colors`);
 assert.ok(fps >= 15, `frame rate catastrophically low: ${fps.toFixed(1)} fps`);
 
 // --- Pause -> quit -> store renders ---
@@ -115,4 +132,49 @@ console.log(`✓ [${engineName}] SMOKE PASSED — zero console/page errors`);
 
 await runSession('chromium', () => chromium.launch());
 await runSession('webkit', () => webkit.launch()); // iOS Safari engine core
+
+// --- Touch-input session (the real iPhone modality: touchstart events) ---
+// Runs in WebKit: iOS engine + iOS input = the shipping pairing.
+{
+  const browser = await webkit.launch();
+  const page = await browser.newPage({viewport: {width: 390, height: 844}, deviceScaleFactor: 2, hasTouch: true});
+  const pageErrors = [];
+  page.on('pageerror', err => pageErrors.push(String(err)));
+  await page.goto(url);
+  await page.waitForFunction(() => window.render_game_to_text != null, null, {timeout: 10000});
+  const tapAt = async (x, y) => { await page.touchscreen.tap(x, y); await page.waitForTimeout(150); };
+  const tapBtn = async name => {
+    const b = await page.evaluate(n => window._getBtns()[n], name);
+    if (!b) throw new Error('missing button ' + name);
+    await tapAt(b.x + b.w / 2, b.y + b.h / 2);
+  };
+  const waitForPhase = phase =>
+    page.waitForFunction(p => JSON.parse(window.render_game_to_text()).phase === p, phase, {timeout: 15000});
+
+  await tapAt(195, 400); // skip splash via touch
+  await page.waitForFunction(() => window._getBtns().menuPlay != null, null, {timeout: 10000});
+  await tapBtn('menuPlay');
+  await waitForPhase('mapSelect');
+  const map0 = await page.evaluate(() => window._getBtns().maps[0]);
+  await tapAt(map0.x + map0.w / 2, map0.y + map0.h / 2);
+  await waitForPhase('diffSelect');
+  const diff0 = await page.evaluate(() => window._getBtns().diffs[0]);
+  await tapAt(diff0.x + diff0.w / 2, diff0.y + diff0.h / 2);
+  await waitForPhase('heroSelect');
+  await tapBtn('heroNone');
+  await tapBtn('heroDeploy');
+  await waitForPhase('build');
+  console.log('✓ [webkit-touch] full navigation via touch events (iOS input path)');
+
+  // Resize mid-game (orientation/safe-area change) must not break anything.
+  await page.setViewportSize({width: 428, height: 740});
+  await page.waitForTimeout(300);
+  const s = JSON.parse(await page.evaluate(() => window.render_game_to_text()));
+  assert.equal(s.phase, 'build', 'phase survives viewport resize');
+  assert.deepEqual(pageErrors, [], '[webkit-touch] no page errors');
+  console.log('✓ [webkit-touch] viewport resize mid-game handled cleanly');
+
+  await browser.close();
+}
+
 console.log('\nALL BROWSER ENGINES PASSED');
