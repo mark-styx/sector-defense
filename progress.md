@@ -317,6 +317,9 @@ Campaign attack action called `startGame()` which launched a standard tower defe
 - **Campaign graph had three asymmetric adjacency edges** (10→4, 19→5, 19→6): the hex map draws these connections, but the mechanics (attack targeting, swarm expansion, adjacency checks) read one-directional lists — so e.g. a player holding The Crucible could never attack Relay Station or Watchtower, and the swarm couldn't cross those edges from the far side. Silently impossible conquest paths. Edges made symmetric (4↔10, 5↔19, 6↔19); a data-integrity test now locks bidirectionality, adjacency range, and orthogonal path contiguity across all 10 maps.
 - Citadel assault budget 150→200 (flaked 8/10 once; margin for combat randomness).
 
+### Flake Audit (final)
+- Full suite run 3× consecutively after the three historical flakes were fixed (Citadel assault margin, allied info-panel race, campaign defend-wait window): **39/39 × 3, zero failures**; browser smoke 2× green (19 checks each). CI is stable under its own randomness (assault combat, clash rolls, swarm timing).
+
 ## TODO / Next Steps
 - Phase 9: Native Packaging (Capacitor wrapper, Xcode, App Store submission)
 - Push merged main to origin when network access to the remote is available (history is reconciled; push will fast-forward)
