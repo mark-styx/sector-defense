@@ -126,3 +126,114 @@ export async function startClassic(g) {
   tapBtn(g, 'heroNone');
   tapBtn(g, 'heroDeploy');
 }
+
+// ============================================================
+// Scripted defense bot: places/upgrades towers and runs waves
+// using only real tap events.
+// ============================================================
+const TT_COST = [50, 150, 100, 200, 300, 175, 250, 225, 275, 200];
+
+function cellCenter(g, col, row) {
+  const L = g.window._getLayout();
+  return {x: L.offsetX + (col + 0.5) * L.cellSize, y: L.offsetY + (row + 0.5) * L.cellSize};
+}
+function botState(g) { return JSON.parse(g.window.render_game_to_text()); }
+
+export function tryPlace(g, col, row, typeIdx) {
+  const before = botState(g).towerCount;
+  const c = cellCenter(g, col, row);
+  g.tap(c.x, c.y); g.frame(2);
+  const radial = g.window._getBtns().radial;
+  if (!radial || !radial.length) return false;
+  const btn = radial.find(b => b.idx === typeIdx);
+  if (!btn) return false;
+  g.tap(btn.x, btn.y); g.frame(2);
+  return botState(g).towerCount === before + 1;
+}
+
+export function tryUpgrade(g, towerIdx) {
+  const s = botState(g);
+  const t = s.towers[towerIdx];
+  if (!t) return false;
+  const c = cellCenter(g, t.col, t.row);
+  g.tap(c.x, c.y); g.frame(2);
+  let btns = g.window._getBtns();
+  if (!btns.upgrade) {
+    if (btns.closeInfo) { const cc = center(btns.closeInfo); g.tap(cc.x, cc.y); g.frame(1); }
+    return false;
+  }
+  const uc = center(btns.upgrade);
+  g.tap(uc.x, uc.y); g.frame(2);
+  const ok = botState(g).towers[towerIdx].level > t.level;
+  btns = g.window._getBtns();
+  if (btns.closeInfo) { const cc = center(btns.closeInfo); g.tap(cc.x, cc.y); g.frame(1); }
+  return ok;
+}
+
+// Bot with a fixed [col,row,typeIdx] plan (map-specific).
+export function makePlanBot(g, PLAN) {
+  let ptr = 0;
+  return {
+    play() {
+      let acted = true, guard = 0;
+      while (acted && guard++ < 200) {
+        acted = false;
+        const s = botState(g);
+        const l0 = s.towers.findIndex(t => t.level === 0);
+        if (l0 >= 0 && s.nexium >= 40 && tryUpgrade(g, l0)) { acted = true; continue; }
+        if (ptr < PLAN.length) {
+          const [col, row, tp] = PLAN[ptr];
+          if (TT_COST[tp] <= s.nexium) {
+            tryPlace(g, col, row, tp);
+            ptr++; acted = true; continue;
+          }
+        }
+        const l1 = s.towers.findIndex(t => t.level === 1);
+        if (l1 >= 0 && s.nexium >= 70 && tryUpgrade(g, l1)) { acted = true; continue; }
+      }
+    }
+  };
+}
+
+// Generic bot for unknown maps: fills buildable cells near the path entry
+// (top of map first) with a mixed comp (sentinel/thunder/hawk/shockwave),
+// skipping types restricted on the current map, then upgrades.
+const GENERIC_MIX = [0, 0, 1, 0, 2, 0, 1, 2, 0, 1, 5, 0, 2, 1];
+export function makeGenericBot(g, maxTowers = 14) {
+  let placed = 0;
+  return {
+    play() {
+      let acted = true, guard = 0;
+      while (acted && guard++ < 250) {
+        acted = false;
+        const s = botState(g);
+        const l0 = s.towers.findIndex(t => t.level === 0);
+        if (l0 >= 0 && s.nexium >= 40 && tryUpgrade(g, l0)) { acted = true; continue; }
+        if (placed < maxTowers && placed < GENERIC_MIX.length) {
+          const cells = g.window._getValidCells();
+          cells.sort((a, b) => (a.row - b.row) || (a.col - b.col));
+          const tp = GENERIC_MIX[placed];
+          const cell = cells[0];
+          if (cell && TT_COST[tp] <= s.nexium) {
+            tryPlace(g, cell.col, cell.row, tp); // false => restricted type; skip it
+            placed++; acted = true; continue;
+          }
+          if (!cell) placed = GENERIC_MIX.length;
+        }
+        const l1 = s.towers.findIndex(t => t.level === 1);
+        if (l1 >= 0 && s.nexium >= 70 && tryUpgrade(g, l1)) { acted = true; continue; }
+      }
+    }
+  };
+}
+
+export function runBotWave(g, maxSec = 180) {
+  const W = 390, H = 844;
+  tapBtn(g, 'startWave');
+  g.tap(W / 2, H / 2); g.frame(2);
+  let f = 0;
+  while (botState(g).phase === 'wave' && f++ < maxSec * 60) g.frame(1);
+  const s = botState(g);
+  if (s.phase === 'waveSummary') { g.tap(W / 2, H / 2); g.frame(2); }
+  return botState(g);
+}

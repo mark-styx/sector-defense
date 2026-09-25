@@ -48,7 +48,7 @@ An automated test suite boots the game headlessly (Node VM with a stubbed canvas
 npm test
 ```
 
-Covers: match economy (one-time finalization), offense-mode tower targeting, Clash attack unit movement, mode-flag leak prevention, endless restart, store purchases, hero deployment, pause/settings navigation, a full build→wave→summary loop, crash-free rendering of every screen, and two winnability soaks (a scripted bot clears the full 40-wave Standard campaign; a second bot wins a fortress assault using bio-abilities).
+Covers: match economy (one-time finalization), offense-mode tower targeting, Clash attack unit movement, mode-flag leak prevention, endless restart, store purchases, hero deployment, pause/settings navigation, a full build→wave→summary loop, crash-free rendering of every screen, and machine-verified winnability: bots win Classic on all three unlocked difficulties (40 waves each), a fortress assault with bio-abilities, a Helix War attack+defend cycle, a full Sector Clash match, and the 30-wave Allied Defense co-op.
 
 ## License
 

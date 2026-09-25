@@ -187,15 +187,21 @@ Original prompt: build an iphone game that is a knockoff of starcraft2 tower def
 - **Dead code removed**: drawMenuScreen (V1), drawProfileScreen (V1), CB_PATTERNS, updateSwarmEnhanced no-op loops + tunnelingCount.
 
 ### Balance Evidence (new)
-- `test/balance.test.mjs`: a scripted bot plays Classic Standard on Outpost Alpha through all 40 waves using only real tap events (radial placement, upgrades, wave start) — **wins with lives to spare**. A second bot assaults Swarm Commander's first fortress using bio-abilities (armor/tunnel/frenzy) — **wins**. Both are CI regression tests now.
+- `test/balance.test.mjs`: a scripted bot plays Classic on Outpost Alpha through all 40 waves using only real tap events (radial placement, upgrades, wave start) — **wins on Standard (perfect lives), Veteran (perfect lives), and Elite (6/10 lives)**. A second bot assaults Swarm Commander's first fortress using bio-abilities (armor/tunnel/frenzy) — **wins**.
+- `test/modes.test.mjs`: end-to-end bots verify the other modes — **Helix War** (army-backed attack captures a territory; fortified defense battle resolves; campaign returns to map and quits cleanly), **Sector Clash** (full match resolves to final screen, match counted, rewards granted), **Allied Defense** (30-wave co-op won alongside the AI ally). All are CI regression tests.
 
 ### Test Suite (new)
+- `test/harness.mjs`: boots index.html in a Node VM with stubbed DOM/canvas; drives real taps and simulated frames; includes shared defense bots (fixed-plan bot for Outpost Alpha, generic any-map bot that fills cells near the path entry and skips restricted tower types).
 - `test/harness.mjs`: boots index.html in a Node VM with stubbed DOM/canvas/localStorage; drives real tap events and simulated frames via the game's own `advanceTime` hook.
 - `test/game.test.mjs`: 13 tests covering economy idempotency, offense targeting regression, clash movement regression, mode-flag leaks, endless restart, store IAP grants, hero deploy, pause/settings flow, full build→wave→summary loop, and crash-free rendering of all 26 screens.
-- `test/balance.test.mjs`: 2 winnability soak tests (full 40-wave Standard campaign; fortress assault with abilities). `npm test` — 15 tests total.
+- `test/balance.test.mjs`: 4 winnability soaks — Classic Standard/Veteran/Elite full 40-wave campaigns (all won by a tap-driven bot) and a fortress assault with bio-abilities.
+- `test/modes.test.mjs`: 3 end-to-end mode bots — Helix War attack+defend loop, full Sector Clash match, 30-wave Allied Defense co-op.
+- `npm test` — 20 tests total; every game mode has machine-verified winnability or flow evidence.
 
 ## TODO / Next Steps
 - Phase 9: Native Packaging (Capacitor wrapper, Xcode, App Store submission)
-- Balance pass: Veteran/Elite/Legendary curves + hero ability cooldown tuning per difficulty (Standard now verified winnable)
+- Reconcile git: local main and origin/main have diverged (needs user decision)
+- Legendary difficulty winnability check (locked behind Commander level 20; all three unlocked tiers verified winnable)
+- Human playtest on physical iPhone: fun-factor, safe areas, touch targets (bots prove winnability, not feel)
 - Cloud save / account system for cross-device progression
 - Real multiplayer for Sector Clash (currently AI simulation)
