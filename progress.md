@@ -307,6 +307,9 @@ Campaign attack action called `startGame()` which launched a standard tower defe
 - **Hero level-bonus pipeline verified for all five heroes**: seeded max-level saves confirm the `apply` strings parse and apply — deployed maxHp exactly equals base + the hero's hp bonus (550/330/900/280/390). (An initial "mismatch" was the test's own wrong expectations — each hero has exactly one hp+ entry.)
 - Bot harness hardened: tapping a cell occupied by the allied AI's tower opened the tower-info panel and stalled builds mid-race; placement failures now close any panel they opened, and both bots begin play() by clearing one.
 
+### Core-Loop Player Actions Round (final)
+- **Tower sell and tower abilities — two core player actions no test had ever exercised** — now verified: activating a tower's ability starts its cooldown, selling refunds exactly 60% of spend (150-cost tower → +90), the panel closes, the cell frees, and the radial reopens for rebuilding.
+
 ## TODO / Next Steps
 - Phase 9: Native Packaging (Capacitor wrapper, Xcode, App Store submission)
 - Push merged main to origin when network access to the remote is available (history is reconciled; push will fast-forward)

@@ -353,6 +353,44 @@ test('arsenal cards apply their effects (deep pockets, iron will, scavenger)', a
   assert.equal(state(g).nexium, 396, 'scavenger: kill rewards at +15%');
 });
 
+test('tower info: ability activation and sell refund work', async () => {
+  const g = await boot();
+  await startClassic(g);
+  const L = g.window._getLayout();
+  // Place a Thunder Cannon (has Firestorm nuke ability).
+  g.tap(L.offsetX + 3.5 * L.cellSize, L.offsetY + 2.5 * L.cellSize); g.frame(2);
+  const radial = g.window._getBtns().radial;
+  const thunder = radial.find(r => r.idx === 1);
+  g.tap(thunder.x, thunder.y); g.frame(2);
+  let s = state(g);
+  assert.equal(s.towerCount, 1);
+  const afterPlace = s.nexium;
+
+  // Open info and fire the tower ability.
+  g.tap(L.offsetX + 3.5 * L.cellSize, L.offsetY + 2.5 * L.cellSize); g.frame(2);
+  assert.equal(s2(g).showTowerInfo, true);
+  const ab = g.window._getBtns().ability;
+  assert.ok(ab, 'ability button present');
+  const abc = center(ab); g.tap(abc.x, abc.y); g.frame(2);
+  const raw = g.window._getTowersRaw();
+  assert.ok(raw[0].abCd > 0, 'tower ability cooldown should be running after activation');
+
+  // Sell: refund is 60% of spent (150 cost, no upgrades).
+  const sell = g.window._getBtns().sell;
+  const sc = center(sell); g.tap(sc.x, sc.y); g.frame(2);
+  s = state(g);
+  assert.equal(s.towerCount, 0, 'tower should be gone');
+  assert.equal(s.nexium, afterPlace + Math.floor(150 * 0.6), 'sell refunds 60%');
+  assert.equal(s2(g).showTowerInfo, false, 'panel closes after sell');
+
+  // The cell is free again: rebuild works.
+  g.tap(L.offsetX + 3.5 * L.cellSize, L.offsetY + 2.5 * L.cellSize); g.frame(2);
+  const radial2 = g.window._getBtns().radial;
+  assert.ok(radial2 && radial2.length, 'radial reopens on freed cell');
+});
+
+function s2(g) { return JSON.parse(g.window.render_game_to_text()); }
+
 test('every screen renders without throwing', async () => {
   const g = await boot();
   await startClassic(g);
