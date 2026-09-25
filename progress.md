@@ -320,6 +320,9 @@ Campaign attack action called `startGame()` which launched a standard tower defe
 ### Flake Audit (final)
 - Full suite run 3× consecutively after the three historical flakes were fixed (Citadel assault margin, allied info-panel race, campaign defend-wait window): **39/39 × 3, zero failures**; browser smoke 2× green (19 checks each). CI is stable under its own randomness (assault combat, clash rolls, swarm timing).
 
+### Release Hygiene (final)
+- Version bumped 7.1.0 → **7.2.0** (code header, settings footer, package.json) to distinguish this build's 23 commits of fixes from the prior release. Full suite + browser smoke green on the bumped build.
+
 ## TODO / Next Steps
 - Phase 9: Native Packaging (Capacitor wrapper, Xcode, App Store submission)
 - Push merged main to origin when network access to the remote is available (history is reconciled; push will fast-forward)
