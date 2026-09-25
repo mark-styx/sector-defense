@@ -3,7 +3,7 @@
 // shipping target), plays a real session with real input events, and asserts
 // zero console/page errors plus a sane frame rate. Run: npm run test:browser
 // (requires: npx playwright install chromium-headless-shell webkit)
-import {chromium, webkit} from 'playwright';
+import {chromium, webkit, devices} from 'playwright';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -174,6 +174,34 @@ await runSession('webkit', () => webkit.launch()); // iOS Safari engine core
   assert.deepEqual(pageErrors, [], '[webkit-touch] no page errors');
   console.log('✓ [webkit-touch] viewport resize mid-game handled cleanly');
 
+  await browser.close();
+}
+
+// --- Smallest supported device: iPhone SE (375x667) layout check ---
+{
+  const browser = await webkit.launch();
+  const page = await browser.newPage({...devices['iPhone SE']});
+  const pageErrors = [];
+  page.on('pageerror', err => pageErrors.push(String(err)));
+  await page.goto(url);
+  await page.waitForFunction(() => window.render_game_to_text != null, null, {timeout: 10000});
+  await page.touchscreen.tap(187, 330); // skip splash
+  await page.waitForFunction(() => window._getBtns().menuPlay != null, null, {timeout: 10000});
+  // Fresh save -> 13 menu buttons incl. TUTORIAL: every hitbox must fit the viewport.
+  const fit = await page.evaluate(() => {
+    const btns = window._getBtns();
+    const out = [];
+    for (const [k, b] of Object.entries(btns)) {
+      if (b && b.y !== undefined && b.h !== undefined && (b.y + b.h > innerHeight || b.y < 0)) out.push(k);
+    }
+    return {overflow: out, count: Object.keys(btns).length};
+  });
+  assert.deepEqual(fit.overflow, [], `buttons overflow iPhone SE viewport: ${fit.overflow.join(',')}`);
+  const play = await page.evaluate(() => window._getBtns().menuPlay);
+  await page.touchscreen.tap(play.x + play.w / 2, play.y + play.h / 2);
+  await page.waitForFunction(() => JSON.parse(window.render_game_to_text()).phase === 'mapSelect', null, {timeout: 10000});
+  assert.deepEqual(pageErrors, [], '[iPhone SE] no page errors');
+  console.log(`✓ [iPhone SE] all ${fit.count}+ menu buttons fit 375x667; navigation works`);
   await browser.close();
 }
 

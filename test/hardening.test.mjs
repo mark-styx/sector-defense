@@ -146,6 +146,43 @@ test('persistence: purchases and progress survive an app restart', async () => {
   assert.equal(st.equippedHeroSkins[skin.heroId], skin.skinId, 'equipped skin should persist');
 });
 
+test('campaign resume clears stale mid-battle flags (save-during-battle leak)', async () => {
+  const shared = new Map();
+  // Session 1: start a campaign, simulate a stale defending flag (as if the
+  // game saved mid-defense-battle, e.g. achievement unlock), persist it.
+  const a = await loadGame({storage: shared}).ready();
+  a.frame(170);
+  tapBtn(a, 'menuCampaign');
+  a.frame(2);
+  tapBtn(a, 'campaignMenuNew');
+  a.frame(2);
+  a.window._setCampaignField('defending', true);
+  // Trigger saveAllState via a settings toggle.
+  a.frame(2);
+  const prevPhase = JSON.parse(a.window.render_game_to_text()).phase;
+  // Go to settings from wherever we are: use phase hook to avoid nav flakiness.
+  a.window._setGamePhase('settings');
+  a.frame(2);
+  const opts = a.window._getBtns().settingsOpts;
+  const opt = opts.find(o => o.idx === 3); // damage numbers toggle
+  const oc = center(opt); a.tap(oc.x, oc.y); a.frame(2); // persists state
+  assert.ok(shared.has('sd_campaign'), 'campaign state should be saved');
+
+  // Session 2 (fresh boot, same storage): resume the campaign.
+  const b = await loadGame({storage: shared}).ready();
+  b.frame(170);
+  tapBtn(b, 'menuCampaign');
+  b.frame(2);
+  assert.equal(JSON.parse(b.window.render_game_to_text()).phase, 'campaignMenu');
+  assert.ok(b.window._getBtns().campaignMenuResume, 'resume option should appear for saved campaign');
+  tapBtn(b, 'campaignMenuResume');
+  b.frame(2);
+  assert.equal(JSON.parse(b.window.render_game_to_text()).phase, 'campaignMap');
+  const c = b.window._getCampaignState();
+  assert.equal(c.defending, false, 'stale defending flag must be cleared on resume');
+  void prevPhase;
+});
+
 test('settings persist across an app restart', async () => {
   const shared = new Map();
   const a = await loadGame({storage: shared}).ready();

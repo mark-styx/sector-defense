@@ -4713,7 +4713,12 @@ if(TUTORIAL.active){
 
 
 if(G.phase==='campaignMenu'){
-if(G._btns.campaignMenuResume&&hitTest(px,py,G._btns.campaignMenuResume)){campaign.active=true;G.phase='campaignMap';playSound('click');return;}
+if(G._btns.campaignMenuResume&&hitTest(px,py,G._btns.campaignMenuResume)){campaign.active=true;
+// Battles never persist across sessions — clear any stale mid-battle flags
+// (e.g. a save triggered during defense combat) so they can't leak into
+// unrelated matches as a phantom 12-wave cap.
+campaign.defending=false;campaign.attackTarget=-1;campaign.attackSource=-1;campaign.subAction='';
+G.phase='campaignMap';playSound('click');return;}
 if(G._btns.campaignMenuNew&&hitTest(px,py,G._btns.campaignMenuNew)){initCampaign();G.phase='campaignMap';playSound('click');return;}
 if(G._btns.campaignMenuBack&&hitTest(px,py,G._btns.campaignMenuBack)){G.phase='menu';playSound('click');}return;}
 if(G.phase==='campaignMap'){handleCampaignMapTap(px,py);return;}
