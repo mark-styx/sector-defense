@@ -1,0 +1,11 @@
+{
+  "name": "sector-defense",
+  "version": "7.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Single-file HTML5 tower defense game for mobile",
+  "scripts": {
+    "test": "node --test test/",
+    "serve": "npx serve . -l 3000"
+  }
+}

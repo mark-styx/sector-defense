@@ -19,8 +19,11 @@ Built as a single-file HTML5 Canvas game, optimized for iPhone (390×844 portrai
 - 12 enemy types across 3 biomes (Urban, Volcanic, Arctic)
 - 18 Arsenal Cards — equip 3 as a loadout for passive bonuses
 - 4 difficulty levels (Recruit → Veteran → Commander → Legendary)
+- 5 playable heroes with abilities, ultimates, and persistent XP/leveling
+- Helix Store with cosmetic skins, bundles, and simulated IAP (daily first-win and win-streak credit bonuses)
+- 10 achievements, tower mastery, commander levels, and ELO-ranked Sector Clash
 - Touch-optimized controls for mobile play
-- All state managed in-memory (no localStorage required)
+- Progress, purchases, and settings persist via localStorage
 
 ## Running Locally
 
@@ -36,6 +39,16 @@ Then open `http://localhost:3000` on your phone or in a mobile-sized browser win
 
 - Vanilla HTML5 Canvas + JavaScript (single file, zero dependencies)
 - Fonts: JetBrains Mono (display) + Inter (body) via Google Fonts
+
+## Testing
+
+An automated test suite boots the game headlessly (Node VM with a stubbed canvas) and drives real tap flows:
+
+```bash
+npm test
+```
+
+Covers: match economy (one-time finalization), offense-mode tower targeting, Clash attack unit movement, mode-flag leak prevention, endless restart, store purchases, hero deployment, pause/settings navigation, a full build→wave→summary loop, and crash-free rendering of every screen.
 
 ## License
 

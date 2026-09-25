@@ -167,30 +167,11 @@ const BIOMES={urban:{ground:'#0d1322',grid:'rgba(50,80,120,0.15)',path:'#1a2235'
 
 // === COLOR BLIND SUPPORT ===
 const CB_PATTERNS = {};
-function getColorBlindColor(origColor, id) {
+const CB_DEUT={'#44ff44':'#4488ff','#44ddcc':'#88aaff','#889944':'#ccaa44','#bb44ff':'#ff44bb','#ff4444':'#ff8844','#aaff22':'#ffff44','#7722aa':'#2244aa','#227744':'#2277aa','#aa7744':'#aa7744','#44cc44':'#4488cc','#bb66ff':'#ff66bb','#ff3333':'#ff8833'};
+const CB_PROT=Object.assign({},CB_DEUT,{'#ff4444':'#ffaa44','#ff3333':'#ffaa33','#ff8800':'#ffcc00'});
+function getColorBlindColor(origColor) {
   if (settings.colorBlind === 'off') return origColor;
-  // Deuteranopia: red-green blindness (most common)
-  const deut = {
-    '#44ff44': '#4488ff', // green -> blue
-    '#44ddcc': '#88aaff', // teal -> light blue
-    '#889944': '#ccaa44', // olive -> gold
-    '#bb44ff': '#ff44bb', // purple -> pink
-    '#ff4444': '#ff8844', // red -> orange (keep distinguishable)
-    '#aaff22': '#ffff44', // lime -> yellow
-    '#7722aa': '#2244aa', // dark purple -> dark blue
-    '#227744': '#2277aa', // dark green -> dark teal
-    '#aa7744': '#aa7744', // brown stays
-    '#44cc44': '#4488cc', // green -> blue-ish
-    '#bb66ff': '#ff66bb', // light purple -> pink
-    '#ff3333': '#ff8833', // red -> orange
-  };
-  // Protanopia: similar to deut with red shifted
-  const prot = Object.assign({}, deut, {
-    '#ff4444': '#ffaa44',
-    '#ff3333': '#ffaa33',
-    '#ff8800': '#ffcc00',
-  });
-  const map = settings.colorBlind === 'deuteranopia' ? deut : settings.colorBlind === 'protanopia' ? prot : {};
+  const map = settings.colorBlind === 'deuteranopia' ? CB_DEUT : settings.colorBlind === 'protanopia' ? CB_PROT : {};
   return map[origColor] || origColor;
 }
 
@@ -561,7 +542,7 @@ const DIFFS=[
 {id:'standard',name:'Standard',hpM:1.0,spdM:1.0,lives:25,nex:300,rewM:1.0,costM:1.0,color:'#44ff88'},
 {id:'veteran',name:'Veteran',hpM:1.3,spdM:1.15,lives:15,nex:225,rewM:0.85,costM:1.0,color:'#ffaa22'},
 {id:'elite',name:'Elite',hpM:1.6,spdM:1.3,lives:10,nex:175,rewM:0.7,costM:1.1,color:'#ff4466'},
-{id:'legendary',name:'Legendary',hpM:2.0,spdM:1.5,lives:5,nex:150,rewM:0.5,costM:1.2,color:'#ff00ff',locked:true,reqLvl:75}
+{id:'legendary',name:'Legendary',hpM:2.0,spdM:1.5,lives:5,nex:150,rewM:0.5,costM:1.2,color:'#ff00ff',locked:true,reqLvl:20}
 ];
 
 // Waves
@@ -999,7 +980,7 @@ researchPicked:'',totalNexiumFromTerritories:0,defending:false,
 actionPoints:0,maxAP:2,subAction:'',attackSource:-1,attackTarget:-1,swarmThreat:1,
 message:'',messageTimer:0};
 function initCampaign(){campaign.active=true;campaign.turn=1;campaign.battlesWon=0;campaign.nexiumBank=100;campaign.selectedTerritory=-1;campaign.phase='overworld';campaign.defending=false;campaign.researchChoice=-1;campaign.researchPicked='';
-campaign.actionPoints=2;campaign.maxAP=2;campaign.subAction='';campaign.attackSource=-1;campaign.attackTarget=-1;campaign.swarmThreat=1;campaign.message='';campaign.messageTimer=0;
+campaign.actionPoints=2;campaign.maxAP=2;campaign.subAction='';campaign.attackSource=-1;campaign.attackTarget=-1;campaign.swarmThreat=1;campaign.message='';campaign.messageTimer=0;campaign._waveCap=12;
 campaign.territories=TERRITORIES.map((t,i)=>({...t,buildings:[],garrison:0,army:{infantry:0,armor:0,artillery:0},income:TERRITORY_INCOME[i]||15}));}
 function getCampaignPlayerTerritories(){return campaign.territories?campaign.territories.filter(t=>t.owner==='player'):[];}
 function getCampaignSwarmTerritories(){return campaign.territories?campaign.territories.filter(t=>t.owner==='swarm'):[];}
@@ -1200,7 +1181,7 @@ function getBiome(){return BIOMES[MAPS[G.mapIdx].biome]||BIOMES.urban;}
 function getAvailableTowers(){const m=MAPS[G.mapIdx];if(!m.restricted||!m.restricted.length)return TT;return TT.filter(t=>!m.restricted.includes(t.id));}
 
 // Damage
-function applyDamage(e,dmg,splash,slows,disHeal,isNuke,towerTypeId){if(loadoutBonuses.luckyStrike&&Math.random()<0.1)dmg*=2;
+function applyDamage(e,dmg,splash,slows,disHeal,isNuke,towerTypeId){if(e.shieldTimer>0)dmg*=0.5;if(loadoutBonuses.luckyStrike&&Math.random()<0.1)dmg*=2;
 // Hero damage bonuses
 const _hdm = getEnemyDamageMultiplier(e.id);
 if(_hdm !== 1) dmg = Math.round(dmg * _hdm);if(loadoutBonuses.reflectChance&&Math.random()<loadoutBonuses.reflectChance){const rd=Math.floor(dmg*0.2);e.hp-=rd;spawnDmgNum(e.px,e.py-5,rd,'#88ddff');}splash*=loadoutBonuses.splatMultiplier;
@@ -1211,7 +1192,7 @@ if(e.hp<=0&&e.alive)killEnemy(e,towerTypeId);
 if(splash>0){const sp=splash*cellSize*(isNuke?2:1);for(let i=0;i<G.enemies.length;i++){const o=G.enemies[i];if(o===e||!o.alive)continue;const dx=o.px-e.px,dy=o.py-e.py;if(Math.sqrt(dx*dx+dy*dy)<sp){const sd=Math.max(1,Math.floor(dmg*(isNuke?0.8:0.5))-(o.empTimer>0?0:o.armor));o.hp-=sd;spawnDmgNum(o.px,o.py,sd,C_WRN);if(slows)o.slowTimer=2.0;if(disHeal)o.healDisabled=3.0;if(o.hp<=0&&o.alive)killEnemy(o,towerTypeId);}}}}
 function applySplashDmg(px,py,dmg,splash){const sp=splash*cellSize;for(let i=0;i<G.enemies.length;i++){const e=G.enemies[i];if(!e.alive)continue;const dx=e.px-px,dy=e.py-py;if(Math.sqrt(dx*dx+dy*dy)<sp){const sd=Math.max(1,Math.floor(dmg*0.5)-(e.empTimer>0?0:e.armor));e.hp-=sd;spawnDmgNum(e.px,e.py,sd,C_WRN);if(e.hp<=0&&e.alive)killEnemy(e);}}}
 function killEnemy(e,towerTypeId){e.alive=false;const scavBonus=loadoutBonuses.scavengerBonus;const d=DIFFS[G.diffIdx];const rew=Math.round(e.reward*d.rewM);G.nexium+=Math.round(rew*(1+scavBonus+(campaign.active?campaignResearch.nexiumBonus:0)));G.score+=rew;G.totalKills++;G.waveKills++;G.totalNexEarned+=rew;G.waveNex+=rew;G.enemiesAlive=Math.max(0,G.enemiesAlive-1);emitP(e.px,e.py,18,e.color,120,0.7,5);emitP(e.px,e.py,8,'#ffffff',80,0.3,2);VFX.addDeathRing(e.px,e.py,e.color,e.size*cellSize*3);
-tryVibrate(25);if(towerTypeId)towerMasteryKills[towerTypeId]=(towerMasteryKills[towerTypeId]||0)+1;
+tryVibrate(25);if(towerTypeId){towerMasteryKills[towerTypeId]=(towerMasteryKills[towerTypeId]||0)+1;if(getMasteryTier(towerTypeId)>=5)checkAchievement('tower_master');}
 if(e.explodes){emitP(e.px,e.py,25,'#aaff22',150,0.8,5);playSound('explosion');}
 if(e.releases){for(let i=0;i<6;i++){spawnEnemy('skitterling',e.pathIdx,e.progress);}}
 if(e.type==='devastator'||e.type==='hivemind'){G.shakeTimer=0.3;G.shakeIntensity=e.type==='devastator'?6:4;}
@@ -1241,7 +1222,7 @@ if(e.phased){e.phaseTimer-=dt;if(e.phaseTimer<=0)e.phased=false;}}
 if(e.disables){e.disableTimer-=dt;if(e.disableTimer<=0){e.disableTimer=2;for(const t of G.towers){const tx=offsetX+t.col*cellSize+cellSize/2,ty=offsetY+t.row*cellSize+cellSize/2;const dx=tx-e.px,dy=ty-e.py;if(Math.sqrt(dx*dx+dy*dy)<cellSize*2){t.disabled=3;playSound('disable');emitP(tx,ty,8,'#ff3333',60,0.3,3);}}}}
 let spd=e.speed;if(e.slowTimer>0)spd*=0.4;
 if(!e.burrowed){const pathLen=getPathLen(e.pathIdx);e.progress+=(spd*cellSize*dt)/pathLen;}
-if(e.progress>=1){e.alive=false;G.lives-=e.livesCost;G.enemiesAlive--;emitP(e.px,e.py,8,C_DNG,80,0.4,3);if(G.lives<=0&&loadoutBonuses.emergencyFund&&!loadoutBonuses.emergencyUsed){loadoutBonuses.emergencyUsed=true;G.nexium+=100;G.lives=1;emitP(W/2,H/2,20,'#ffcc00',150,0.8,4);}else if(G.lives<=0){G.lives=0;G.phase='gameover';saveAllState();playSound('gameover');tryVibrate([100,30,100,30,200]);}continue;}
+if(e.progress>=1){e.alive=false;G.lives-=e.livesCost;G.enemiesAlive--;emitP(e.px,e.py,8,C_DNG,80,0.4,3);if(G.lives<=0&&loadoutBonuses.emergencyFund&&!loadoutBonuses.emergencyUsed){loadoutBonuses.emergencyUsed=true;G.nexium+=100;G.lives=1;emitP(W/2,H/2,20,'#ffcc00',150,0.8,4);}else if(G.lives<=0){G.lives=0;finalizeMatch(false);G.phase='gameover';saveAllState();playSound('gameover');tryVibrate([100,30,100,30,200]);}continue;}
 const pos=getPosOnPath(e.progress,e.pathIdx);e.px=pos.x;e.py=pos.y;
 if(e.spawns){e.spawnCD-=dt;if(e.spawnCD<=0){e.spawnCD=4;spawnSwarmer(e.px,e.py,e.pathIdx,e.progress);spawnSwarmer(e.px,e.py,e.pathIdx,e.progress);}}
 if(e.heals&&e.healDisabled<=0){const hr=cellSize*2.5,ha=5*dt;for(const o of G.enemies){if(o===e||!o.alive)continue;const dx=o.px-e.px,dy=o.py-e.py;if(Math.sqrt(dx*dx+dy*dy)<hr&&o.healDisabled<=0)o.hp=Math.min(o.maxHp,o.hp+ha);}}}
@@ -1263,7 +1244,7 @@ const hf=VFX.hitFlash[e.id];if(hf){ctx.fillStyle='rgba(255,255,255,'+(hf/0.12*0.
 // Boss aura
 const isBoss=e.type==='devastator'||e.type==='hivemind'||e.type==='siegecrawler';
 if(isBoss){const ba=0.06+0.03*Math.sin(animTime*2);ctx.fillStyle=e.color.replace(')',','+ba+')').replace('rgb','rgba').replace('#','');ctx.globalAlpha*=1;ctx.shadowColor=e.color;ctx.shadowBlur=15;ctx.beginPath();ctx.arc(x,y,s*1.6,0,Math.PI*2);ctx.fill();ctx.shadowBlur=e.slowTimer>0?10:e.stunTimer>0?12:0;}
-ctx.fillStyle=e.color;
+ctx.fillStyle=getColorBlindColor(e.color);
 const sh=e.shape;
 if(sh==='baneCircle'){const p=1+0.1*Math.sin(performance.now()*0.008);ctx.beginPath();ctx.arc(x,y,s*p,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#ddff44';ctx.lineWidth=1.5;ctx.stroke();// Inner toxic ring
 ctx.globalAlpha*=0.4;ctx.strokeStyle='#88ff00';ctx.lineWidth=0.5;ctx.beginPath();ctx.arc(x,y,s*p*0.5,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;}
@@ -1293,6 +1274,7 @@ const da=animTime*6;ctx.strokeStyle='rgba(255,255,255,0.15)';ctx.lineWidth=0.5;c
 else if(sh==='swarmCircle'){const p=1+0.15*Math.sin(performance.now()*0.006);ctx.beginPath();ctx.arc(x,y,s*p,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#22aa22';ctx.lineWidth=2;ctx.stroke();// Cargo pods
 for(let cp=0;cp<4;cp++){const ca=Math.PI/2*cp+animTime*0.5;ctx.fillStyle='rgba(68,204,68,0.4)';ctx.fillRect(x+Math.cos(ca)*s*0.4-2,y+Math.sin(ca)*s*0.4-2,4,4);}}
 ctx.shadowBlur=0;ctx.globalAlpha=1;ctx.restore();
+if(settings.colorBlind!=='off')drawColorBlindMarker(ctx,x,y,s*1.6,e.type);
 // Health bar with glow
 if(e.hp<e.maxHp&&!e.burrowed){const bw=s*2.5,bh2=3,bx=x-bw/2,by2=y-s-8;ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(bx-1,by2-1,bw+2,bh2+2);const r=e.hp/e.maxHp;const hc=r>0.6?'#44ff44':r>0.3?C_WRN:C_DNG;ctx.fillStyle=hc;ctx.fillRect(bx,by2,bw*Math.max(0,r),bh2);ctx.shadowColor=hc;ctx.shadowBlur=3;ctx.fillRect(bx,by2,bw*Math.max(0,r),bh2);ctx.shadowBlur=0;}
 if(e.stunTimer>0){ctx.font='600 '+Math.max(8,s)+'px '+FB;ctx.textAlign='center';ctx.fillStyle='#aaddff';ctx.fillText('⚡',x,y-s-12);}}
@@ -1949,9 +1931,9 @@ G.phase='wave';const waveDef=clash._clashWaves[G.wave]||clash._clashWaves[0];
 G.spawnQueue=[];let delay=0;const np=currentPaths.length;
 for(const grp of waveDef.e){for(let i=0;i<grp.c;i++){const pi=np>1?i%np:0;G.spawnQueue.push({type:grp.t,time:delay,pathIdx:pi});delay+=grp.d;}}
 G.spawnTimer=0;G.waveKills=0;G.waveNex=0;playSound('wave_start');return;}
-if(G.wave>=TOTAL_WAVES&&!G.endlessMode)return;G.phase='wave';
+if(G.wave>=getMatchWaveGoal()&&!G.endlessMode)return;G.phase='wave';
 let waveDef;
-if(G.endlessMode){const budget=100*Math.pow(1.08,G.endlessWave);waveDef=generateEndlessWave(budget);}
+if(G.endlessMode){if(!endlessNextWave){const budget=100*Math.pow(1.08,G.endlessWave);endlessNextWave=generateEndlessWave(budget);}waveDef=endlessNextWave;}
 else{waveDef=WAVES[G.wave];}
 G.spawnQueue=[];let delay=0;const np=currentPaths.length;
 for(const grp of waveDef.e){for(let i=0;i<grp.c;i++){const pi=np>1?i%np:0;G.spawnQueue.push({type:grp.t,time:delay,pathIdx:pi});delay+=grp.d;}}
@@ -2104,7 +2086,7 @@ if(t.disabled>0){ctx.font='600 '+Math.max(8,s*0.6)+'px '+FB;ctx.textAlign='cente
 function drawHUD(){ctx.fillStyle=C_SUR;ctx.fillRect(0,0,W,topBarH);ctx.strokeStyle=C_BOR;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,topBarH);ctx.lineTo(W,topBarH);ctx.stroke();
 const fs=Math.min(13,W*0.033);ctx.font='700 '+fs+'px '+FD;ctx.textAlign='left';ctx.textBaseline='middle';const y=topBarH/2,pad=10;
 // Wave counter
-ctx.fillStyle=C_ACC;const totalW=allied.active?allied.totalWaves:clash.active?5:TOTAL_WAVES;const wn=G.endlessMode?G.endlessWave+1:allied.active?allied.wave+1:(G.phase==='wave'?G.wave+1:(G.wave<totalW?G.wave+1:totalW));const wt=G.endlessMode?'∞':totalW;
+ctx.fillStyle=C_ACC;const totalW=allied.active?allied.totalWaves:clash.active?5:getMatchWaveGoal();const wn=G.endlessMode?G.endlessWave+1:allied.active?allied.wave+1:(G.phase==='wave'?G.wave+1:(G.wave<totalW?G.wave+1:totalW));const wt=G.endlessMode?'∞':totalW;
 ctx.fillText('W'+wn+'/'+wt,pad,y);
 // Lives
 ctx.fillStyle=G.lives<=5?C_DNG:C_TXT;ctx.fillText('♥'+G.lives,W*0.3,y);
@@ -2254,7 +2236,7 @@ const sepHW=W*0.3;const sepHG=ctx.createLinearGradient(W/2-sepHW/2,0,W/2+sepHW/2
 sepHG.addColorStop(0,'transparent');sepHG.addColorStop(0.5,C_ACC);sepHG.addColorStop(1,'transparent');
 ctx.strokeStyle=sepHG;ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(W/2-sepHW/2,H*0.085);ctx.lineTo(W/2+sepHW/2,H*0.085);ctx.stroke();
 const sections=[
-{title:'BASICS',color:C_ACC,items:['Tap cells near paths to place towers','Towers auto-attack passing enemies','Stop enemies before they reach your base','Survive all 40 waves to claim victory']},
+{title:'BASICS',color:C_ACC,items:['Tap cells near paths to place towers','Towers auto-attack passing enemies','Stop enemies before they reach your base','Survive all '+TOTAL_WAVES+' waves to claim victory']},
 {title:'TOWERS',color:'#44ff88',items:['Tap placed towers to upgrade or sell','Each tower has a unique special ability','Higher levels = more damage and range','Mix tower types for combo effects']},
 {title:'ABILITIES',color:'#ffaa22',items:['💥 Vanguard Strike — Massive area blast','⚡ Temporal Surge — Speed all towers','🔧 Field Repair — Restore 5 lives']},
 {title:'CURRENCY',color:'#aa66ff',items:['◆ Nexium earned from enemy kills','Spend to build, upgrade, and use abilities','Bonus Nexium awarded each wave']}
@@ -2420,10 +2402,10 @@ const by=sy+3*(ch+gap)+8,bw=120,bh=36;ctx.fillStyle='rgba(20,30,50,0.8)';ctx.str
 function drawWavePreview(){ctx.fillStyle='rgba(10,14,26,0.94)';ctx.fillRect(0,0,W,H);
 ctx.font='800 '+Math.min(22,W*0.055)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=C_ACC;
 const wn=G.endlessMode?G.endlessWave+1:G.wave+1;ctx.fillText('WAVE '+wn,W/2,H*0.25);
-const waveDef=G.endlessMode?WAVES[Math.min(G.endlessWave,WAVES.length-1)]:WAVES[G.wave];
+const waveDef=G.endlessMode?endlessNextWave:WAVES[G.wave];
 const fs=Math.min(13,W*0.033);let yp=H*0.35;
 if(waveDef)for(const grp of waveDef.e){const type=ET[grp.t];ctx.font='600 '+fs+'px '+FB;ctx.fillStyle=type?type.color:C_TXT;ctx.fillText(grp.c+'× '+(type?type.name:grp.t),W/2,yp);yp+=fs+8;}
-const bossWaves=[9,19,29,39];if(bossWaves.includes(G.wave)){ctx.font='700 '+(fs+2)+'px '+FD;ctx.fillStyle=C_DNG;ctx.fillText(G.wave===39?'⚠ FINAL BOSS WAVE ⚠':'⚠ BOSS WAVE ⚠',W/2,yp+10);}
+const bossWaves=[9,19,29,TOTAL_WAVES-1];if(!campaign.active&&(G.endlessMode?(G.endlessWave+1)%10===0:bossWaves.includes(G.wave))){ctx.font='700 '+(fs+2)+'px '+FD;ctx.fillStyle=C_DNG;ctx.fillText(!G.endlessMode&&G.wave===TOTAL_WAVES-1?'⚠ FINAL BOSS WAVE ⚠':'⚠ BOSS WAVE ⚠',W/2,yp+10);}
 if(loadoutBonuses.veteranInsight){
 const nextWave=G.endlessMode?G.endlessWave+1:G.wave+1;
 if(nextWave<WAVES.length){const nw=WAVES[nextWave];
@@ -2446,16 +2428,14 @@ by+=50;ctx.fillStyle='#331111';ctx.strokeStyle=C_DNG;ctx.lineWidth=1;ctx.beginPa
 
 function drawGameOverScreen(){ctx.fillStyle='rgba(10,14,26,0.92)';ctx.fillRect(0,0,W,H);
 const isV=G.phase==='victory';const ts=Math.min(28,W*0.07);ctx.font='800 '+ts+'px '+FD;ctx.textAlign='center';ctx.fillStyle=isV?'#44ff88':C_DNG;ctx.shadowColor=isV?'#44ff88':C_DNG;ctx.shadowBlur=15;ctx.fillText(isV?'VICTORY!':'GAME OVER',W/2,H*0.18);ctx.shadowBlur=0;
-if(isV){const lr=G.lives/G.maxLives;const sc=lr>=1?3:lr>=0.5?2:1;ctx.font=Math.min(30,W*0.075)+'px '+FB;let ss='';for(let i=0;i<3;i++)ss+=i<sc?'★':'☆';ctx.fillStyle='#ffcc00';ctx.fillText(ss,W/2,H*0.26);
-prog.totalStars+=sc;helixCredits+=sc*5;const wvKey=MAPS[G.mapIdx].id+'_'+DIFFS[G.diffIdx].id;prog.highestWaves[wvKey]=Math.max(prog.highestWaves[wvKey]||0,G.wave);}
+if(isV){const lr=G.lives/G.maxLives;const sc=lr>=1?3:lr>=0.5?2:1;ctx.font=Math.min(30,W*0.075)+'px '+FB;let ss='';for(let i=0;i<3;i++)ss+=i<sc?'★':'☆';ctx.fillStyle='#ffcc00';ctx.fillText(ss,W/2,H*0.26);}
 const fs=Math.min(13,W*0.033),sy=isV?H*0.32:H*0.28;ctx.font='600 '+fs+'px '+FB;ctx.fillStyle=C_TXT;
 const waveReached=G.endlessMode?G.endlessWave:G.wave;
-const stats=['Wave Reached: '+waveReached+'/'+(G.endlessMode?'∞':TOTAL_WAVES),'Total Score: '+G.score,'Lives Remaining: '+G.lives,'Total Kills: '+G.totalKills,'Nexium Earned: '+G.totalNexEarned,'Towers Placed: '+G.towersPlaced];
+const stats=['Wave Reached: '+waveReached+'/'+(G.endlessMode?'∞':getMatchWaveGoal()),'Total Score: '+G.score,'Lives Remaining: '+G.lives,'Total Kills: '+G.totalKills,'Nexium Earned: '+G.totalNexEarned,'Towers Placed: '+G.towersPlaced];
 stats.forEach((s,i)=>{ctx.fillStyle=i<3?C_TXT:C_MUT;ctx.fillText(s,W/2,sy+i*(fs+6));});
 if(!G.endlessMode){ctx.font='500 '+(fs-1)+'px '+FB;ctx.fillStyle=C_MUT;ctx.fillText(MAPS[G.mapIdx].name+' / '+DIFFS[G.diffIdx].name,W/2,sy+stats.length*(fs+6)+4);}
-prog.totalMatches++;prog.totalKills+=G.totalKills;
 const bw=180,bh=44,bx=W/2-bw/2;const seY=sy+stats.length*(fs+6)+24;let by=Math.max(seY+20,H*0.72);
-ctx.fillStyle='#003344';ctx.strokeStyle=C_ACC;ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(bx,by,bw,bh,8);ctx.fill();ctx.stroke();ctx.font='700 '+Math.min(16,W*0.04)+'px '+FD;ctx.fillStyle=C_ACC;ctx.fillText('PLAY AGAIN',W/2,by+bh/2+2);G._btns.restart={x:bx,y:by,w:bw,h:bh};
+ctx.fillStyle='#003344';ctx.strokeStyle=C_ACC;ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(bx,by,bw,bh,8);ctx.fill();ctx.stroke();ctx.font='700 '+Math.min(16,W*0.04)+'px '+FD;ctx.fillStyle=C_ACC;ctx.fillText(campaign.active?'CONTINUE':'PLAY AGAIN',W/2,by+bh/2+2);G._btns.restart={x:bx,y:by,w:bw,h:bh};
 by+=bh+10;ctx.fillStyle='rgba(20,30,50,0.8)';ctx.strokeStyle=C_MUT;ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(bx,by,bw,36,6);ctx.fill();ctx.stroke();ctx.font='600 '+Math.min(13,W*0.033)+'px '+FD;ctx.fillStyle=C_MUT;ctx.fillText('MAIN MENU',W/2,by+20);G._btns.toMenu={x:bx,y:by,w:bw,h:36};}
 
 function drawOrbitalTargeting(){if(!G.orbitalTargeting)return;ctx.font='600 '+Math.min(14,W*0.035)+'px '+FD;ctx.textAlign='center';ctx.fillStyle='#ff8800';ctx.fillText('TAP TARGET LOCATION',W/2,topBarH+20);}
@@ -2736,12 +2716,12 @@ const om=OFFENSE_MAPS[mapIdx];const mi=MAPS.findIndex(m=>m.id===om.mapId);
 G.mapIdx=mi;setupMap(mi);
 // Place AI towers
 G.towers=[];
-for(const td of om.towers){const t={col:td.col,row:td.row,typeIdx:td.type,level:0,fireTimer:0,abilityCooldown:0,abilityActive:0,totalSpent:TT[td.type].cost,kills:0,beamTarget:null,droneCount:3,overcharged:false,disabled:0};G.towers.push(t);}
+for(const td of om.towers){const t={col:td.col,row:td.row,typeIdx:td.type,level:0,cooldown:0,abilityCooldown:0,abilityActive:0,totalSpent:TT[td.type].cost,kills:0,beamTarget:null,droneCount:3,overcharged:false,disabled:0};G.towers.push(t);}
 G.enemies=[];G.spawnQueue=[];G.spawnTimer=0;G.nexium=0;G.lives=999;G.maxLives=999;G.wave=0;G.score=0;G.totalKills=0;G.totalNexEarned=0;G.totalNexSpent=0;G.towersPlaced=0;G.gameSpeed=1;
 G.orbitalCD=999;G.chronoCD=999;G.repairCD=999;G.chronoActive=0;G.orbitalTargeting=false;
 G.showRadialMenu=false;G.showTowerInfo=false;G.towerInfoIdx=-1;G._btns={};G.endlessMode=false;
 nextEnemyId=0;particlePool.pool.forEach(p=>p.active=false);projectilePool.pool.forEach(p=>p.active=false);dmgNumPool.pool.forEach(d2=>d2.active=false);chainPool.pool.forEach(c=>c.active=false);
-G.phase='offenseGame';offense.campaignAttacking=false;}
+G.phase='offenseGame';offense.campaignAttacking=false;offense._rewarded=false;startAmbient(MAPS[mi].biome);}
 
 function startCampaignOffense(tid,source){
 const mi=getCampaignMapIdx(tid);const di=getCampaignDiffIdx(tid);
@@ -2788,7 +2768,23 @@ const prog2=Math.min(1,offense.unitsPast/offense.goalUnits);
 ctx.fillStyle='#44ff88';ctx.beginPath();ctx.roundRect(barX,barY,barW2*prog2,barH2,3);ctx.fill();
 ctx.font='600 '+Math.max(7,barH2-1)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=C_TXT;
 ctx.fillText(offense.unitsPast+'/'+offense.goalUnits+' units past',W/2,barY+barH2-1);
-ctx.textBaseline='alphabetic';}
+ctx.textBaseline='alphabetic';
+// Bio-energy display + swarm ability buttons
+ctx.font='600 9px '+FD;ctx.textAlign='left';ctx.fillStyle='#aa88ff';
+ctx.fillText('⚡'+Math.floor(swarmEnhanced.bioEnergy),10,topBarH+14);
+const swarmAbs=[{type:'frenzy',label:'FREN',cost:30},{type:'armor',label:'ARMR',cost:40},{type:'tunnel',label:'TNEL',cost:50}];
+if(swarmEnhanced.hiveTitanUnlocked)swarmAbs.push({type:'titan',label:'TITAN',cost:0});
+G._btns.swarmAbilities=[];
+for(let i=0;i<swarmAbs.length;i++){const sa=swarmAbs[i];const bw2=44,bh2=32;const bx=W-(swarmAbs.length-i)*(bw2+4);const by2=topBarH+6;
+const cost=sa.type==='titan'?200:sa.cost;const pool=sa.type==='titan'?offense.bioMass:swarmEnhanced.bioEnergy;
+const ready=pool>=cost;
+ctx.fillStyle=ready?'rgba(40,25,60,0.9)':'rgba(20,15,25,0.7)';ctx.strokeStyle=ready?'#aa88ff':'#443a55';ctx.lineWidth=1;
+ctx.beginPath();ctx.roundRect(bx,by2,bw2,bh2,4);ctx.fill();ctx.stroke();
+ctx.font='700 8px '+FD;ctx.textAlign='center';ctx.fillStyle=ready?'#ccaaff':'#665577';
+ctx.fillText(sa.label,bx+bw2/2,by2+13);
+ctx.font='500 7px '+FB;ctx.fillStyle=ready?'#aa88ff':'#554466';
+ctx.fillText(sa.type==='titan'?'◆200':'⚡'+sa.cost,bx+bw2/2,by2+25);
+G._btns.swarmAbilities.push({x:bx,y:by2,w:bw2,h:bh2,type:sa.type});}}
 
 function drawOffenseSpawnPanel(){
 const py=H-bottomBarH-10;ctx.fillStyle=C_SUR;ctx.fillRect(0,py,W,bottomBarH+10);ctx.strokeStyle=C_BOR;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,py);ctx.lineTo(W,py);ctx.stroke();
@@ -2851,7 +2847,7 @@ for(let i=G.enemies.length-1;i>=0;i--){
 const e=G.enemies[i];if(!e.alive)continue;
 // Move along path
 const pathLen=getPathLen(e.pathIdx);const spd=(e.speed*(e.slowTimer>0?0.5:1))*cellSize;
-e.pathProgress+=spd*sdt/pathLen;
+e.pathProgress+=spd*sdt/pathLen;e.progress=e.pathProgress;
 if(e.pathProgress>=1){
 offense.unitsPast++;e.alive=false;
 emitP(e.px,e.py,8,'#44ff88',80,0.5,3);continue;}
@@ -2859,7 +2855,7 @@ const pos=getPosOnPath(e.pathProgress,e.pathIdx);e.px=pos.x;e.py=pos.y;
 if(e.slowTimer>0)e.slowTimer-=sdt;
 if(e.shieldTimer>0)e.shieldTimer-=sdt;}
 // Check win
-if(offense.unitsPast>=offense.goalUnits){G.phase='offenseResult';return;}
+if(offense.unitsPast>=offense.goalUnits){G.phase='offenseResult';if(!offense.campaignAttacking&&!offense._rewarded){offense._rewarded=true;swarmEnhanced.mapsCleared++;if(swarmEnhanced.mapsCleared>=OFFENSE_MAPS.length&&!swarmEnhanced.hiveTitanUnlocked){swarmEnhanced.hiveTitanUnlocked=true;addToast('HIVE TITAN UNLOCKED!');}checkAchievement('swarm_lord');helixCredits+=10;addToast('+10 ◇ Helix Credits');saveAllState();}return;}
 // Check lose - no bio-mass and no alive enemies
 const aliveCount=G.enemies.filter(e2=>e2.alive).length;
 if(offense.bioMass<=0&&aliveCount===0&&G.spawnQueue.length===0){G.phase='offenseResult';return;}
@@ -2871,7 +2867,7 @@ const et2=ET[typeId];if(!et2)return;
 const d=DIFFS[0];
 const pi=Math.floor(Math.random()*currentPaths.length);
 const hpMult=1.3;
-const e={id:nextEnemyId++,type:typeId,hp:Math.round(et2.hp*d.hpM*hpMult),maxHp:Math.round(et2.hp*d.hpM*hpMult),speed:et2.speed*d.spdM,reward:0,lives:et2.lives,color:et2.color,shape:et2.shape,size:et2.size,armor:et2.armor,flying:et2.flying,pathIdx:pi,pathProgress:0,px:0,py:0,alive:true,slowTimer:0,empTimer:0,healDisabled:0,shieldTimer:0,explodes:et2.explodes||false,spawns:et2.spawns||false,heals:et2.heals||false,burrows:et2.burrows||false,releases:et2.releases||false,phases:et2.phases||false,disables:et2.disables||false,burrowTimer:0,phaseTimer:0,disableTimer:0,releaseTimer:0,lastPhaseToggle:0};
+const e={id:nextEnemyId++,type:typeId,hp:Math.round(et2.hp*d.hpM*hpMult),maxHp:Math.round(et2.hp*d.hpM*hpMult),speed:et2.speed*d.spdM,reward:0,lives:et2.lives,color:et2.color,shape:et2.shape,size:et2.size,armor:et2.armor,flying:et2.flying,pathIdx:pi,pathProgress:0,progress:0,px:0,py:0,alive:true,slowTimer:0,empTimer:0,healDisabled:0,shieldTimer:swarmEnhanced.armorTimer>0?10:0,explodes:et2.explodes||false,spawns:et2.spawns||false,heals:et2.heals||false,burrows:et2.burrows||false,releases:et2.releases||false,phases:et2.phases||false,disables:et2.disables||false,burrowTimer:0,phaseTimer:0,disableTimer:0,releaseTimer:0,lastPhaseToggle:0};
 const pos=getPosOnPath(0,pi);e.px=pos.x;e.py=pos.y;
 G.enemies.push(e);}
 
@@ -3038,6 +3034,7 @@ if(G._btns.campaignDefend&&hitTest(px,py,G._btns.campaignDefend)){
 const tid=campaign.swarmAttackTarget;const t=campaign.territories[tid];
 const mi=getCampaignMapIdx(tid);
 G.mapIdx=mi;G.diffIdx=Math.min(2,Math.floor(campaign.swarmThreat/3));campaign.defending=true;
+campaign._waveCap=10+Math.min(8,Math.floor(campaign.swarmThreat));
 campaignResearch.damageBonus=0;campaignResearch.extraLives=t.garrison*3;campaignResearch.nexiumBonus=0;
 let labCount=0;for(const b of t.buildings)if(b==='lab')labCount++;
 campaignResearch.damageBonus=labCount*0.05;
@@ -3103,19 +3100,60 @@ campaign.swarmAttackTarget=attackable[Math.floor(Math.random()*attackable.length
 G.phase='campaignSwarmAttack';}
 else{campaign.swarmAttackTarget=-1;G.phase='campaignSwarmAttack';}}
 
-function awardPostMatchRewards(){
+function awardPostMatchRewards(victory){
 loadout.matchCount++;
-// Award a random card every win
+// Award a random card on every win
 const locked=ARSENAL_CARDS.filter(c=>!loadout.unlockedCards.has(c.id));
-if(locked.length>0){const card=locked[Math.floor(Math.random()*locked.length)];loadout.unlockedCards.add(card.id);}
+if(victory&&locked.length>0){const card=locked[Math.floor(Math.random()*locked.length)];loadout.unlockedCards.add(card.id);}
 // Award skin every 5 matches
 if(loadout.matchCount%5===0){
 const allSkins=[];
 for(const t of TT)for(const s of SKIN_VARIANTS){if(!loadout.unlockedSkins[t.id].includes(s))allSkins.push({tid:t.id,skin:s});}
 if(allSkins.length>0){const pick=allSkins[Math.floor(Math.random()*allSkins.length)];loadout.unlockedSkins[pick.tid].push(pick.skin);}}
-// Award Helix Credits
-helixCredits += 10; // base match completion
+// Helix Credits: base + daily first win + win streak
+let credits=10;const msgs=[];
+if(victory){
+const today=new Date().toDateString();
+if(prog.lastWinDate!==today){prog.lastWinDate=today;credits+=15;msgs.push('Daily First Win +15 ◇');}
+prog.winStreak=(prog.winStreak||0)+1;
+if(prog.winStreak>=3){prog.winStreak=0;credits+=25;msgs.push('Win Streak Bonus +25 ◇');}
+}else prog.winStreak=0;
+helixCredits+=credits;addToast('+'+credits+' ◇ Helix Credits');
+for(const m of msgs)addToast(m);
 }
+
+// One-time match end processing (guards against render-loop double counting)
+let _matchFinalized=false;
+let endlessNextWave=null;
+function getMatchWaveGoal(){if(campaign.active&&campaign.defending)return campaign._waveCap||12;return TOTAL_WAVES;}
+function finalizeMatch(victory){
+if(_matchFinalized)return;_matchFinalized=true;
+const waveReached=allied.active?allied.wave:(G.endlessMode?G.endlessWave:G.wave);
+let stars=0;
+if(victory&&!G.endlessMode&&!allied.active&&!clash.active){
+const lr=G.lives/G.maxLives;stars=lr>=1?3:lr>=0.5?2:1;
+prog.totalStars+=stars;awardHelixCredits(stars*5);
+const wvKey=MAPS[G.mapIdx].id+'_'+DIFFS[G.diffIdx].id;
+prog.highestWaves[wvKey]=Math.max(prog.highestWaves[wvKey]||0,G.wave);}
+prog.totalMatches++;prog.totalKills+=G.totalKills;
+addXP(waveReached,G.totalKills,stars);
+// Hero XP: partial credit even on defeat
+if(heroState.deployed&&heroState.selectedHeroIdx>=0){
+const hid=HEROES[heroState.selectedHeroIdx].id;
+const hxp=waveReached*5+G.totalKills*2+(victory?(G.lives>=G.maxLives?100:50):0);
+addHeroXp(hid,hxp);heroProg[hid].matchesPlayed++;heroProg[hid].totalKills+=G.totalKills;}
+awardPostMatchRewards(victory);
+if(victory){
+checkAchievement('first_blood');
+if(G.lives>=G.maxLives)checkAchievement('no_scratch');
+if(allied.active)checkAchievement('allied_victory');
+if(!G.endlessMode&&!allied.active&&MAPS[G.mapIdx].id==='inferno'&&G.diffIdx===2)checkAchievement('the_gauntlet');}
+if(loadout.unlockedCards.size>=ARSENAL_CARDS.length)checkAchievement('card_collector');
+let allSkins=true;for(const t of TT){if(loadout.unlockedSkins[t.id].length<SKIN_VARIANTS.length){allSkins=false;break;}}
+if(allSkins)checkAchievement('full_arsenal');
+for(const t of TT){if(getMasteryTier(t.id)>=5){checkAchievement('tower_master');break;}}
+if(swarmEnhanced.mapsCleared>=OFFENSE_MAPS.length)checkAchievement('swarm_lord');
+saveAllState();}
 
 
 // ============================================================
@@ -3248,7 +3286,7 @@ G.showRadialMenu=false;G.showTowerInfo=false;G.towerInfoIdx=-1;G.hoveredRadialId
 G.totalKills=0;G.totalNexEarned=0;G.totalNexSpent=0;G.towersPlaced=0;G.enemiesAlive=0;
 G.gameSpeed=settings.defaultSpeed;G.orbitalCD=0;G.chronoCD=0;G.repairCD=0;G.chronoActive=0;
 G.orbitalTargeting=false;G.waveKills=0;G.waveNex=0;G.shakeTimer=0;G.placementAnims=[];G._btns={};
-G.endlessMode=false;nextEnemyId=0;
+G.endlessMode=false;nextEnemyId=0;_matchFinalized=false;
 particlePool.pool.forEach(p=>p.active=false);projectilePool.pool.forEach(p=>p.active=false);
 dmgNumPool.pool.forEach(d=>d.active=false);chainPool.pool.forEach(c=>c.active=false);
 G.phase='build';startAmbient('urban');}
@@ -3346,7 +3384,7 @@ clash._clashWaves=[];
 for(let i=0;i<5;i++){
 const budget=(60+i*30)*(1+clash.aiThreat*0.01)*clash.aiDifficulty;
 clash._clashWaves.push(generateEndlessWave(budget));}
-G.phase='build';
+G.phase='build';_matchFinalized=false;
 startAmbient(MAPS[mi].biome);}
 
 function startClashAttackRound(){
@@ -3403,7 +3441,7 @@ offense.bioMass+=dt*2;// Bio regenerates
 for(const e of G.enemies){if(!e.alive)continue;
 let spd=e.speed;if(e.slowTimer>0){spd*=0.4;e.slowTimer-=dt;}
 const pathLen=getPathLen(e.pathIdx);e.progress+=(spd*cellSize*dt)/pathLen;
-if(e.progress>=1){e.alive=false;offense.unitsPast++;G.enemiesAlive--;
+if(e.progress>=1){e.alive=false;offense.unitsPast++;G.enemiesAlive=Math.max(0,G.enemiesAlive-1);
 if(offense.unitsPast>=offense.goalUnits){G.phase='clashAttackResult';return;}continue;}
 const pos=getPosOnPath(e.progress,e.pathIdx);e.px=pos.x;e.py=pos.y;}
 const aliveCount=G.enemies.filter(e=>e.alive).length;
@@ -3427,7 +3465,9 @@ if(unitsGot>=clash.attackGoal)clash.playerWins++;else clash.aiWins++;
 // Check if match is over
 if(clash.playerWins>=3||clash.aiWins>=3||clash.round>=clash.maxRounds){
 G.phase='clashFinal';
+prog.totalMatches++;
 if(clash.playerWins>clash.aiWins){clash.elo+=Math.floor(30*(clash.aiDifficulty));clash.totalPvpWins++;
+helixCredits+=10;addToast('+10 ◇ Helix Credits');
 checkAchievement('clash_champion');}
 else{clash.elo=Math.max(100,clash.elo-20);}
 saveAllState();
@@ -3503,8 +3543,8 @@ if(t._rebuildTimer>=15){t._destroyed=false;t._rebuildTimer=0;t.disabled=0;}}}}
 
 function useSwarmAbility(type){
 if(type==='frenzy'&&swarmEnhanced.bioEnergy>=30){swarmEnhanced.bioEnergy-=30;swarmEnhanced.frenzyTimer=5;playSound('ability');return true;}
-if(type==='armor'&&swarmEnhanced.bioEnergy>=40){swarmEnhanced.bioEnergy-=40;swarmEnhanced.armorTimer=10;playSound('ability');return true;}
-if(type==='tunnel'&&swarmEnhanced.bioEnergy>=50){swarmEnhanced.bioEnergy-=50;swarmEnhanced.tunnelingCount=3;playSound('ability');return true;}
+if(type==='armor'&&swarmEnhanced.bioEnergy>=40){swarmEnhanced.bioEnergy-=40;swarmEnhanced.armorTimer=10;for(const e of G.enemies)if(e.alive)e.shieldTimer=Math.max(e.shieldTimer||0,10);addToast('Bio-Plating: units take 50% less damage');playSound('ability');return true;}
+if(type==='tunnel'&&swarmEnhanced.bioEnergy>=50){swarmEnhanced.bioEnergy-=50;for(let i=0;i<3;i++)spawnOffenseEnemy('tunneler');addToast('Tunneling swarm deployed!');playSound('burrow');return true;}
 if(type==='titan'&&swarmEnhanced.hiveTitanUnlocked&&offense.bioMass>=200){offense.bioMass-=200;spawnOffenseEnemy('devastator');playSound('nova');return true;}
 return false;}
 
@@ -4568,15 +4608,14 @@ if(G.orbitalCD>0)G.orbitalCD-=dt;if(G.chronoCD>0)G.chronoCD-=dt;if(G.repairCD>0)
 updatePlacementAnims(dt);
 if(G.phase==='wave'){updateHero(dt);updateWaveSpawning(sdt);updateEnemies(sdt);updateTowers(sdt);if(loadoutBonuses.frostField){for(const e2 of G.enemies)if(e2.alive&&!e2.slowTimer)e2.slowTimer=Math.max(e2.slowTimer||0,0.5);}updateProjectiles(sdt);updateParticles(sdt);updateDmgNums(sdt);updateChains(sdt);
 if(isWaveComplete()){playWaveStinger();tryVibrate(50);
-if(allied.active){allied.wave++;if(allied.wave>=allied.totalWaves){G.phase='alliedVictory';playVictoryFanfare();prog.totalMatches++;checkAchievement('first_blood');checkAchievement('allied_victory');if(G.lives>=G.maxLives)checkAchievement('no_scratch');}else{const bonus=50+allied.wave*10;G.nexium+=bonus;G.totalNexEarned+=bonus;G.phase='build';}}
+if(allied.active){allied.wave++;if(allied.wave>=allied.totalWaves){G.phase='alliedVictory';playVictoryFanfare();finalizeMatch(true);}else{const bonus=50+allied.wave*10;G.nexium+=bonus;G.totalNexEarned+=bonus;G.phase='build';}}
 else if(clash.active&&clash.phase==='defend'){
 // Clash defend wave complete
 const clashWaveIdx=G.wave;G.wave++;
 if(G.wave>=5){handleClashResult();}
 else{const bonus=40+G.wave*10;G.nexium+=bonus;G.totalNexEarned+=bonus;G.phase='build';}}
-else if(G.endlessMode){G.endlessWave++;if(G.endlessWave>=50)checkAchievement('endless_legend');const bonus=50+G.endlessWave*10;G.nexium+=bonus;G.totalNexEarned+=bonus;G.phase='build';}
-else{G.wave++;if(G.wave>=TOTAL_WAVES){G.phase='victory';playVictoryFanfare();tryVibrate([50,30,50,30,100]);addXP(G.wave,G.totalKills,G.lives>=G.maxLives?3:G.lives>=G.maxLives*0.5?2:1);
-if(heroState.deployed&&heroState.selectedHeroIdx>=0){const _hid=HEROES[heroState.selectedHeroIdx].id;const _hxp=G.wave*5+G.totalKills*2+(G.lives>=G.maxLives?100:50);addHeroXp(_hid,_hxp);heroProg[_hid].matchesPlayed++;heroProg[_hid].totalKills+=G.totalKills;}prog.totalMatches++;prog.totalKills+=G.totalKills;checkAchievement('first_blood');if(G.lives>=G.maxLives)checkAchievement('no_scratch');saveAllState();}else{const bonus=50+G.wave*10;G.nexium+=bonus;G.totalNexEarned+=bonus;G.phase='waveSummary';}}}}
+else if(G.endlessMode){G.endlessWave++;if(G.endlessWave>=50)checkAchievement('endless_legend');const bonus=50+G.endlessWave*10;G.nexium+=bonus;G.totalNexEarned+=bonus;endlessNextWave=null;G.phase='build';}
+else{G.wave++;if(G.wave>=getMatchWaveGoal()){G.phase='victory';playVictoryFanfare();tryVibrate([50,30,50,30,100]);finalizeMatch(true);}else{const bonus=50+G.wave*10;G.nexium+=bonus;G.totalNexEarned+=bonus;G.phase='waveSummary';}}}}
 else{updateHero(dt);updateParticles(sdt);updateProjectiles(sdt);updateDmgNums(sdt);updateChains(sdt);}}
 
 // Game loop
@@ -4646,10 +4685,12 @@ if(G.phase==='offenseMapSelect'){
 if(G._btns.offenseMaps)for(const om2 of G._btns.offenseMaps){if(hitTest(px,py,om2)){startOffenseGame(om2.idx);playSound('click');return;}}
 if(G._btns.offenseBack&&hitTest(px,py,G._btns.offenseBack)){G.phase='menu';playSound('click');}return;}
 if(G.phase==='offenseGame'){
+// Swarm ability buttons
+if(G._btns.swarmAbilities)for(const sa of G._btns.swarmAbilities){if(hitTest(px,py,sa)){if(!useSwarmAbility(sa.type))playSound('error');return;}}
 // Handle spawn panel taps
 if(G._btns.offenseSpawn)for(const os of G._btns.offenseSpawn){if(hitTest(px,py,os)){
 const oe=OFFENSE_ENEMIES[os.idx];
-if(offense.bioMass>=oe.cost&&offense.spawnCooldown<=0){offense.bioMass-=oe.cost;offense.spawnCooldown=0.2;spawnOffenseEnemy(oe.id);playSound('place');tryVibrate(10);}
+if(offense.bioMass>=oe.cost&&offense.spawnCooldown<=0){offense.bioMass-=oe.cost;offense.spawnCooldown=swarmEnhanced.frenzyTimer>0?0.1:0.2;spawnOffenseEnemy(oe.id);playSound('place');tryVibrate(10);}
 else playSound('error');return;}}return;}
 if(G.phase==='offenseResult'){
 if(G._btns.offenseCampaignReturn&&hitTest(px,py,G._btns.offenseCampaignReturn)){
@@ -4735,7 +4776,7 @@ else if(G._btns.menuTutorial&&hitTest(px,py,G._btns.menuTutorial)){
 }return;}
 if(G.phase==='howToPlay'){if(hitTest(px,py,G._btns.howToBack)){G.phase='menu';playSound('click');}return;}
 if(G.phase==='settings'){
-if(hitTest(px,py,G._btns.settingsBack)){G.phase=G.previousPhase||'menu';playSound('click');return;}
+if(hitTest(px,py,G._btns.settingsBack)){if(G._settingsFromPause){G._settingsFromPause=false;G.phase='paused';}else{G.phase=G.previousPhase||'menu';}playSound('click');return;}
 if(G._btns.settingsOpts)for(const opt of G._btns.settingsOpts){if(hitTest(px,py,opt)){const i=opt.idx;
 if(i===0){settings.sfxVol=(settings.sfxVol+25)%125;}
 else if(i===1){settings.musicVol=(settings.musicVol+25)%125;Music.updateVolume();}
@@ -4759,18 +4800,21 @@ if(G.phase==='diffSelect'){if(G._btns.diffs)for(let i=0;i<G._btns.diffs.length;i
 if(hitTest(px,py,G._btns.diffBack)){G.phase='mapSelect';playSound('click');}return;}
 if(G.phase==='gameover'||G.phase==='victory'){
 if(hitTest(px,py,G._btns.restart)){
-if(campaign.active){processCampaignAfterBattle(false);playSound('click');}
+if(campaign.active){processCampaignAfterBattle(G.phase==='victory');playSound('click');}
+else if(clash.active){clash.playerLivesLeft.push(0);clash.aiWins++;G.phase='clashFinal';playSound('click');}
+else if(allied.active){startAlliedDefense();playSound('click');}
+else if(G.endlessMode){startEndlessGame();playSound('click');}
 else{startGame();playSound('click');}return;}
 if(hitTest(px,py,G._btns.toMenu)){
 if(campaign.active){processCampaignAfterBattle(G.phase==='victory');saveAllState();playSound('click');}
-else{G.phase='menu';saveAllState();playSound('click');}return;}
+else{allied.active=false;clash.active=false;offense.active=false;offense.campaignAttacking=false;G.endlessMode=false;stopAmbient();G.phase='menu';saveAllState();playSound('click');}return;}
 if(G._btns.campaignReturn&&hitTest(px,py,G._btns.campaignReturn)){processCampaignAfterBattle(G.phase==='victory');playSound('click');return;}
 return;}
 if(G.phase==='wavePreview'){startWave();return;}
 if(G.phase==='waveSummary'){G.phase='build';playSound('click');return;}
 if(G.phase==='paused'){if(hitTest(px,py,G._btns.resume)){G.phase=G.previousPhase;playSound('click');}
-else if(hitTest(px,py,G._btns.pauseSettings)){G.phase='settings';playSound('click');}
-else if(hitTest(px,py,G._btns.quit)){G.phase='menu';saveAllState();playSound('click');}return;}
+else if(hitTest(px,py,G._btns.pauseSettings)){G._settingsFromPause=true;G.phase='settings';playSound('click');}
+else if(hitTest(px,py,G._btns.quit)){allied.active=false;clash.active=false;offense.active=false;offense.campaignAttacking=false;campaign.active=false;G.endlessMode=false;stopAmbient();G.phase='menu';saveAllState();playSound('click');}return;}
 if(G.orbitalTargeting){const cell=getGridCell(px,py);if(cell)useVanguardStrike(px,py);else G.orbitalTargeting=false;return;}
 if(hitTest(px,py,G._btns.speed)){G.gameSpeed=G.gameSpeed===1?2:G.gameSpeed===2?3:1;playSound('click');return;}
 if(hitTest(px,py,G._btns.pause)){if(G.phase==='build'||G.phase==='wave'){G.previousPhase=G.phase;G.phase='paused';G.showRadialMenu=false;G.showTowerInfo=false;G.towerInfoIdx=-1;G.orbitalTargeting=false;playSound('click');}return;}
@@ -4809,7 +4853,7 @@ canvas.addEventListener('click',e=>handleTap(e.clientX,e.clientY));
 canvas.addEventListener('mousemove',e=>{if(G.showRadialMenu&&G._btns.radial){G.hoveredRadialIdx=-1;for(const btn of G._btns.radial)if(hitCircle(e.clientX,e.clientY,btn)){G.hoveredRadialIdx=btn.idx;break;}}});
 
 // Start game
-function startGame(){calculateLoadoutBonuses();setupMap(G.mapIdx);const d=DIFFS[G.diffIdx];G.nexium=d.nex+loadoutBonuses.extraNexium;G.maxLives=d.lives+loadoutBonuses.extraLives;G.lives=d.lives+loadoutBonuses.extraLives;G.wave=0;G.score=0;G.towers=[];G.enemies=[];G.spawnQueue=[];G.spawnTimer=0;G.showRadialMenu=false;G.showTowerInfo=false;G.towerInfoIdx=-1;G.hoveredRadialIdx=-1;G.totalKills=0;G.totalNexEarned=0;G.totalNexSpent=0;G.towersPlaced=0;G.enemiesAlive=0;G.gameSpeed=settings.defaultSpeed;G.orbitalCD=0;G.chronoCD=0;G.repairCD=0;G.chronoActive=0;G.orbitalTargeting=false;G.waveKills=0;G.waveNex=0;G.shakeTimer=0;G.placementAnims=[];G._btns={};G.endlessMode=false;nextEnemyId=0;particlePool.pool.forEach(p=>p.active=false);projectilePool.pool.forEach(p=>p.active=false);dmgNumPool.pool.forEach(d=>d.active=false);chainPool.pool.forEach(c=>c.active=false);// Deploy hero if selected
+function startGame(){allied.active=false;clash.active=false;offense.active=false;offense.campaignAttacking=false;_matchFinalized=false;calculateLoadoutBonuses();setupMap(G.mapIdx);if(heroState.selectedHeroIdx>=0){deployHero(0);computeHeroLevelBonuses();}else resetHeroState();const d=DIFFS[G.diffIdx];G.nexium=d.nex+loadoutBonuses.extraNexium;G.maxLives=d.lives+loadoutBonuses.extraLives;G.lives=d.lives+loadoutBonuses.extraLives;G.wave=0;G.score=0;G.towers=[];G.enemies=[];G.spawnQueue=[];G.spawnTimer=0;G.showRadialMenu=false;G.showTowerInfo=false;G.towerInfoIdx=-1;G.hoveredRadialIdx=-1;G.totalKills=0;G.totalNexEarned=0;G.totalNexSpent=0;G.towersPlaced=0;G.enemiesAlive=0;G.gameSpeed=settings.defaultSpeed;G.orbitalCD=0;G.chronoCD=0;G.repairCD=0;G.chronoActive=0;G.orbitalTargeting=false;G.waveKills=0;G.waveNex=0;G.shakeTimer=0;G.placementAnims=[];G._btns={};G.endlessMode=false;nextEnemyId=0;particlePool.pool.forEach(p=>p.active=false);projectilePool.pool.forEach(p=>p.active=false);dmgNumPool.pool.forEach(d=>d.active=false);chainPool.pool.forEach(c=>c.active=false);// Deploy hero if selected
 if(heroState.selectedHeroIdx>=0&&heroState.deployed){computeHeroLevelBonuses();}
 G.phase='build';playSound('transition');startAmbient(MAPS[G.mapIdx].biome);}
 
@@ -4818,10 +4862,12 @@ const eMap=generateEndlessMap(G.endlessBiome);currentCols=eMap.cols;currentRows=
 const d=DIFFS[0];G.nexium=d.nex;G.maxLives=d.lives;G.lives=d.lives;G.wave=0;G.score=0;G.towers=[];G.enemies=[];G.spawnQueue=[];G.spawnTimer=0;G.showRadialMenu=false;G.showTowerInfo=false;G.towerInfoIdx=-1;G.hoveredRadialIdx=-1;G.totalKills=0;G.totalNexEarned=0;G.totalNexSpent=0;G.towersPlaced=0;G.enemiesAlive=0;G.gameSpeed=settings.defaultSpeed;G.orbitalCD=0;G.chronoCD=0;G.repairCD=0;G.chronoActive=0;G.orbitalTargeting=false;G.waveKills=0;G.waveNex=0;G.shakeTimer=0;G.placementAnims=[];G._btns={};nextEnemyId=0;particlePool.pool.forEach(p=>p.active=false);projectilePool.pool.forEach(p=>p.active=false);dmgNumPool.pool.forEach(d=>d.active=false);chainPool.pool.forEach(c=>c.active=false);
 // Fake map idx for biome rendering
 G.mapIdx=MAPS.findIndex(m=>m.biome===G.endlessBiome)||0;
+allied.active=false;clash.active=false;offense.active=false;offense.campaignAttacking=false;_matchFinalized=false;
+if(heroState.selectedHeroIdx>=0){deployHero(0);computeHeroLevelBonuses();}else resetHeroState();
 G.phase='build';playSound('transition');startAmbient(G.endlessBiome);}
 
 // Testing hooks
-window.render_game_to_text=function(){return JSON.stringify({phase:G.phase,wave:G.endlessMode?G.endlessWave:G.wave,nexium:G.nexium,lives:G.lives,score:G.score,mapIdx:G.mapIdx,diffIdx:G.diffIdx,towerCount:G.towers.length,towers:G.towers.map(t=>({col:t.col,row:t.row,type:TT[t.typeIdx].id,level:t.level})),enemyCount:G.enemies.filter(e=>e.alive).length,spawnQueueLength:G.spawnQueue.length,showRadialMenu:G.showRadialMenu,showTowerInfo:G.showTowerInfo,gameSpeed:G.gameSpeed,totalKills:G.totalKills,endless:G.endlessMode,fps:_fps,storageAvailable:storageAvailable,level:prog.level,totalMatches:prog.totalMatches,achievementsCount:achievements.unlocked.size,clashElo:clash.elo});};
+window.render_game_to_text=function(){return JSON.stringify({phase:G.phase,wave:G.endlessMode?G.endlessWave:G.wave,nexium:G.nexium,lives:G.lives,score:G.score,mapIdx:G.mapIdx,diffIdx:G.diffIdx,towerCount:G.towers.length,towers:G.towers.map(t=>({col:t.col,row:t.row,type:TT[t.typeIdx].id,level:t.level})),enemyCount:G.enemies.filter(e=>e.alive).length,spawnQueueLength:G.spawnQueue.length,showRadialMenu:G.showRadialMenu,showTowerInfo:G.showTowerInfo,gameSpeed:G.gameSpeed,totalKills:G.totalKills,endless:G.endlessMode,fps:_fps,storageAvailable:storageAvailable,level:prog.level,totalMatches:prog.totalMatches,achievementsCount:achievements.unlocked.size,clashElo:clash.elo,alliedActive:allied.active,clashActive:clash.active,offenseActive:offense.active,waveGoal:getMatchWaveGoal()});};
 window.advanceTime=function(ms){const steps=Math.max(1,Math.round(ms/(1000/60)));for(let i=0;i<steps;i++)update(1/60);render();};
 window._setGamePhase=function(phase){G.phase=phase;render();};
 window._getBtns=function(){return JSON.parse(JSON.stringify(G._btns));};
@@ -4832,6 +4878,16 @@ window._getCampaignState=function(){return JSON.parse(JSON.stringify(campaign));
 window._setCampaignField=function(field,val){campaign[field]=val;};
 window._setCampaignTerritory=function(idx,field,val){if(campaign.territories[idx])campaign.territories[idx][field]=val;};
 window._setCampaignArmy=function(idx,army){if(campaign.territories[idx])campaign.territories[idx].army=army;};
+window._setGameState=function(k,v){G[k]=v;};
+window._getEnemies=function(){return G.enemies.map(e=>({id:e.id,type:e.type,alive:e.alive,progress:e.progress,pathProgress:e.pathProgress,px:e.px,py:e.py,hp:e.hp}));};
+window._spawnOffense=function(t){spawnOffenseEnemy(t);};
+window._startClashAttack=function(){startClashAttackRound();};
+window._finalizeMatch=function(v){finalizeMatch(v);};
+window._getOffenseState=function(){return JSON.parse(JSON.stringify({unitsPast:offense.unitsPast,goalUnits:offense.goalUnits,bioMass:offense.bioMass,active:offense.active,campaign:offense.campaignAttacking}));};
+window._getAlliedActive=function(){return allied.active;};
+window._getClashActive=function(){return clash.active;};
+window._getProg=function(){return JSON.parse(JSON.stringify(prog));};
+window._getLayout=function(){return {offsetX,offsetY,cellSize,cols:currentCols,rows:currentRows};};
 
 
 loadAllState();

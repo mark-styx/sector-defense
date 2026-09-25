@@ -155,5 +155,35 @@ Original prompt: build an iphone game that is a knockoff of starcraft2 tower def
 - Privacy and Terms pages load correctly, match game aesthetic
 - No remaining StarCraft/Blizzard IP references in codebase
 
+## Phase 8: Commercial Polish Deep Dive — COMPLETE
+
+### Critical Bugs Found & Fixed
+- **Victory/gameover render-loop stat farming**: `drawGameOverScreen()` mutated `prog.totalStars`, `helixCredits` (+sc*5), `prog.totalMatches`, `prog.totalKills` every frame at 60fps while the result screen showed (~900 credits/sec exploit, corrupted profile stats). Fix: all match-end processing moved to one-time `finalizeMatch(victory)` guarded by `_matchFinalized`; render is now pure.
+- **`awardPostMatchRewards()` was never called**: Arsenal Cards, tower skins, and the +10◇ match-completion credit never awarded — the entire F2P economy loop was dead. Now invoked from `finalizeMatch`.
+- **Offense-mode targeting broken**: `spawnOffenseEnemy()` set `pathProgress` but `updateTowers()` targets via `progress` — in Swarm Commander / Helix War attacks / Clash attacks, only Fusion/Drone Bay/Barrier towers could shoot (7 of 10 towers inert). Fix: enemies now carry `progress` synced to `pathProgress`.
+- **Clash attack soft-lock**: same field mismatch made `e.progress` NaN → enemies teleported to the path exit but never counted, round never resolved. Fixed by the same sync.
+- **Mode-flag leaks**: quitting Allied Defense or Sector Clash mid-match (pause→QUIT) left `allied.active`/`clash.active` true, so the AI ally kept building towers in your next classic run. All entry points (`startGame`, `startEndlessGame`, `startAlliedDefense`, `startClashDefendRound`) and exits (pause quit, gameover→menu) now reset mode flags.
+- **Hero state never reset on PLAY AGAIN**: stale HP/death timer/position carried into the next match. `startGame`/`startEndlessGame` now redeploy or reset the hero.
+- **Endless "Play Again" launched classic mode** on a fake map index. Now restarts endless properly.
+- **Campaign defense required all 40 waves per territory** (absurd pacing). Battles now cap at `campaign._waveCap` = 10 + min(8, floor(swarmThreat)) waves, shown in HUD and result screens.
+- **Campaign result buttons**: "PLAY AGAIN" on a campaign battle now correctly processes the outcome (victory on win screen, was always defeat); relabeled CONTINUE.
+- **Store false advertising**: "Daily first win +15◇" and "Win streak +25◇" were listed but unimplemented. Now real: tracked in `prog.lastWinDate` / `prog.winStreak`, persisted.
+- **Half the achievements unobtainable**: tower_master, the_gauntlet, swarm_lord, card_collector, full_arsenal never checked. All wired (tower_master on kill milestone, the_gauntlet in finalizeMatch, swarm_lord on Swarm Commander clears incl. new Hive Titan unlock).
+- **Swarm Commander abilities were dead code** (frenzy/armor/tunnel/titan had no UI). Added bio-energy bar + 4 ability buttons to the offense HUD; armor now applies a real 50% damage-reduction shield (honored in `applyDamage`), tunnel spawns 3 tunnelers, frenzy halves spawn cooldown, Hive Titan unlocks after clearing all 5 maps.
+- **Color-blind mode did nothing**: markers/remap existed but were never called. Enemy fills now route through `getColorBlindColor` and per-type shape markers render in CB modes; lookup tables hoisted out of the per-frame path.
+- **Drone Bay towers in offense mode never fired** (`fireTimer` vs `cooldown` field mismatch) — fixed.
+- **Pause→Settings→Back instantly resumed gameplay** — now returns to the pause overlay.
+- **Endless wave preview showed classic wave tables** — preview now shows the actual procedurally-generated wave (cached between preview and spawn); boss warning every 10th endless wave.
+- **clash `enemiesAlive` could go negative** — clamped.
+- **Legendary difficulty gated at Commander level 75** (~285k XP, effectively unreachable) — lowered to 20.
+
+### Test Suite (new)
+- `test/harness.mjs`: boots index.html in a Node VM with stubbed DOM/canvas/localStorage; drives real tap events and simulated frames via the game's own `advanceTime` hook.
+- `test/game.test.mjs`: 13 tests covering economy idempotency, offense targeting regression, clash movement regression, mode-flag leaks, endless restart, store IAP grants, hero deploy, pause/settings flow, full build→wave→summary loop, and crash-free rendering of all 26 screens. `npm test`.
+
 ## TODO / Next Steps
-- Phase 8: Native Packaging (Capacitor wrapper, Xcode, App Store submission)
+- Phase 9: Native Packaging (Capacitor wrapper, Xcode, App Store submission)
+- Balance pass: wave 25-40 difficulty curve, hero ability cooldown tuning per difficulty
+- Dead code removal (unused drawMenuScreen V1, drawProfileScreen V1, getCellAt duplicate)
+- Cloud save / account system for cross-device progression
+- Real multiplayer for Sector Clash (currently AI simulation)
