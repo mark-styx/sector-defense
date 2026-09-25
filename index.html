@@ -533,7 +533,7 @@ siegecrawler:{name:'Siege Crawler',hp:250,speed:0.8,reward:25,lives:2,color:'#ff
 const MAPS=[
 {id:'outpost',name:'Outpost Alpha',diff:'Easy',cols:10,rows:16,biome:'urban',desc:'Simple S-curve path.',restricted:[],paths:[[[0,1],[1,1],[2,1],[3,1],[4,1],[5,1],[6,1],[7,1],[7,2],[7,3],[7,4],[6,4],[5,4],[4,4],[3,4],[2,4],[2,5],[2,6],[2,7],[3,7],[4,7],[5,7],[6,7],[7,7],[8,7],[8,8],[8,9],[8,10],[7,10],[6,10],[5,10],[4,10],[3,10],[2,10],[1,10],[1,11],[1,12],[1,13],[2,13],[3,13],[4,13],[5,13],[6,13],[7,13],[8,13],[8,14],[8,15]]],baseCell:[8,15]},
 {id:'transit',name:'Transit Hub',diff:'Medium',cols:12,rows:16,biome:'urban',desc:'Two entries converge.',restricted:[],paths:[[[0,0],[1,0],[2,0],[3,0],[3,1],[3,2],[3,3],[3,4],[4,4],[5,4],[5,5],[5,6],[5,7],[5,8],[5,9],[5,10],[5,11],[5,12],[5,13],[5,14],[5,15]],[[11,0],[10,0],[9,0],[8,0],[8,1],[8,2],[8,3],[8,4],[7,4],[6,4],[6,5],[6,6],[6,7],[6,8],[6,9],[6,10],[6,11],[6,12],[6,13],[6,14],[6,15]]],baseCell:[5,15]},
-{id:'skyline',name:'Skyline',diff:'Medium',cols:11,rows:17,biome:'urban',desc:'Zigzag. Shortcut at wave 20.',restricted:['thunder','nova'],paths:[[[0,0],[0,1],[0,2],[0,3],[1,3],[2,3],[3,3],[4,3],[5,3],[6,3],[7,3],[8,3],[9,3],[10,3],[10,4],[10,5],[10,6],[9,6],[8,6],[7,6],[6,6],[5,6],[4,6],[3,6],[2,6],[1,6],[0,6],[0,7],[0,8],[0,9],[1,9],[2,9],[3,9],[4,9],[5,9],[6,9],[7,9],[8,9],[9,9],[10,9],[10,10],[10,11],[10,12],[9,12],[8,12],[7,12],[6,12],[5,12],[4,12],[3,12],[2,12],[1,12],[0,12],[0,13],[0,14],[0,15],[0,16]]],baseCell:[0,16]},
+{id:'skyline',name:'Skyline',diff:'Medium',cols:11,rows:17,biome:'urban',desc:'Zigzag. Shortcut at wave 20.',restricted:['nova'],paths:[[[0,0],[0,1],[0,2],[0,3],[1,3],[2,3],[3,3],[4,3],[5,3],[6,3],[7,3],[8,3],[9,3],[10,3],[10,4],[10,5],[10,6],[9,6],[8,6],[7,6],[6,6],[5,6],[4,6],[3,6],[2,6],[1,6],[0,6],[0,7],[0,8],[0,9],[1,9],[2,9],[3,9],[4,9],[5,9],[6,9],[7,9],[8,9],[9,9],[10,9],[10,10],[10,11],[10,12],[9,12],[8,12],[7,12],[6,12],[5,12],[4,12],[3,12],[2,12],[1,12],[0,12],[0,13],[0,14],[0,15],[0,16]]],baseCell:[0,16]},
 {id:'command',name:'War Room',diff:'Hard',cols:14,rows:18,biome:'urban',desc:'3 entries converging.',restricted:[],paths:[[[0,0],[1,0],[2,0],[3,0],[3,1],[3,2],[3,3],[3,4],[4,4],[5,4],[6,4],[6,5],[6,6],[6,7],[6,8],[6,9],[6,10],[6,11],[6,12],[6,13],[6,14],[6,15],[6,16],[6,17]],[[13,0],[12,0],[11,0],[10,0],[10,1],[10,2],[10,3],[10,4],[9,4],[8,4],[7,4],[7,5],[7,6],[7,7],[7,8],[7,9],[7,10],[7,11],[7,12],[7,13],[7,14],[7,15],[7,16],[7,17]],[[0,9],[1,9],[2,9],[3,9],[4,9],[5,9],[6,9]]],baseCell:[6,17]},
 {id:'ember',name:'Ember Pass',diff:'Easy',cols:10,rows:16,biome:'volcanic',desc:'Winding path, lava pools.',restricted:[],paths:[[[0,0],[1,0],[2,0],[3,0],[4,0],[4,1],[4,2],[4,3],[3,3],[2,3],[1,3],[1,4],[1,5],[1,6],[2,6],[3,6],[4,6],[5,6],[6,6],[7,6],[7,7],[7,8],[7,9],[6,9],[5,9],[4,9],[3,9],[3,10],[3,11],[3,12],[4,12],[5,12],[6,12],[7,12],[8,12],[8,13],[8,14],[8,15]]],baseCell:[8,15],lavaCells:[[6,1],[7,2],[0,5],[8,4],[2,8],[8,8],[5,11],[1,14],[6,14]]},
 {id:'caldera',name:'Caldera',diff:'Medium',cols:12,rows:18,biome:'volcanic',desc:'Spiral to center.',restricted:['neural'],paths:[[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0],[9,0],[10,0],[11,0],[11,1],[11,2],[11,3],[11,4],[11,5],[11,6],[11,7],[11,8],[10,8],[9,8],[8,8],[7,8],[6,8],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8],[0,9],[0,10],[0,11],[0,12],[0,13],[0,14],[1,14],[2,14],[3,14],[4,14],[5,14],[6,14],[7,14],[8,14],[9,14],[9,13],[9,12],[9,11],[8,11],[7,11],[6,11],[5,11],[4,11],[3,11],[3,12]]],baseCell:[3,12],lavaCells:[[5,4],[6,4],[5,5],[6,5]]},
@@ -2136,7 +2136,11 @@ function drawBottomPanel(){const py=H-bottomBarH;ctx.fillStyle=C_SUR;ctx.fillRec
 if(G.showTowerInfo&&G.towerInfoIdx>=0&&G.towerInfoIdx<G.towers.length)drawTowerInfoPanel(py);
 else if(G.phase==='build')drawBuildPanel(py);
 else if(G.phase==='wave')drawWavePanel(py);
-if(G.phase==='build'||G.phase==='wave')drawGlobalAbilities(py);drawHeroHUD();}
+if(G.phase==='build'||G.phase==='wave')drawGlobalAbilities(py);
+// Hero buttons share the panel row with the tower info buttons (close ✕,
+// upgrade, sell) — hide them while inspecting a tower so their hitboxes
+// can't overlap and hijack taps meant for the info panel.
+if(!G.showTowerInfo)drawHeroHUD();}
 
 function drawGlobalAbilities(py){const bs=36,gap=8,sx=8,by=py+bottomBarH-bs-8;
 const abs=[{n:'💥',l:'Strike',cd:G.orbitalCD,mcd:60,ac:G.orbitalTargeting},{n:'⚡',l:'Surge',cd:G.chronoCD,mcd:90,ac:G.chronoActive>0},{n:'🔧',l:'Repair',cd:G.repairCD,mcd:120,ac:false}];
@@ -4944,6 +4948,7 @@ window._getLayout=function(){return {offsetX,offsetY,cellSize,cols:currentCols,r
 window._getPathCells=function(){const s=new Set();for(const p of currentPaths)for(const[c,r]of p)s.add(c+','+r);return[...s].map(k=>k.split(',').map(Number));};
 window._getTowersRaw=function(){return G.towers.map(t=>({col:t.col,row:t.row,type:t.typeIdx,level:t.level,cd:t.cooldown,dis:t.disabled,abCd:t.abilityCooldown}));};
 window._getTutorial=function(){return {active:TUTORIAL.active,step:TUTORIAL.step,wait:TUTORIAL.waitingFor,done:prog.tutorialDone};};
+window._getHeroProg=function(id){return JSON.parse(JSON.stringify(heroProg[id]||null));};
 window._getValidCells=function(){const out=[];for(let r=0;r<currentRows;r++)for(let c=0;c<currentCols;c++){if(!isValidPlacement(c,r))continue;let occ=false;for(const t of G.towers)if(t.col===c&&t.row===r){occ=true;break;}if(!occ)out.push({col:c,row:r});}return out;};
 window._getPools=function(){return {proj:projectilePool.count(),part:particlePool.count()};};
 window._getProjSample=function(){const s=[];for(const p of projectilePool.pool)if(p.active){s.push({x:Math.round(p.x),y:Math.round(p.y),tx:Math.round(p.tx),ty:Math.round(p.ty),speed:p.speed,dmg:p.damage,tid:p.targetId});if(s.length>=5)break;}return s;};

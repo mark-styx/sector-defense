@@ -251,7 +251,11 @@ export function makeGenericBot(g, maxTowers = 14) {
           const tp = GENERIC_MIX[placed];
           const cell = bestCell();
           if (cell && TT_COST[tp] <= s.nexium) {
-            tryPlace(g, cell.col, cell.row, tp); // false => restricted type; skip it
+            // Map-restricted types fall back to never-restricted ones so no
+            // build slot is wasted (restrictions only hit thunder/nova/neural/fusion).
+            if (!tryPlace(g, cell.col, cell.row, tp)) {
+              if (!tryPlace(g, cell.col, cell.row, 0)) tryPlace(g, cell.col, cell.row, 2);
+            }
             placed++; acted = true; continue;
           }
           if (!cell) placed = GENERIC_MIX.length;

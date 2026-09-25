@@ -55,9 +55,44 @@ async function runClassicCampaign(g) {
 test('classic Standard is winnable: bot clears all 40 waves', async () => {
   const g = await boot();
   await startClassic(g);
+  const creditsBefore = g.window._getStoreState().credits;
   const {final, log} = await runClassicCampaign(g);
   assert.equal(final.phase, 'victory', `did not win\n${log.join('\n')}`);
   assert.ok(final.lives > 0);
+  // Victory must actually pay out: achievements + Helix credits (match + stars).
+  assert.ok(final.achievementsCount >= 1, 'first_blood should unlock on first win');
+  assert.ok(g.window._getStoreState().credits > creditsBefore,
+    `victory should award credits (before=${creditsBefore}, after=${g.window._getStoreState().credits})`);
+});
+
+test('hero run: Commander Vex wins Standard and gains persistent XP', async () => {
+  const g = await boot();
+  tapBtn(g, 'menuPlay');
+  const maps = g.window._getBtns().maps;
+  const mc = center(maps[0]); g.tap(mc.x, mc.y); g.frame(2);
+  const diffs = g.window._getBtns().diffs;
+  const dc = center(diffs[0]); g.tap(dc.x, dc.y); g.frame(2);
+  const cards = g.window._getBtns().heroCards;
+  const hc = center(cards[0]); g.tap(hc.x, hc.y); g.frame(2); // Commander Vex
+  tapBtn(g, 'heroDeploy');
+  assert.equal(state(g).phase, 'build');
+  const xpBefore = g.window._getHeroProg('vanguard').xp;
+
+  g.window._setGameState('gameSpeed', 3);
+  const bot = makePlanBot(g, PLAN);
+  const log = [];
+  for (let w = 1; w <= 40; w++) {
+    if (state(g).phase !== 'build') break;
+    bot.play();
+    const post = runBotWave(g, 180);
+    log.push(`w${w} lives=${post.lives}`);
+    if (post.phase !== 'build') break;
+  }
+  const final = state(g);
+  assert.equal(final.phase, 'victory', `hero run not won\n${log.join('\n')}`);
+  const vex = g.window._getHeroProg('vanguard');
+  assert.ok(vex.xp > xpBefore, `hero should gain persistent XP (before=${xpBefore}, after=${vex.xp})`);
+  assert.ok(vex.matchesPlayed >= 1, 'hero match should be recorded');
 });
 
 test('classic Veteran is winnable', async () => {

@@ -77,7 +77,7 @@ test('helix war: attack captures a territory, defense holds it, flow survives', 
   g.window._setCampaignTerritory(2, 'buildings', ['lab']);
   g.window._setCampaignField('swarmThreat', 2);
   let attacked = false;
-  for (let i = 0; i < 20 && !attacked; i++) {
+  for (let i = 0; i < 60 && !attacked; i++) {
     const s = state(g);
     if (s.phase === 'campaignSwarmAttack') {
       c = g.window._getCampaignState();

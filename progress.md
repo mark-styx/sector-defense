@@ -264,6 +264,16 @@ Campaign attack action called `startGame()` which launched a standard tower defe
 - Winnability evidence previously covered Outpost Alpha only per difficulty. Now verified with a chokepoint-aware generic bot (scores buildable cells by path-cells-in-tower-range, naturally defending multi-lane convergence points): **War Room (3 converging entries), Inferno (long spiral), and Absolute Zero (fusion-restricted, 14×20) all won on Standard with perfect lives**, and **the gauntlet combo (Inferno + Elite — the achievement's implied bar) is won at 9/10 lives**. No game-balance changes were needed; the one initial failure (War Room) was a bot-strategy artifact of entry-clustering, fixed by convergence placement.
 - New `_getPathCells` debug hook; generic bot placement now map-shape-aware (also used by endless/allied/clash/campaign bots — all still green).
 
+### Monetization & Full-Map Sweep Round (final)
+- **Skyline balance fix (evidence-based)**: the full 10-map Standard sweep showed 9 maps won with perfect lives, but Skyline (rated Medium) lost at wave 34-39 — its restrictions banned both thunder (splash) and nova (burst), leaving no answer to the armored boss waves (sentinel shots do 1-5 damage after armor 10). Thunder restored (nova stays restricted for map identity); Skyline now wins 25/25 like every other map.
+- **All 10 maps verified winnable on Standard**: 9 with perfect lives via chokepoint bot; Skyline after the restriction fix.
+- **Ultimate bundle delivery test**: buys the 2500-credit bundle through the real confirm flow and asserts every hero skin, all 3 tower packs, and all map themes unlock — and that owned bundles cannot be repurchased.
+- **Victory payouts asserted**: first win unlocks achievements and awards Helix credits in a real bot victory.
+- **Hero progression end-to-end**: Commander Vex wins a full Standard campaign; persistent XP and matchesPlayed verified via new `_getHeroProg` hook.
+- **Hero-button overlap bug fixed**: the hero ULT hitbox overlapped the tower-info ✕ button (and hero buttons are tap-checked before the info panel), so closing a tower's info panel with a hero deployed fired the ultimate instead. Hero buttons now hide while the info panel is open.
+- Generic bot no longer wastes build slots on map-restricted tower types (falls back to sentinel/hawk).
+- Helix War defend-wait loop widened (probabilistic swarm attacks; ~3% flake at 20 iterations).
+
 ## TODO / Next Steps
 - Phase 9: Native Packaging (Capacitor wrapper, Xcode, App Store submission)
 - Push merged main to origin when network access to the remote is available (history is reconciled; push will fast-forward)

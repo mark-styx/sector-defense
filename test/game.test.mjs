@@ -129,6 +129,32 @@ test('store: simulated IAP credits tab grants the advertised amount', async () =
   assert.equal(g.window._getStoreState().credits, before + item.amount + (item.bonus || 0));
 });
 
+test('store: ultimate bundle delivers all advertised contents', async () => {
+  const g = await boot();
+  g.window._addCredits(2500);
+  tapBtn(g, 'menuStore');
+  g.frame(2);
+  const tabs = g.window._getBtns().storeTabs;
+  const t3 = center(tabs[3]); g.tap(t3.x, t3.y); g.frame(2); // BUNDLES
+  const items = g.window._getBtns().storeItems;
+  const ultimate = items.find(i => i.type === 'bundle' && i.id === 'ultimate_bundle');
+  assert.ok(ultimate, 'ultimate bundle should be listed');
+  const uc = center(ultimate); g.tap(uc.x, uc.y); g.frame(2);
+  tapBtn(g, 'confirmBuy');
+  g.frame(2);
+  const st = g.window._getStoreState();
+  for (const heroId of Object.keys(st.unlockedHeroSkins)) {
+    assert.ok(st.unlockedHeroSkins[heroId].length >= 4, `hero ${heroId} skins should all unlock`);
+  }
+  assert.equal(st.unlockedTowerPacks.length, 3, 'all tower packs owned');
+  assert.ok(st.unlockedMapThemes.length >= 3, 'all map themes owned');
+  assert.equal(st.credits, 0, 'credits spent in full (2500)');
+  // Bundle is one-time: tapping again must not re-charge.
+  const b2 = g.window._getBtns().storeItems.find(i => i.id === 'ultimate_bundle');
+  if (b2) { const c2 = center(b2); g.tap(c2.x, c2.y); g.frame(2); }
+  assert.equal(g.window._getStoreState().credits, 0, 'owned bundle cannot be repurchased');
+});
+
 test('hero deploy: selecting a hero enters the match with hero active', async () => {
   const g = await boot();
   tapBtn(g, 'menuPlay');
