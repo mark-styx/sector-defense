@@ -328,6 +328,8 @@ Campaign attack action called `startGame()` which launched a standard tower defe
 
 - Verified `apple-touch-icon` href resolves over HTTP in WebKit: status 200, `image/png`, valid PNG signature, 999 bytes.
 
+- **Offline operation verified** (the last untested real-world scenario — subway/airplane mode, first launch of a Capacitor build without network): Google Fonts requests blocked at the network layer; the game boots, skip-splash works, full navigation to build phase succeeds, battlefield renders 299+ colors, zero page errors. Font stacks fall back cleanly; `document.fonts.ready` resolves despite failed loads.
+
 ## TODO / Next Steps
 - Phase 9: Native Packaging (Capacitor wrapper, Xcode, App Store submission)
 - Push merged main to origin when network access to the remote is available (history is reconciled; push will fast-forward)
