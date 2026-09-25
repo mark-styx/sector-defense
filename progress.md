@@ -246,6 +246,10 @@ Campaign attack action called `startGame()` which launched a standard tower defe
 - Version string (v7.1.0) visible in the settings footer.
 - New tests: full guided-tutorial walkthrough (fresh save → 13 steps → completion → menu updated), settings persistence across restart. 26 tests total.
 
+### Performance & Final Polish
+- **Path geometry caching**: `getPathPts`/`getPosOnPath`/`getPathLen` previously rebuilt the full point array (fresh object allocations) and re-looped segment lengths per enemy per frame — ~270k object allocations/min on long waves, real GC churn on low-end devices. Geometry is now cached per map/layout and invalidated on map change or resize; steady-state is allocation-free. Full test suite verifies identical behavior across every mode.
+- **Tap-to-skip splash** (also unlocks audio on first interaction).
+
 ## TODO / Next Steps
 - Phase 9: Native Packaging (Capacitor wrapper, Xcode, App Store submission)
 - Push merged main to origin when network access to the remote is available (history is reconciled; push will fast-forward)

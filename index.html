@@ -1176,12 +1176,31 @@ drones:[]
 };
 
 let currentPaths=[],pathSets=[];
+// Cached path geometry (points, cumulative lengths, total length) — rebuilt only
+// when the map, layout, or cell size changes. Prevents per-enemy-per-frame
+// array allocations that caused GC churn on long waves.
+const _ppc={src:null,cs:0,ox:0,oy:0,paths:[]};
+function getPathData(pi){
+if(_ppc.src!==currentPaths||_ppc.cs!==cellSize||_ppc.ox!==offsetX||_ppc.oy!==offsetY){
+_ppc.src=currentPaths;_ppc.cs=cellSize;_ppc.ox=offsetX;_ppc.oy=offsetY;
+_ppc.paths=currentPaths.map(p=>{
+const pts=p.map(([c,r])=>({x:offsetX+c*cellSize+cellSize/2,y:offsetY+r*cellSize+cellSize/2}));
+const cum=[0];let tl=0;
+for(let i=1;i<pts.length;i++){tl+=Math.sqrt((pts[i].x-pts[i-1].x)*(pts[i].x-pts[i-1].x)+(pts[i].y-pts[i-1].y)*(pts[i].y-pts[i-1].y));cum.push(tl);}
+return{pts,cum,tl};});}
+return _ppc.paths[pi]||_ppc.paths[0];}
 function setupMap(idx){const m=MAPS[idx];currentCols=m.cols;currentRows=m.rows;currentPaths=m.paths;pathSets=[];for(const p of currentPaths){const s=new Set();p.forEach(([c,r])=>s.add(c+','+r));pathSets.push(s);}recalcLayout();VFX.initEnvParticles(m.biome,W,H);}
 function isPathCell(c,r){const k=c+','+r;for(const s of pathSets)if(s.has(k))return true;return false;}
 function isValidPlacement(c,r){if(c<0||c>=currentCols||r<0||r>=currentRows)return false;if(isPathCell(c,r))return false;for(let dc=-1;dc<=1;dc++)for(let dr=-1;dr<=1;dr++){if(dc===0&&dr===0)continue;if(Math.abs(dc)+Math.abs(dr)>1)continue;if(isPathCell(c+dc,r+dr))return true;}return false;}
-function getPathPts(pi){const p=currentPaths[pi]||currentPaths[0];return p.map(([c,r])=>({x:offsetX+c*cellSize+cellSize/2,y:offsetY+r*cellSize+cellSize/2}));}
-function getPosOnPath(prog,pi){const pts=getPathPts(pi);if(prog<=0)return{x:pts[0].x,y:pts[0].y};if(prog>=1)return{x:pts[pts.length-1].x,y:pts[pts.length-1].y};let tl=0;const sl=[];for(let i=1;i<pts.length;i++){const dx=pts[i].x-pts[i-1].x,dy=pts[i].y-pts[i-1].y;sl.push(Math.sqrt(dx*dx+dy*dy));tl+=sl[sl.length-1];}let td=prog*tl;for(let i=0;i<sl.length;i++){if(td<=sl[i]){const t=td/sl[i];return{x:pts[i].x+(pts[i+1].x-pts[i].x)*t,y:pts[i].y+(pts[i+1].y-pts[i].y)*t};}td-=sl[i];}return{x:pts[pts.length-1].x,y:pts[pts.length-1].y};}
-function getPathLen(pi){const pts=getPathPts(pi);let tl=0;for(let i=1;i<pts.length;i++){const dx=pts[i].x-pts[i-1].x,dy=pts[i].y-pts[i-1].y;tl+=Math.sqrt(dx*dx+dy*dy);}return tl;}
+function getPathPts(pi){return getPathData(pi).pts;}
+function getPosOnPath(prog,pi){const d=getPathData(pi);const pts=d.pts,cum=d.cum,tl=d.tl;
+if(prog<=0)return{x:pts[0].x,y:pts[0].y};
+if(prog>=1)return{x:pts[pts.length-1].x,y:pts[pts.length-1].y};
+const td=prog*tl;let i=1;while(i<cum.length&&cum[i]<td)i++;
+if(i>=pts.length)i=pts.length-1;
+const segLen=(cum[i]-cum[i-1])||1;const t=(td-cum[i-1])/segLen;
+return{x:pts[i-1].x+(pts[i].x-pts[i-1].x)*t,y:pts[i-1].y+(pts[i].y-pts[i-1].y)*t};}
+function getPathLen(pi){return getPathData(pi).tl;}
 function getBiome(){return BIOMES[MAPS[G.mapIdx].biome]||BIOMES.urban;}
 function getAvailableTowers(){const m=MAPS[G.mapIdx];if(!m.restricted||!m.restricted.length)return TT;return TT.filter(t=>!m.restricted.includes(t.id));}
 
@@ -4650,6 +4669,8 @@ function getCellAt(px, py) {
 }
 
 function handleTap(px,py){initAudio();
+// Tap-to-skip splash (also unlocks audio on first interaction).
+if(splashActive){splashActive=false;return;}
 
 // === TUTORIAL TAP INTERCEPTION ===
 if(TUTORIAL.active){
