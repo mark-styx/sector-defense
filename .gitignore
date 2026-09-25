@@ -1,5 +1,5 @@
-# Test screenshots from playtesting
-*.png
+# Test screenshots from playtesting (the app icon at ./icon.png is tracked)
+test-artifacts/*.png
 
 # Progress notes
 progress.md
