@@ -4,7 +4,7 @@
 // start), and a second bot assaults a Swarm Commander fortress.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {boot, startClassic, tapBtn, center, makePlanBot, runBotWave} from './harness.mjs';
+import {boot, startClassic, tapBtn, center, makePlanBot, makeGenericBot, runBotWave} from './harness.mjs';
 
 // [col, row, towerTypeIdx] — hand-picked cells on Outpost Alpha that sit
 // adjacent to path chokepoints (verified by the radial probe at runtime).
@@ -74,6 +74,72 @@ test('classic Elite is winnable', async () => {
   const {final, log} = await runClassicCampaign(g);
   assert.equal(final.phase, 'victory', `Elite not beaten\n${log.join('\n')}`);
   assert.ok(final.lives > 0);
+});
+
+test('hard-rated maps are winnable: 3-path, long spiral, restricted (Standard)', async () => {
+  // Map 3 = War Room (3 converging entries), 6 = Inferno (long spiral),
+  // 9 = Absolute Zero (fusion restricted, 14x20). Generic bot with
+  // chokepoint/convergence placement must clear all three on Standard.
+  for (const mapIdx of [3, 6, 9]) {
+    const g = await boot();
+    tapBtn(g, 'menuPlay');
+    let maps = g.window._getBtns().maps;
+    let target = maps.find(m => m.origIdx === mapIdx);
+    if (!target) {
+      const tabs = g.window._getBtns().biomeTabs;
+      for (let i = 1; i < 3 && !target; i++) {
+        const t = tabs[i]; g.tap(center(t).x, center(t).y); g.frame(2);
+        target = g.window._getBtns().maps.find(m => m.origIdx === mapIdx);
+      }
+    }
+    const mc = center(target); g.tap(mc.x, mc.y); g.frame(2);
+    const diffs = g.window._getBtns().diffs;
+    const d = diffs.find(x => x.idx === 0);
+    const dc = center(d); g.tap(dc.x, dc.y); g.frame(2);
+    tapBtn(g, 'heroNone');
+    tapBtn(g, 'heroDeploy');
+    g.window._setGameState('gameSpeed', 3);
+    const bot = makeGenericBot(g, 14);
+    let last = null;
+    for (let w = 1; w <= 40; w++) {
+      if (state(g).phase !== 'build') break;
+      bot.play();
+      last = runBotWave(g, 300);
+      if (last.phase !== 'build') break;
+    }
+    assert.equal(last.phase, 'victory', `map ${mapIdx} not beaten on Standard (ended ${last.phase} wave ${last.wave})`);
+    assert.ok(last.lives > 0);
+  }
+});
+
+test('the gauntlet combo is winnable: Inferno on Elite', async () => {
+  // Mirrors the 'the_gauntlet' achievement — Hard map at the hardest
+  // unlocked difficulty must be beatable with strong play.
+  const g = await boot();
+  tapBtn(g, 'menuPlay');
+  let target = g.window._getBtns().maps.find(m => m.origIdx === 6);
+  if (!target) {
+    const tabs = g.window._getBtns().biomeTabs;
+    const t = tabs[1]; g.tap(center(t).x, center(t).y); g.frame(2); // volcanic
+    target = g.window._getBtns().maps.find(m => m.origIdx === 6);
+  }
+  const mc = center(target); g.tap(mc.x, mc.y); g.frame(2);
+  const diffs = g.window._getBtns().diffs;
+  const d = diffs.find(x => x.idx === 2);
+  const dc = center(d); g.tap(dc.x, dc.y); g.frame(2);
+  tapBtn(g, 'heroNone');
+  tapBtn(g, 'heroDeploy');
+  g.window._setGameState('gameSpeed', 3);
+  const bot = makeGenericBot(g, 14);
+  let last = null;
+  for (let w = 1; w <= 40; w++) {
+    if (state(g).phase !== 'build') break;
+    bot.play();
+    last = runBotWave(g, 300);
+    if (last.phase !== 'build') break;
+  }
+  assert.equal(last.phase, 'victory', `Inferno/Elite not beaten (ended ${last.phase} wave ${last.wave})`);
+  assert.ok(last.lives > 0);
 });
 
 test('swarm commander: fortress assault is winnable', async () => {

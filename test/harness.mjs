@@ -209,12 +209,36 @@ export function makePlanBot(g, PLAN) {
   };
 }
 
-// Generic bot for unknown maps: fills buildable cells near the path entry
-// (top of map first) with a mixed comp (sentinel/thunder/hawk/shockwave),
-// skipping types restricted on the current map, then upgrades.
+// Generic bot for unknown maps: scores buildable cells by how many path cells
+// sit inside tower range (naturally favors chokepoints and multi-lane
+// convergence points over entry clusters), then upgrades greedily.
 const GENERIC_MIX = [0, 0, 1, 0, 2, 0, 1, 2, 0, 1, 5, 0, 2, 1];
 export function makeGenericBot(g, maxTowers = 14) {
   let placed = 0;
+  let pathCells = null;
+  let layoutStamp = null;
+  const bestCell = () => {
+    const L = g.window._getLayout();
+    const stamp = L.cols + 'x' + L.rows;
+    if (!pathCells || layoutStamp !== stamp) {
+      pathCells = g.window._getPathCells();
+      layoutStamp = stamp;
+    }
+    const cells = g.window._getValidCells();
+    if (!cells.length) return null;
+    let best = null, bestScore = -1;
+    for (const cell of cells) {
+      let score = 0;
+      for (const [pc, pr] of pathCells) {
+        const dx = cell.col - pc, dy = cell.row - pr;
+        if (dx * dx + dy * dy <= 10.5) score++; // ~3.2 cell tower range
+      }
+      // Prefer slightly earlier cells on ties (entry side of a chokepoint).
+      score += (L.rows - cell.row) * 0.01;
+      if (score > bestScore) { bestScore = score; best = cell; }
+    }
+    return best;
+  };
   return {
     play() {
       let acted = true, guard = 0;
@@ -224,10 +248,8 @@ export function makeGenericBot(g, maxTowers = 14) {
         const l0 = s.towers.findIndex(t => t.level === 0);
         if (l0 >= 0 && s.nexium >= 40 && tryUpgrade(g, l0)) { acted = true; continue; }
         if (placed < maxTowers && placed < GENERIC_MIX.length) {
-          const cells = g.window._getValidCells();
-          cells.sort((a, b) => (a.row - b.row) || (a.col - b.col));
           const tp = GENERIC_MIX[placed];
-          const cell = cells[0];
+          const cell = bestCell();
           if (cell && TT_COST[tp] <= s.nexium) {
             tryPlace(g, cell.col, cell.row, tp); // false => restricted type; skip it
             placed++; acted = true; continue;

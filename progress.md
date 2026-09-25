@@ -194,11 +194,11 @@ Original prompt: build an iphone game that is a knockoff of starcraft2 tower def
 - `test/harness.mjs`: boots index.html in a Node VM with stubbed DOM/canvas; drives real taps and simulated frames; includes shared defense bots (fixed-plan bot for Outpost Alpha, generic any-map bot that fills cells near the path entry and skips restricted tower types).
 - `test/harness.mjs`: boots index.html in a Node VM with stubbed DOM/canvas/localStorage; drives real tap events and simulated frames via the game's own `advanceTime` hook.
 - `test/game.test.mjs`: 13 tests covering economy idempotency, offense targeting regression, clash movement regression, mode-flag leaks, endless restart, store IAP grants, hero deploy, pause/settings flow, full build→wave→summary loop, and crash-free rendering of all 26 screens.
-- `test/balance.test.mjs`: 4 winnability soaks — Classic Standard/Veteran/Elite full 40-wave campaigns (all won by a tap-driven bot) and a fortress assault with bio-abilities.
+- `test/balance.test.mjs`: 6 winnability soaks — Classic Standard/Veteran/Elite full 40-wave campaigns (plan bot), the three Hard-rated maps on Standard plus the Inferno+Elite gauntlet combo (chokepoint-aware generic bot), and a fortress assault with bio-abilities.
 - `test/modes.test.mjs`: 3 end-to-end mode bots — Helix War attack+defend loop, full Sector Clash match, 30-wave Allied Defense co-op.
 - `test/hardening.test.mjs`: 5 tests — Legendary winnability (level-20 save), endless 25-wave survival, hero ability integration, and save/purchase + settings persistence across an app restart.
 - `test/tutorial.test.mjs`: the guided tutorial walked end-to-end on a fresh save (a new player's first experience).
-- `npm test` — 26 tests total; every difficulty tier and game mode has machine-verified winnability or flow evidence.
+- `npm test` — 29 tests total; every difficulty tier, map archetype, and game mode has machine-verified winnability or flow evidence.
 
 ## Bug Fix: Helix War Offense Mode Glitch — COMPLETE (from origin)
 
@@ -259,6 +259,10 @@ Campaign attack action called `startGame()` which launched a standard tower defe
 - `npm run serve` now uses the port-authority assignment (8021) instead of an arbitrary port.
 - Verified NOT available on this machine: Xcode/CocoaPods — Capacitor iOS build (Phase 9) must run on an Xcode machine.
 - `mkgh` (git remote) is an unresolvable host here — push remains a user action; general network is fine.
+
+### Map-Coverage Round (final)
+- Winnability evidence previously covered Outpost Alpha only per difficulty. Now verified with a chokepoint-aware generic bot (scores buildable cells by path-cells-in-tower-range, naturally defending multi-lane convergence points): **War Room (3 converging entries), Inferno (long spiral), and Absolute Zero (fusion-restricted, 14×20) all won on Standard with perfect lives**, and **the gauntlet combo (Inferno + Elite — the achievement's implied bar) is won at 9/10 lives**. No game-balance changes were needed; the one initial failure (War Room) was a bot-strategy artifact of entry-clustering, fixed by convergence placement.
+- New `_getPathCells` debug hook; generic bot placement now map-shape-aware (also used by endless/allied/clash/campaign bots — all still green).
 
 ## TODO / Next Steps
 - Phase 9: Native Packaging (Capacitor wrapper, Xcode, App Store submission)
