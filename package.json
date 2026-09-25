@@ -6,6 +6,10 @@
   "description": "Single-file HTML5 tower defense game for mobile",
   "scripts": {
     "test": "node --test test/",
+    "test:browser": "node test/browser-smoke.mjs",
     "serve": "npx serve . -l 3000"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
   }
 }

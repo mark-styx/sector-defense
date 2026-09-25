@@ -250,6 +250,10 @@ Campaign attack action called `startGame()` which launched a standard tower defe
 - **Path geometry caching**: `getPathPts`/`getPosOnPath`/`getPathLen` previously rebuilt the full point array (fresh object allocations) and re-looped segment lengths per enemy per frame — ~270k object allocations/min on long waves, real GC churn on low-end devices. Geometry is now cached per map/layout and invalidated on map change or resize; steady-state is allocation-free. Full test suite verifies identical behavior across every mode.
 - **Tap-to-skip splash** (also unlocks audio on first interaction).
 
+### Real-Browser Verification (final)
+- The game had never been loaded in a real browser engine by any test (all coverage used a stubbed canvas). Added `npm run test:browser` (Playwright + headless Chromium, iPhone viewport, real input events): loads the page, plays a full session (menu → map/difficulty/hero select → radial tower placement → live wave → pause/quit → store credits tab → campaign menu), and asserts **zero console errors, zero page errors, 60.5 fps**, with kills confirming live combat. Kept out of `npm test` (browser download optional).
+- Also verified: `mkgh` (git remote) is an unresolvable host on this machine — push remains a user action; general network is fine.
+
 ## TODO / Next Steps
 - Phase 9: Native Packaging (Capacitor wrapper, Xcode, App Store submission)
 - Push merged main to origin when network access to the remote is available (history is reconciled; push will fast-forward)
