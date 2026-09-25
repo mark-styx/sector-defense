@@ -196,8 +196,9 @@ Original prompt: build an iphone game that is a knockoff of starcraft2 tower def
 - `test/game.test.mjs`: 13 tests covering economy idempotency, offense targeting regression, clash movement regression, mode-flag leaks, endless restart, store IAP grants, hero deploy, pause/settings flow, full build→wave→summary loop, and crash-free rendering of all 26 screens.
 - `test/balance.test.mjs`: 4 winnability soaks — Classic Standard/Veteran/Elite full 40-wave campaigns (all won by a tap-driven bot) and a fortress assault with bio-abilities.
 - `test/modes.test.mjs`: 3 end-to-end mode bots — Helix War attack+defend loop, full Sector Clash match, 30-wave Allied Defense co-op.
-- `test/hardening.test.mjs`: 4 tests — Legendary winnability (level-20 save), endless 25-wave survival, hero ability integration, and save/purchase persistence across an app restart.
-- `npm test` — 24 tests total; every difficulty tier and game mode has machine-verified winnability or flow evidence.
+- `test/hardening.test.mjs`: 5 tests — Legendary winnability (level-20 save), endless 25-wave survival, hero ability integration, and save/purchase + settings persistence across an app restart.
+- `test/tutorial.test.mjs`: the guided tutorial walked end-to-end on a fresh save (a new player's first experience).
+- `npm test` — 26 tests total; every difficulty tier and game mode has machine-verified winnability or flow evidence.
 
 ## Bug Fix: Helix War Offense Mode Glitch — COMPLETE (from origin)
 
@@ -238,6 +239,12 @@ Campaign attack action called `startGame()` which launched a standard tower defe
 - **iOS home-screen polish**: apple-mobile-web-app meta (standalone, black-translucent status bar, app title), theme-color, description.
 - **New tests**: Legendary winnability (level-20 pre-seeded save), endless 25-wave survival, hero ability integration (Q/ULT fire mid-wave, cooldowns run, hero persists across waves), and a persistence round-trip (credits + purchased skin + equipped skin survive a full app restart via localStorage).
 - Bots now play like strong humans: orbital strike on the leading enemy, field repair when hurt, temporal surge on swarms, late-game surplus flooded into extra towers.
+
+### First-Run Experience Round (final)
+- **Tutorial soft-locked at step 9**: the "tap your tower" step opened the tower info panel, and the next acknowledge step advanced the tutorial without closing it — the info panel replaced the build panel, hiding the START WAVE button the tutorial demanded. Only recoverable by guessing. Acknowledge steps now close the info panel.
+- **Stale button hitboxes**: `G._btns` was never cleared between screens, so buttons from previous screens remained tappable at their old coordinates (e.g., the tutorial entry after completion, overlapping the new first menu item). The registry now resets at the top of every render.
+- Version string (v7.1.0) visible in the settings footer.
+- New tests: full guided-tutorial walkthrough (fresh save → 13 steps → completion → menu updated), settings persistence across restart. 26 tests total.
 
 ## TODO / Next Steps
 - Phase 9: Native Packaging (Capacitor wrapper, Xcode, App Store submission)

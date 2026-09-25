@@ -2210,7 +2210,7 @@ ctx.fillStyle='rgba(0,200,255,0.5)';ctx.fillText('Privacy Policy',W/2-60,legalY+
 ctx.fillText('Terms of Service',W/2+60,legalY+10);G._btns.termsLink={x:W/2,y:legalY-2,w:120,h:22};
 ctx.fillStyle='rgba(0,200,255,0.15)';ctx.fillRect(W/2-110,legalY+14,100,0.5);ctx.fillRect(W/2+10,legalY+14,100,0.5);
 const by=H*0.85,bw=120,bh=36;ctx.fillStyle='rgba(20,30,50,0.8)';ctx.strokeStyle=C_MUT;ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(W/2-bw/2,by,bw,bh,6);ctx.fill();ctx.stroke();ctx.font='600 '+Math.min(13,W*0.033)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=C_MUT;ctx.fillText('BACK',W/2,by+bh/2+1);G._btns.settingsBack={x:W/2-bw/2,y:by,w:bw,h:bh};
-ctx.font='500 9px '+FB;ctx.fillStyle=storageAvailable?'#44ff88':'#ff8844';ctx.textAlign='center';ctx.fillText(storageAvailable?'● Progress saves locally':'● Progress saves this session only',W/2,H-14);}
+ctx.font='500 9px '+FB;ctx.fillStyle=storageAvailable?'#44ff88':'#ff8844';ctx.textAlign='center';ctx.fillText('v7.1.0 · '+(storageAvailable?'● Progress saves locally':'● Progress saves this session only'),W/2,H-14);}
 
 function drawHowToPlay(){drawStarfield();
 ctx.save();ctx.shadowColor='rgba(0,200,255,0.3)';ctx.shadowBlur=15;
@@ -4532,7 +4532,7 @@ if(t>2.0){ctx.globalAlpha=(t-2.0)/0.5;ctx.fillStyle='#030508';ctx.fillRect(0,0,W
 
 // Main render
 let _lastMusicPhase='';
-function render(){ctx.clearRect(0,0,W,H);
+function render(){ctx.clearRect(0,0,W,H);G._btns={};
 // Splash screen
 if(splashActive&&settings.reduceMotion){splashActive=false;G.phase='menu';Music.play('menu');}
 if(splashActive){drawSplashScreen();return;}
@@ -4656,6 +4656,9 @@ if(TUTORIAL.active){
   const step = TUTORIAL.getCurrentStep();
   if(!step) { TUTORIAL.finish(); }
   else if(step.wait === 'acknowledge'){
+    // Close any open tower info so the start-wave button is visible again
+    // (the tap_tower step leaves the info panel covering the build panel).
+    G.showTowerInfo=false;G.towerInfoIdx=-1;
     TUTORIAL.advance();
     playSound('click');
     if(step.final) return;
@@ -4913,6 +4916,7 @@ window._getClashActive=function(){return clash.active;};
 window._getProg=function(){return JSON.parse(JSON.stringify(prog));};
 window._getLayout=function(){return {offsetX,offsetY,cellSize,cols:currentCols,rows:currentRows};};
 window._getTowersRaw=function(){return G.towers.map(t=>({col:t.col,row:t.row,type:t.typeIdx,level:t.level,cd:t.cooldown,dis:t.disabled,abCd:t.abilityCooldown}));};
+window._getTutorial=function(){return {active:TUTORIAL.active,step:TUTORIAL.step,wait:TUTORIAL.waitingFor,done:prog.tutorialDone};};
 window._getValidCells=function(){const out=[];for(let r=0;r<currentRows;r++)for(let c=0;c<currentCols;c++){if(!isValidPlacement(c,r))continue;let occ=false;for(const t of G.towers)if(t.col===c&&t.row===r){occ=true;break;}if(!occ)out.push({col:c,row:r});}return out;};
 window._getPools=function(){return {proj:projectilePool.count(),part:particlePool.count()};};
 window._getProjSample=function(){const s=[];for(const p of projectilePool.pool)if(p.active){s.push({x:Math.round(p.x),y:Math.round(p.y),tx:Math.round(p.tx),ty:Math.round(p.ty),speed:p.speed,dmg:p.damage,tid:p.targetId});if(s.length>=5)break;}return s;};

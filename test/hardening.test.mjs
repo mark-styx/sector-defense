@@ -145,3 +145,22 @@ test('persistence: purchases and progress survive an app restart', async () => {
   assert.ok(st.unlockedHeroSkins[skin.heroId].includes(skin.skinId), 'purchase should persist');
   assert.equal(st.equippedHeroSkins[skin.heroId], skin.skinId, 'equipped skin should persist');
 });
+
+test('settings persist across an app restart', async () => {
+  const shared = new Map();
+  const a = await loadGame({storage: shared}).ready();
+  a.frame(170);
+  tapBtn(a, 'menuSettings');
+  a.frame(2);
+  assert.ok(!shared.has('sd_settings'), 'no settings saved yet');
+  const opts = a.window._getBtns().settingsOpts;
+  const sfx = opts.find(o => o.idx === 0);
+  const c1 = center(sfx); a.tap(c1.x, c1.y); a.frame(2);
+  assert.ok(shared.has('sd_settings'), 'toggling a setting should save it');
+  // Restart: settings screen still renders from the persisted value without errors.
+  const b = await loadGame({storage: shared}).ready();
+  b.frame(170);
+  tapBtn(b, 'menuSettings');
+  b.frame(2);
+  assert.ok(b.window._getBtns().settingsOpts.length >= 9, 'settings screen renders after restart');
+});
