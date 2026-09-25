@@ -336,6 +336,9 @@ Campaign attack action called `startGame()` which launched a standard tower defe
 ### Session Longevity (final measurement)
 - **Two complete matches in one session measured** (previously every test played one match per boot): match 1 victory → PLAY AGAIN → match 2 victory with perfect lives; state fully reset between matches (kills/towers/lives fresh), mode flags clean, heap flat (-0.8MB across the second match). The last hand-waved claim is now measured — every engineering statement in this document is backed by a number.
 
+### Debug-Leftover Sweep (final)
+- Swept all shipped files for `console.*`, `TODO`, `FIXME`, `XXX`, `debugger`, and `alert()` — **zero findings** across index.html, privacy.html, terms.html. No debug code ships.
+
 ## TODO / Next Steps
 - Phase 9: Native Packaging (Capacitor wrapper, Xcode, App Store submission)
 - Push merged main to origin when network access to the remote is available (history is reconciled; push will fast-forward)
