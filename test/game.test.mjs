@@ -171,6 +171,35 @@ test('hero deploy: selecting a hero enters the match with hero active', async ()
   assert.ok(h.maxHp > 0);
 });
 
+test('hero level bonuses parse and apply at max level (all five heroes)', async () => {
+  // Seed every hero to level 6 and verify deployed maxHp equals base + the
+  // hero's hp+ entry parsed from the levelBonuses apply strings.
+  const baseHp = [500, 300, 800, 250, 350];
+  const hpBonus = [50, 30, 100, 30, 40];
+  const heroIds = ['vanguard', 'technomancer', 'warden', 'phantom', 'oracle'];
+  const seed = {};
+  for (const id of heroIds) seed[id] = {xp: 2000, level: 6, matchesPlayed: 0, totalKills: 0};
+  const g = await loadGame({seed: {heroProg: seed}}).ready();
+  g.frame(170);
+  for (let i = 0; i < 5; i++) {
+    tapBtn(g, 'menuPlay');
+    const maps = g.window._getBtns().maps;
+    const mc = center(maps[0]); g.tap(mc.x, mc.y); g.frame(2);
+    const diffs = g.window._getBtns().diffs;
+    const dc = center(diffs[0]); g.tap(dc.x, dc.y); g.frame(2);
+    const cards = g.window._getBtns().heroCards;
+    const hc = center(cards[i]); g.tap(hc.x, hc.y); g.frame(2);
+    tapBtn(g, 'heroDeploy');
+    const h = g.window._getHeroState();
+    assert.equal(h.deployed, true);
+    assert.equal(h.sel, i);
+    assert.equal(h.maxHp, baseHp[i] + hpBonus[i], `${heroIds[i]} max-level HP`);
+    tapBtn(g, 'pause');
+    tapBtn(g, 'quit');
+    g.frame(2);
+  }
+});
+
 test('pause -> settings -> back returns to pause overlay (no instant resume)', async () => {
   const g = await boot();
   await startClassic(g);

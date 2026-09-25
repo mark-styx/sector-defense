@@ -139,15 +139,21 @@ function cellCenter(g, col, row) {
   return {x: L.offsetX + (col + 0.5) * L.cellSize, y: L.offsetY + (row + 0.5) * L.cellSize};
 }
 function botState(g) { return JSON.parse(g.window.render_game_to_text()); }
+// Close any open tower-info panel (a tap on an occupied cell opens one and
+// would otherwise stall the build loop, e.g. racing the allied AI).
+function closeInfoIfOpen(g) {
+  const btns = g.window._getBtns();
+  if (btns.closeInfo) { const c = center(btns.closeInfo); g.tap(c.x, c.y); g.frame(1); }
+}
 
 export function tryPlace(g, col, row, typeIdx) {
   const before = botState(g).towerCount;
   const c = cellCenter(g, col, row);
   g.tap(c.x, c.y); g.frame(2);
   const radial = g.window._getBtns().radial;
-  if (!radial || !radial.length) return false;
+  if (!radial || !radial.length) { closeInfoIfOpen(g); return false; } // occupied cell opened info
   const btn = radial.find(b => b.idx === typeIdx);
-  if (!btn) return false;
+  if (!btn) { closeInfoIfOpen(g); return false; }
   g.tap(btn.x, btn.y); g.frame(2);
   return botState(g).towerCount === before + 1;
 }
@@ -179,6 +185,7 @@ export function makePlanBot(g, PLAN) {
   let latePtr = 0;
   return {
     play() {
+      closeInfoIfOpen(g);
       let acted = true, guard = 0;
       while (acted && guard++ < 300) {
         acted = false;
@@ -216,8 +223,7 @@ const GENERIC_MIX = [0, 0, 1, 0, 2, 0, 1, 2, 0, 1, 5, 0, 2, 1];
 export function makeGenericBot(g, maxTowers = 14) {
   let placed = 0;
   let pathCells = null;
-  let layoutStamp = null;
-  const bestCell = () => {
+  let layoutStamp = null;  const bestCell = () => {
     const L = g.window._getLayout();
     const stamp = L.cols + 'x' + L.rows;
     if (!pathCells || layoutStamp !== stamp) {
@@ -241,6 +247,7 @@ export function makeGenericBot(g, maxTowers = 14) {
   };
   return {
     play() {
+      closeInfoIfOpen(g);
       let acted = true, guard = 0;
       while (acted && guard++ < 250) {
         acted = false;

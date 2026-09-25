@@ -95,6 +95,28 @@ test('hero run: Commander Vex wins Standard and gains persistent XP', async () =
   assert.ok(vex.matchesPlayed >= 1, 'hero match should be recorded');
 });
 
+test('hero run: Nyx Shade (marks/teleport) wins Standard', async () => {
+  const g = await boot();
+  tapBtn(g, 'menuPlay');
+  const maps = g.window._getBtns().maps;
+  const mc = center(maps[0]); g.tap(mc.x, mc.y); g.frame(2);
+  const diffs = g.window._getBtns().diffs;
+  const dc = center(diffs[0]); g.tap(dc.x, dc.y); g.frame(2);
+  const cards = g.window._getBtns().heroCards;
+  const hc = center(cards[3]); g.tap(hc.x, hc.y); g.frame(2); // Nyx Shade
+  tapBtn(g, 'heroDeploy');
+  assert.equal(state(g).phase, 'build');
+  g.window._setGameState('gameSpeed', 3);
+  const bot = makePlanBot(g, PLAN);
+  for (let w = 1; w <= 40; w++) {
+    if (state(g).phase !== 'build') break;
+    bot.play();
+    const post = runBotWave(g, 200);
+    if (post.phase !== 'build') break;
+  }
+  assert.equal(state(g).phase, 'victory', 'phantom hero run should win');
+});
+
 test('classic Veteran is winnable', async () => {
   const g = await boot();
   await startTier(g, 1);

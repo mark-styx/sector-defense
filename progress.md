@@ -302,6 +302,11 @@ Campaign attack action called `startGame()` which launched a standard tower defe
 - **Offense economy was game-speed-dependent (real bug)**: biomass regen and spawn cooldown ticked on real time while combat ran on game time — players using the 3x speed button in Swarm Commander got one-third the economy per combat-second. Both now scale with game speed; 1x/3x parity verified.
 - **Swarm Commander map coverage completed**: all 5 assault maps now bot-won consistently and locked into CI. Path exposure (caldera's spiral, skyline's 7-row zigzag runs every unit past all towers) proved a better difficulty predictor than tower count — per-map assault budgets added accordingly (Weak Point/Gauntlet modest; Iron Wall 450, Fortress 500), and the winning strategy is genuinely budget-dependent (sustained devastator tanks vs venom streaming), which the CI bot adapts to.
 
+### Hero Coverage Round (final)
+- **All five heroes verified through full matches**: the other four (Lyra Sol, Kael, Nyx, Zara — previously never played) each won Standard with perfect lives; Nyx (most exotic mechanics: marks/teleport) added to CI alongside Vex.
+- **Hero level-bonus pipeline verified for all five heroes**: seeded max-level saves confirm the `apply` strings parse and apply — deployed maxHp exactly equals base + the hero's hp bonus (550/330/900/280/390). (An initial "mismatch" was the test's own wrong expectations — each hero has exactly one hp+ entry.)
+- Bot harness hardened: tapping a cell occupied by the allied AI's tower opened the tower-info panel and stalled builds mid-race; placement failures now close any panel they opened, and both bots begin play() by clearing one.
+
 ## TODO / Next Steps
 - Phase 9: Native Packaging (Capacitor wrapper, Xcode, App Store submission)
 - Push merged main to origin when network access to the remote is available (history is reconciled; push will fast-forward)
