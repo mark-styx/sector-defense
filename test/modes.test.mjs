@@ -123,6 +123,64 @@ test('helix war: attack captures a territory, defense holds it, flow survives', 
   }
 });
 
+test('helix war: campaign victory triggers when the Swarm Hive falls', async () => {
+  const g = await boot();
+  tapBtn(g, 'menuCampaign');
+  g.frame(2);
+  tapBtn(g, 'campaignMenuNew');
+  g.frame(2);
+  // Fast-forward a winning board: everything but the Hive is player-held.
+  for (let i = 0; i < 20; i++) {
+    if (i !== 18) g.window._setCampaignTerritory(i, 'owner', 'player');
+  }
+  g.window._setCampaignArmy(18 - 1 >= 0 ? 17 : 17, {infantry: 6, armor: 3, artillery: 2}); // 17 adj to 18
+  // Attack the Hive from territory 17 (adjacent).
+  const hexes = () => g.window._getBtns().campaignHexes;
+  let h = hexes().find(x => x.id === 17);
+  let c = center(h); g.tap(c.x, c.y); g.frame(2);
+  tapBtn(g, 'campaignAttackBtn');
+  h = hexes().find(x => x.id === 18);
+  c = center(h); g.tap(c.x, c.y); g.frame(2);
+  assert.equal(JSON.parse(g.window.render_game_to_text()).phase, 'offenseGame');
+  // Hive is deep (di 2) with garrison: bring a decisive assault.
+  g.window._setGameState('gameSpeed', 3);
+  const capSec = 240;
+  let frames = 0;
+  while (frames++ < capSec * 60) {
+    const off = g.window._getOffenseState();
+    if (off.unitsPast >= off.goalUnits) break;
+    const s = JSON.parse(g.window.render_game_to_text());
+    if (s.phase === 'offenseResult') break;
+    const spawn = g.window._getBtns().offenseSpawn || [];
+    const abs2 = g.window._getBtns().swarmAbilities || [];
+    const alive = g.window._getEnemies().filter(e => e.alive).length;
+    const tapAb = type => {
+      const b = abs2.find(a => a.type === type);
+      if (b) g.tap(b.x + b.w / 2, b.y + b.h / 2);
+    };
+    if (alive >= 8) tapAb('armor');
+    tapAb('tunnel');
+    if (spawn.length) {
+      const off2 = g.window._getOffenseState();
+      let pick = null;
+      if (off2.bioMass >= 45) pick = spawn.find(b => b.idx === 4);
+      else if (off2.bioMass >= 10) pick = spawn.find(b => b.idx === 1);
+      else pick = spawn.find(b => b.idx === 0);
+      if (pick) { const cc = center(pick); g.tap(cc.x, cc.y); }
+    }
+    g.frame(1);
+  }
+  const off = g.window._getOffenseState();
+  assert.ok(off.unitsPast >= off.goalUnits, `hive assault should succeed: ${off.unitsPast}/${off.goalUnits}`);
+  tapBtn(g, 'offenseCampaignReturn');
+  g.frame(2);
+  const after = JSON.parse(g.window.render_game_to_text());
+  assert.equal(after.phase, 'campaignVictory', 'capturing the Hive should trigger campaign victory');
+  tapBtn(g, 'campaignVictoryMenu');
+  g.frame(2);
+  assert.equal(JSON.parse(g.window.render_game_to_text()).phase, 'menu');
+});
+
 test('sector clash: full match resolves to a final screen with rewards', async () => {
   const g = await boot();
   tapBtn(g, 'menuClash');

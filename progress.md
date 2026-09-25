@@ -278,6 +278,13 @@ Campaign attack action called `startGame()` which launched a standard tower defe
 - `APP_STORE_COMPLIANCE.md` reconciled against the current store: IAP table verified matching (credit tiers + bundle prices). Fixed "20+ challenges" → 10 achievements; noted Playwright as dev-only tooling in the third-party table (not shipped).
 - Matrix edges verified (one-off soaks, `test/sweep-edges.mjs`): **Absolute Zero / Elite** (hardest map × hardest unlocked difficulty) won at 4/10 lives; **endless volcanic and arctic** each survived 30 waves with perfect 25/25 lives.
 
+### Legal, HTTP & Typography Round (final)
+- **Typography bug (long-standing)**: the game renders no DOM text, so browsers never fetch the Google Fonts faces referenced only by canvas — real users have been seeing fallback monospace. Boot now force-loads all used faces/weights via `document.fonts.load()`; verified loading over real HTTP in both engines (JetBrains Mono + Inter `check: true`), with silent offline fallback.
+- **HTTP serving verified** (previously only `file://`): game loads and runs over HTTP in Chromium + WebKit with zero errors, fonts resolving.
+- **Legal pages verified**: privacy.html/terms.html read (claims match reality: no data collection, cosmetic-only purchases, Apple-only payments, Google Fonts disclosure) and load-tested in both engines via the browser smoke.
+- **Campaign victory path tested**: `checkCampaignVictory` had never fired in any test; new test captures the Swarm Hive and asserts the victory screen + clean return to menu.
+- Code header version reconciled (v7.0 → 7.1.0).
+
 ## TODO / Next Steps
 - Phase 9: Native Packaging (Capacitor wrapper, Xcode, App Store submission)
 - Push merged main to origin when network access to the remote is available (history is reconciled; push will fast-forward)

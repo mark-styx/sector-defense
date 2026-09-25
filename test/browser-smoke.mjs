@@ -123,6 +123,20 @@ await clickBtn('menuCampaign');
 await waitForPhase('campaignMenu');
 console.log(`✓ [${engineName}] campaign menu renders`);
 
+// --- Legal pages load cleanly (linked from the in-game settings) ---
+for (const page of ['privacy.html', 'terms.html']) {
+  const p = await browser.newPage({viewport: {width: 390, height: 844}});
+  const errs = [];
+  p.on('pageerror', err => errs.push(String(err)));
+  await p.goto(url.replace('index.html', page));
+  await p.waitForLoadState('domcontentloaded');
+  const title = await p.title();
+  assert.ok(title.includes('Sector Defense'), `${page} should have a title`);
+  assert.deepEqual(errs, [], `${page} should load without errors`);
+  await p.close();
+}
+console.log(`✓ [${engineName}] legal pages (privacy/terms) load cleanly`);
+
 await browser.close();
 
 assert.deepEqual(pageErrors, [], `[${engineName}] no uncaught page errors`);
