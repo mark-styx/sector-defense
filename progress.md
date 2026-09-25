@@ -285,6 +285,14 @@ Campaign attack action called `startGame()` which launched a standard tower defe
 - **Campaign victory path tested**: `checkCampaignVictory` had never fired in any test; new test captures the Swarm Hive and asserts the victory screen + clean return to menu.
 - Code header version reconciled (v7.0 → 7.1.0).
 
+### Layout Regression Net Round (final)
+- Added a **button-overlap detector** to CI: every screen's registered hitboxes are pairwise-checked (square test for rects, distance test for circles) — the exact bug class behind the earlier hero-ULT hijack. It immediately caught and led to fixes for:
+  - **Loadout screen overflow**: 18 Arsenal Cards in 3 columns extended past the screen bottom, with the BACK button drawn on top of the last card row (bottom cards untappable). Rebuilt as 4 columns; everything fits with clearance.
+  - **Global abilities vs START WAVE**: the third ability button's top edge clipped START WAVE's bottom-left corner (6px); globals row nudged clear.
+  - **Radial menu spacing**: widened the ring radius so 10 tower buttons don't crowd at the default ring size.
+  - Global-ability row now hides while the tower info panel is open (it overlapped the info buttons' lower edge and is tap-checked first).
+- Screenshot capture script added (`test/capture-shots.mjs`) writing menu/build/combat/store/campaign shots to `test-artifacts/` (gitignored) for human visual QA.
+
 ## TODO / Next Steps
 - Phase 9: Native Packaging (Capacitor wrapper, Xcode, App Store submission)
 - Push merged main to origin when network access to the remote is available (history is reconciled; push will fast-forward)

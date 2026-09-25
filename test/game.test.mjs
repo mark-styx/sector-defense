@@ -225,6 +225,73 @@ test('full wave loop: place tower via radial menu, run wave, collect rewards', a
   assert.equal(state(g).phase, 'build');
 });
 
+test('no button hitboxes overlap on any screen (layout regression net)', async () => {
+  const g = await boot();
+  await startClassic(g);
+  const overlap = (a, b) => {
+    if (a.r && b.r) { // circular buttons: distance test
+      const dx = a.x - b.x, dy = a.y - b.y;
+      return Math.sqrt(dx * dx + dy * dy) < a.r + b.r - 1;
+    }
+    return a.x < b.x + (b.w || 0) - 1 && b.x < a.x + (a.w || 0) - 1 &&
+      a.y < b.y + (b.h || 0) - 1 && b.y < a.y + (a.h || 0) - 1;
+  };
+  const collect = btns => {
+    const out = [];
+    for (const [k, v] of Object.entries(btns)) {
+      if (!v) continue;
+      if (Array.isArray(v)) v.forEach((b, i) => { if (b && b.x !== undefined && (b.w || b.r)) out.push([k + '[' + i + ']', b]); });
+      else if (v.x !== undefined && (v.w || v.r)) out.push([k, v]);
+    }
+    return out;
+  };
+  const check = label => {
+    const entries = collect(g.window._getBtns());
+    for (let i = 0; i < entries.length; i++) {
+      for (let j = i + 1; j < entries.length; j++) {
+        if (overlap(entries[i][1], entries[j][1])) {
+          assert.fail(`${label}: "${entries[i][0]}" overlaps "${entries[j][0]}" ` +
+            `(${JSON.stringify(entries[i][1])} vs ${JSON.stringify(entries[j][1])})`);
+        }
+      }
+    }
+  };
+
+  // Menu + full navigation screens.
+  for (const phase of ['menu', 'mapSelect', 'diffSelect', 'heroSelect', 'settings', 'loadout', 'profile', 'achievements', 'store', 'campaignMenu', 'offenseMapSelect', 'biomeSelect']) {
+    g.window._setGamePhase(phase);
+    g.frame(3);
+    check(phase);
+  }
+  // Store tabs each render distinct layouts.
+  g.window._setGamePhase('store');
+  for (let t = 0; t < 5; t++) {
+    const tabs = g.window._getBtns().storeTabs;
+    const tb = tabs[t]; g.tap(tb.x + tb.w / 2, tb.y + tb.h / 2); g.frame(3);
+    check('store:tab' + t);
+  }
+  // Live combat screens.
+  g.window._setGamePhase('build'); g.frame(3); check('build');
+  const L = g.window._getLayout();
+  g.tap(L.offsetX + 3.5 * L.cellSize, L.offsetY + 2.5 * L.cellSize); g.frame(2);
+  check('build:radial-open');
+  const radial = g.window._getBtns().radial;
+  const sb = radial.find(r => r.idx === 0); g.tap(sb.x, sb.y); g.frame(2);
+  check('build:after-place');
+  // Tower info panel open (the screen where the hero-ULT hijack lived).
+  g.tap(L.offsetX + 3.5 * L.cellSize, L.offsetY + 2.5 * L.cellSize); g.frame(2);
+  assert.equal(state(g).showTowerInfo, true);
+  check('build:info-panel-open');
+  // Wave phase HUD (close info via the real ✕ button first).
+  const ci = g.window._getBtns().closeInfo;
+  const cic = center(ci); g.tap(cic.x, cic.y); g.frame(2);
+  assert.equal(state(g).showTowerInfo, false);
+  tapBtn(g, 'startWave');
+  g.tap(195, 422); g.frame(2);
+  if (state(g).phase === 'wave') check('wave-hud');
+  g.window._setGamePhase('paused'); g.frame(3); check('paused');
+});
+
 test('every screen renders without throwing', async () => {
   const g = await boot();
   await startClassic(g);

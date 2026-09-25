@@ -2139,10 +2139,12 @@ else if(G.phase==='wave')drawWavePanel(py);
 if(G.phase==='build'||G.phase==='wave')drawGlobalAbilities(py);
 // Hero buttons share the panel row with the tower info buttons (close ✕,
 // upgrade, sell) — hide them while inspecting a tower so their hitboxes
-// can't overlap and hijack taps meant for the info panel.
-if(!G.showTowerInfo)drawHeroHUD();}
+// can't overlap and hijack taps meant for the info panel. Same for the
+// global-ability row, which overlaps the info buttons' lower edge.
+if(!G.showTowerInfo)drawHeroHUD();
+if(G.showTowerInfo)G._btns.globals=null;}
 
-function drawGlobalAbilities(py){const bs=36,gap=8,sx=8,by=py+bottomBarH-bs-8;
+function drawGlobalAbilities(py){const bs=36,gap=8,sx=8,by=py+bottomBarH-bs-2;
 const abs=[{n:'💥',l:'Strike',cd:G.orbitalCD,mcd:60,ac:G.orbitalTargeting},{n:'⚡',l:'Surge',cd:G.chronoCD,mcd:90,ac:G.chronoActive>0},{n:'🔧',l:'Repair',cd:G.repairCD,mcd:120,ac:false}];
 G._btns.globals=[];
 for(let i=0;i<abs.length;i++){const a=abs[i],bx=sx+i*(bs+gap),rdy=a.cd<=0;
@@ -2172,7 +2174,7 @@ ctx.strokeStyle='rgba(0,200,255,0.25)';ctx.lineWidth=1;ctx.setLineDash([3,3]);ct
 ctx.strokeStyle=type.color+'44';ctx.lineWidth=0.5;ctx.beginPath();ctx.arc(tx,ty,rp-3,animTime*1.5,animTime*1.5+Math.PI*1.2);ctx.stroke();}}
 
 function drawRadialMenu(){if(!G.showRadialMenu)return;let cx=offsetX+G.radialMenuCol*cellSize+cellSize/2,cy=offsetY+G.radialMenuRow*cellSize+cellSize/2;ctx.fillStyle='rgba(0,0,0,0.4)';ctx.fillRect(0,0,W,H);
-const avail=getAvailableTowers();const count=avail.length;const radius=Math.min(cellSize*2.2,W*0.18),btnR=Math.min(cellSize*0.6,W*0.07);
+const avail=getAvailableTowers();const count=avail.length;const radius=Math.min(cellSize*2.6,W*0.22),btnR=Math.min(cellSize*0.6,W*0.07);
 const pad2=radius+btnR+20;cx=Math.max(pad2,Math.min(W-pad2,cx));cy=Math.max(pad2+topBarH,Math.min(H-pad2-bottomBarH,cy));
 G._btns.radial=[];
 for(let i=0;i<count;i++){const angle=Math.PI*2/count*i-Math.PI/2;const bx=cx+Math.cos(angle)*radius,by=cy+Math.sin(angle)*radius;const type=avail[i];const origIdx=TT.indexOf(type);const cost=getTowerCost(origIdx);const ca=G.nexium>=cost;const hov=G.hoveredRadialIdx===i;
@@ -2965,7 +2967,7 @@ ctx.strokeStyle=sepGrad3;ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(W/2-sepW3/
 const equipped=Array.from(loadout.equippedCards);
 ctx.font='500 '+Math.min(11,W*0.028)+'px '+FB;ctx.fillStyle=C_MUT;ctx.fillText('Equipped: '+equipped.length+'/3 cards',W/2,H*0.1);
 // Cards grid
-const cols=3,cw=Math.min((W-32)/cols-8,100),ch=cw*1.2,gap=8;
+const cols=4,cw=Math.min((W-32)/cols-6,90),ch=cw*1.25,gap=8;
 const startX2=(W-(cols*(cw+gap)-gap))/2,sy=H*0.14;
 G._btns.loadoutCards=[];
 let idx=0;
