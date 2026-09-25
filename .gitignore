@@ -7,3 +7,11 @@ progress.md
 # OS files
 .DS_Store
 Thumbs.db
+
+# Node
+node_modules/
+
+# Local agent/tool dirs
+.claude/
+.goose/
+
