@@ -199,6 +199,29 @@ test('the gauntlet combo is winnable: Inferno on Elite', async () => {
   assert.ok(last.lives > 0);
 });
 
+test('enemy array does not retain dead entries (memory/perf leak)', async () => {
+  const g = await boot();
+  await startClassic(g);
+  g.window._setGameState('gameSpeed', 3);
+  const bot = makePlanBot(g, [
+    [3, 2, 0], [5, 2, 0], [3, 3, 0], [5, 3, 0], [1, 5, 0], [3, 6, 0],
+    [5, 8, 1], [7, 8, 2], [7, 9, 2], [3, 9, 1]
+  ]);
+  for (let w = 0; w < 10; w++) {
+    bot.play();
+    const post = runBotWave(g, 200);
+    if (post.phase !== 'build') break;
+  }
+  const s = state(g);
+  // After 10 waves (hundreds of kills), between-wave enemy list must be nearly
+  // empty. The old filter retained EVERY killed enemy forever (9k+ entries by
+  // endless wave 60); at most a couple may linger when the wave-ending kill
+  // lands after the last filter pass (projectiles run after enemy updates).
+  const retained = g.window._getEnemies().length;
+  assert.ok(retained <= 2, `dead enemies accumulated: ${retained}`);
+  assert.ok(s.totalKills > 100, 'should have real kill volume to prove retention was tested');
+});
+
 test('swarm commander: every assault map is winnable', async () => {
   for (const mapIdx of [0, 1, 2, 3, 4]) {
     const g = await boot();

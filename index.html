@@ -1270,7 +1270,7 @@ if(e.progress>=1){e.alive=false;G.lives-=e.livesCost;G.enemiesAlive--;emitP(e.px
 const pos=getPosOnPath(e.progress,e.pathIdx);e.px=pos.x;e.py=pos.y;
 if(e.spawns){e.spawnCD-=dt;if(e.spawnCD<=0){e.spawnCD=4;spawnSwarmer(e.px,e.py,e.pathIdx,e.progress);spawnSwarmer(e.px,e.py,e.pathIdx,e.progress);}}
 if(e.heals&&e.healDisabled<=0){const hr=cellSize*2.5,ha=5*dt;for(const o of G.enemies){if(o===e||!o.alive)continue;const dx=o.px-e.px,dy=o.py-e.py;if(Math.sqrt(dx*dx+dy*dy)<hr&&o.healDisabled<=0)o.hp=Math.min(o.maxHp,o.hp+ha);}}}
-G.enemies=G.enemies.filter(e=>e.alive||e.progress<1);}
+G.enemies=G.enemies.filter(e=>e.alive);}
 
 function drawEnemy(e){const s=e.size*cellSize,x=e.px,y=e.py;ctx.save();
 // Add trail

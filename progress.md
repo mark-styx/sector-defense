@@ -330,6 +330,9 @@ Campaign attack action called `startGame()` which launched a standard tower defe
 
 - **Offline operation verified** (the last untested real-world scenario — subway/airplane mode, first launch of a Capacitor build without network): Google Fonts requests blocked at the network layer; the game boots, skip-splash works, full navigation to build phase succeeds, battlefield renders 299+ colors, zero page errors. Font stacks fall back cleanly; `document.fonts.ready` resolves despite failed loads.
 
+### Memory-Leak Fix Round (final)
+- **Real leak found and fixed by direct measurement**: a 60-wave endless soak showed `G.enemies` holding **9,189 objects between waves** — the filter `e.alive || e.progress < 1` retained every *killed* enemy forever (dead mid-path keeps progress < 1; only *leaked* enemies were dropped). Every tower's targeting scan iterated the full array each frame, so the cost compounded all match and exploded in endless mode (~30k entries by wave 100 → visible late-game slowdown on device). Fixed to filter on `e.alive` alone; after the fix, the same soak retains **1** entry (the wave-ending kill can land after the last filter pass — bounded, not cumulative) and heap is **flat over 55 waves (-0.5MB)**. Regression test locks the bounded invariant with 100+ kills of volume.
+
 ## TODO / Next Steps
 - Phase 9: Native Packaging (Capacitor wrapper, Xcode, App Store submission)
 - Push merged main to origin when network access to the remote is available (history is reconciled; push will fast-forward)
