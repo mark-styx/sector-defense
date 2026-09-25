@@ -274,6 +274,10 @@ Campaign attack action called `startGame()` which launched a standard tower defe
 - Generic bot no longer wastes build slots on map-restricted tower types (falls back to sentinel/hawk).
 - Helix War defend-wait loop widened (probabilistic swarm attacks; ~3% flake at 20 iterations).
 
+### Compliance Doc & Final Matrix Edges
+- `APP_STORE_COMPLIANCE.md` reconciled against the current store: IAP table verified matching (credit tiers + bundle prices). Fixed "20+ challenges" → 10 achievements; noted Playwright as dev-only tooling in the third-party table (not shipped).
+- Matrix edges verified (one-off soaks, `test/sweep-edges.mjs`): **Absolute Zero / Elite** (hardest map × hardest unlocked difficulty) won at 4/10 lives; **endless volcanic and arctic** each survived 30 waves with perfect 25/25 lives.
+
 ## TODO / Next Steps
 - Phase 9: Native Packaging (Capacitor wrapper, Xcode, App Store submission)
 - Push merged main to origin when network access to the remote is available (history is reconciled; push will fast-forward)
