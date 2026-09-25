@@ -391,6 +391,28 @@ test('tower info: ability activation and sell refund work', async () => {
 
 function s2(g) { return JSON.parse(g.window.render_game_to_text()); }
 
+test('corrupted or old-shape saves do not brick the game (boot hardening)', async () => {
+  // Corrupt campaign (territories not an array) + corrupt settings (wrong types).
+  const g = await loadGame({
+    seed: {
+      campaign: {active: true, turn: 3, territories: 'garbage'},
+      settings: {sfxVol: 'loud', musicVol: null, colorBlind: 7, gridOverlay: 'yes'}
+    }
+  }).ready();
+  g.frame(170);
+  assert.equal(state(g).phase, 'menu');
+  g.window._setGamePhase('settings'); g.frame(3);   // crashed before: null.toString()
+  g.window._setGamePhase('campaignMenu'); g.frame(3);
+  g.window._setGamePhase('campaignMap'); g.frame(3); // crashed before: territories.filter
+  // The corrupt campaign is discarded: fresh-save menu state.
+  const c = g.window._getCampaignState();
+  assert.ok(!c.active || !c.territories, 'corrupt campaign should be discarded');
+  // Settings fell back to sane values (re-open settings first).
+  g.window._setGamePhase('settings'); g.frame(3);
+  const opt = g.window._getBtns().settingsOpts;
+  assert.ok(opt && opt.length >= 9, 'settings rows render with sanitized values');
+});
+
 test('every screen renders without throwing', async () => {
   const g = await boot();
   await startClassic(g);

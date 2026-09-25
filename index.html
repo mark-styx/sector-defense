@@ -1056,7 +1056,18 @@ function saveAllState() {
 
 function loadAllState() {
   const s = loadState('settings');
-  if (s) Object.assign(settings, s);
+  if (s) {
+    Object.assign(settings, s);
+    // Sanitize: corrupted saves must not brick the settings screen.
+    const nums = {sfxVol: 75, musicVol: 50, defaultSpeed: 1};
+    for (const k in nums) {
+      const v = Number(settings[k]);
+      settings[k] = Number.isFinite(v) ? v : nums[k];
+    }
+    for (const k of ['damageNumbers', 'gridOverlay', 'screenShake', 'showFPS', 'reduceMotion'])
+      settings[k] = !!settings[k];
+    if (!['off', 'deuteranopia', 'protanopia'].includes(settings.colorBlind)) settings.colorBlind = 'off';
+  }
 
   const m = loadState('mastery');
   if (m) Object.assign(towerMasteryKills, m);
@@ -1074,7 +1085,13 @@ function loadAllState() {
   }
 
   const c = loadState('campaign');
-  if (c) Object.assign(campaign, c);
+  // Only restore a campaign whose territories are a well-formed non-empty
+  // array; anything else (truncated/old-shape/corrupt) is discarded rather
+  // than bricking the campaign map render.
+  if (c && Array.isArray(c.territories) && c.territories.length === TERRITORIES.length
+      && c.territories.every(t => t && typeof t === 'object' && 'owner' in t)) {
+    Object.assign(campaign, c);
+  }
 
   const a = loadState('achievements');
   if (a) achievements.unlocked = new Set(a);

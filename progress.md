@@ -310,6 +310,9 @@ Campaign attack action called `startGame()` which launched a standard tower defe
 ### Core-Loop Player Actions Round (final)
 - **Tower sell and tower abilities — two core player actions no test had ever exercised** — now verified: activating a tower's ability starts its cooldown, selling refunds exactly 60% of spend (150-cost tower → +90), the panel closes, the cell frees, and the radial reopens for rebuilding.
 
+### Save-Corruption Hardening Round (final)
+- **Corrupted or old-shape saves bricked the game** (black screen): a non-array `campaign.territories` (truncated/legacy save) crashed the campaign map render (`territories.filter is not a function`), and mistyped settings values (`musicVol: null`) crashed the settings screen. `loadAllState` now sanitizes: campaign saves restore only with a well-formed 20-territory array (else discarded), settings values coerced with type/fallback validation. Regression-tested with garbage saves; boot, settings, and campaign screens all render. This matters commercially: the March-origin release means real players will upgrade with old-shape data.
+
 ## TODO / Next Steps
 - Phase 9: Native Packaging (Capacitor wrapper, Xcode, App Store submission)
 - Push merged main to origin when network access to the remote is available (history is reconciled; push will fast-forward)
