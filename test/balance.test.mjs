@@ -177,41 +177,43 @@ test('the gauntlet combo is winnable: Inferno on Elite', async () => {
   assert.ok(last.lives > 0);
 });
 
-test('swarm commander: fortress assault is winnable', async () => {
-  const g = await boot();
-  tapBtn(g, 'menuOffense');
-  const maps = g.window._getBtns().offenseMaps;
-  const mc = center(maps[0]); g.tap(mc.x, mc.y); g.frame(2);
-  assert.equal(state(g).phase, 'offenseGame');
-
-  const capSec = 120;
-  let frames = 0;
-  while (frames++ < capSec * 60) {
-    const off = g.window._getOffenseState();
-    if (off.unitsPast >= off.goalUnits) break;
-    // Use bio-abilities like a player: tunnel (free units) on cooldown,
-    // armor when a push is rolling, frenzy while flooding cheap units.
-    const abs = (g.window._getBtns().swarmAbilities) || [];
-    const tapAb = type => {
-      const b = abs.find(a => a.type === type);
-      if (b) { g.tap(b.x + b.w / 2, b.y + b.h / 2); g.frame(1); return true; }
-      return false;
-    };
-    const alive = g.window._getEnemies().filter(e => e.alive).length;
-    if (alive >= 8) tapAb('armor');
-    tapAb('tunnel');
-    if (alive >= 10) tapAb('frenzy');
-    const spawn = g.window._getBtns().offenseSpawn;
-    if (spawn && spawn.length) {
-      // Armored pushes favor venomspine; otherwise skitterling flood.
-      let pick = null;
-      if (off.bioMass >= 10) pick = spawn.find(b => b.idx === 1);
-      else pick = spawn.find(b => b.idx === 0);
-      if (pick) { const c = center(pick); g.tap(c.x, c.y); }
+test('swarm commander: every assault map is winnable', async () => {
+  for (const mapIdx of [0, 1, 2, 3, 4]) {
+    const g = await boot();
+    tapBtn(g, 'menuOffense');
+    const maps = g.window._getBtns().offenseMaps;
+    const mc = center(maps[mapIdx]); g.tap(mc.x, mc.y); g.frame(2);
+    assert.equal(state(g).phase, 'offenseGame');
+    g.window._setGameState('gameSpeed', 3);
+    const startBio = g.window._getOffenseState().bioMass;
+    // Strategy scales with budget: rich maps break entry camps with sustained
+    // devastator tanks; modest budgets stream venomspine.
+    const tankAt = startBio >= 300 ? 45 : 200;
+    const capSec = 120;
+    let frames = 0;
+    while (frames++ < capSec * 60) {
+      const off = g.window._getOffenseState();
+      if (off.unitsPast >= off.goalUnits) break;
+      const abs = g.window._getBtns().swarmAbilities || [];
+      const alive = g.window._getEnemies().filter(e => e.alive).length;
+      const tapAb = type => {
+        const b = abs.find(a => a.type === type);
+        if (b) { g.tap(b.x + b.w / 2, b.y + b.h / 2); g.frame(1); }
+      };
+      if (alive >= 8) tapAb('armor');
+      tapAb('tunnel');
+      const spawn = g.window._getBtns().offenseSpawn;
+      if (spawn && spawn.length) {
+        let pick = null;
+        if (off.bioMass >= tankAt) pick = spawn.find(b => b.idx === 4);
+        else if (off.bioMass >= 10) pick = spawn.find(b => b.idx === 1);
+        else pick = spawn.find(b => b.idx === 0);
+        if (pick) { const c = center(pick); g.tap(c.x, c.y); }
+      }
+      g.frame(1);
     }
-    g.frame(1);
+    const off = g.window._getOffenseState();
+    assert.ok(off.unitsPast >= off.goalUnits,
+      `assault map ${mapIdx} (${maps[mapIdx].name}) failed: ${off.unitsPast}/${off.goalUnits}`);
   }
-  const off = g.window._getOffenseState();
-  assert.ok(off.unitsPast >= off.goalUnits,
-    `assault failed: ${off.unitsPast}/${off.goalUnits} units past after ${capSec}s`);
 });

@@ -297,6 +297,11 @@ Campaign attack action called `startGame()` which launched a standard tower defe
 - **Jank probe**: 51 live entities (dense late-game load) measured at **0.27ms/frame** for the full update+render cycle — 60x headroom against the 16.6ms/60fps budget. No logic-side stutter source exists (path-geometry cache confirmed paying off); remaining frame cost is canvas/GPU work only, measurable on device.
 - README test count corrected (33).
 
+### Arsenal Cards, Offense Speed Bug & Map Coverage Round (final)
+- **Arsenal Card effects verified in gameplay** (previously zero coverage for a headline feature): deep_pockets (+50 start nexium), iron_will (+3 lives), and scavenger (+15% kill rewards — exact math asserted: wave-1 accounting lands on 396 nexium) all apply from equipped loadout.
+- **Offense economy was game-speed-dependent (real bug)**: biomass regen and spawn cooldown ticked on real time while combat ran on game time — players using the 3x speed button in Swarm Commander got one-third the economy per combat-second. Both now scale with game speed; 1x/3x parity verified.
+- **Swarm Commander map coverage completed**: all 5 assault maps now bot-won consistently and locked into CI. Path exposure (caldera's spiral, skyline's 7-row zigzag runs every unit past all towers) proved a better difficulty predictor than tower count — per-map assault budgets added accordingly (Weak Point/Gauntlet modest; Iron Wall 450, Fortress 500), and the winning strategy is genuinely budget-dependent (sustained devastator tanks vs venom streaming), which the CI bot adapts to.
+
 ## TODO / Next Steps
 - Phase 9: Native Packaging (Capacitor wrapper, Xcode, App Store submission)
 - Push merged main to origin when network access to the remote is available (history is reconciled; push will fast-forward)

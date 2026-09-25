@@ -478,13 +478,14 @@ const TERRITORIES=[
 {id:19,name:'Watchtower',biome:'urban',mapId:'skyline',owner:'neutral',canLose:true,x:2,y:1,adj:[2,5,12,6]}
 ];
 
-// Offense maps for Swarm Commander
+// Offense maps for Swarm Commander. bio = starting assault budget; scales with
+// path exposure (caldera's spiral runs every unit past all towers).
 const OFFENSE_MAPS=[
-{name:'Weak Point',mapId:'outpost',towers:[{type:0,col:5,row:2},{type:0,col:1,row:4},{type:2,col:6,row:7},{type:3,col:3,row:10}]},
-{name:'Gauntlet Run',mapId:'transit',towers:[{type:0,col:4,row:3},{type:0,col:7,row:3},{type:2,col:4,row:8},{type:3,col:7,row:8},{type:1,col:4,row:12},{type:2,col:7,row:12}]},
-{name:'Iron Wall',mapId:'skyline',towers:[{type:0,col:1,row:2},{type:1,col:9,row:2},{type:2,col:1,row:5},{type:3,col:9,row:5},{type:0,col:1,row:8},{type:4,col:9,row:8},{type:2,col:1,row:11},{type:1,col:9,row:11}]},
-{name:'Fortress',mapId:'caldera',towers:[{type:0,col:2,row:1},{type:1,col:8,row:1},{type:2,col:10,row:5},{type:3,col:10,row:7},{type:5,col:2,row:9},{type:4,col:0,row:5},{type:6,col:5,row:10},{type:7,col:8,row:12},{type:0,col:2,row:14},{type:1,col:8,row:14}]},
-{name:'The Citadel',mapId:'command',towers:[{type:0,col:2,row:1},{type:1,col:11,row:1},{type:2,col:2,row:3},{type:3,col:11,row:3},{type:4,col:5,row:3},{type:5,col:8,row:3},{type:6,col:5,row:6},{type:7,col:8,row:6},{type:0,col:5,row:9},{type:1,col:8,row:9},{type:2,col:5,row:12},{type:3,col:8,row:12},{type:8,col:5,row:15},{type:9,col:8,row:15}]}
+{name:'Weak Point',mapId:'outpost',bio:150,towers:[{type:0,col:5,row:2},{type:0,col:1,row:4},{type:2,col:6,row:7},{type:3,col:3,row:10}]},
+{name:'Gauntlet Run',mapId:'transit',bio:250,towers:[{type:0,col:4,row:3},{type:0,col:7,row:3},{type:2,col:4,row:8},{type:3,col:7,row:8},{type:1,col:4,row:12},{type:2,col:7,row:12}]},
+{name:'Iron Wall',mapId:'skyline',bio:450,towers:[{type:0,col:1,row:2},{type:1,col:9,row:2},{type:2,col:1,row:5},{type:3,col:9,row:5},{type:0,col:1,row:8},{type:4,col:9,row:8},{type:2,col:1,row:11},{type:1,col:9,row:11}]},
+{name:'Fortress',mapId:'caldera',bio:500,towers:[{type:0,col:2,row:1},{type:1,col:8,row:1},{type:2,col:10,row:5},{type:3,col:10,row:7},{type:5,col:2,row:9},{type:4,col:0,row:5},{type:6,col:5,row:10},{type:7,col:8,row:12},{type:0,col:2,row:14},{type:1,col:8,row:14}]},
+{name:'The Citadel',mapId:'command',bio:150,towers:[{type:0,col:2,row:1},{type:1,col:11,row:1},{type:2,col:2,row:3},{type:3,col:11,row:3},{type:4,col:5,row:3},{type:5,col:8,row:3},{type:6,col:5,row:6},{type:7,col:8,row:6},{type:0,col:5,row:9},{type:1,col:8,row:9},{type:2,col:5,row:12},{type:3,col:8,row:12},{type:8,col:5,row:15},{type:9,col:8,row:15}]}
 ];
 
 const OFFENSE_ENEMIES=[
@@ -2793,7 +2794,7 @@ ctx.font='600 '+Math.min(12,W*0.03)+'px '+FD;ctx.textAlign='center';ctx.fillStyl
 G._btns.offenseBack={x:W/2-bw/2,y:by,w:bw,h:bh};}
 
 function startOffenseGame(mapIdx){
-offense.active=true;offense.mapIdx=mapIdx;offense.bioMass=150;offense.unitsPast=0;offense.goalUnits=10;offense.waveCurrent=1;offense.spawnCooldown=0;offense.enemies=[];
+offense.active=true;offense.mapIdx=mapIdx;offense.bioMass=OFFENSE_MAPS[mapIdx].bio||150;offense.unitsPast=0;offense.goalUnits=10;offense.waveCurrent=1;offense.spawnCooldown=0;offense.enemies=[];
 const om=OFFENSE_MAPS[mapIdx];const mi=MAPS.findIndex(m=>m.id===om.mapId);
 G.mapIdx=mi;setupMap(mi);
 // Place AI towers
@@ -2920,10 +2921,10 @@ G._btns.offenseToMenu={x:bx,y:by,w:bw,h:36};G._btns.offenseCampaignReturn=null;}
 
 function updateOffenseGame(dt){
 const sdt=dt*G.gameSpeed;
-// Spawn cooldown
-if(offense.spawnCooldown>0)offense.spawnCooldown-=dt;
-// Bio-mass regeneration
-offense.bioMass+=dt*3;
+// Spawn cooldown + bio regen run on GAME time so the economy is identical
+// at every speed setting (combat already uses sdt).
+if(offense.spawnCooldown>0)offense.spawnCooldown-=sdt;
+offense.bioMass+=sdt*3;
 // Update enemies (they walk the path)
 for(let i=G.enemies.length-1;i>=0;i--){
 const e=G.enemies[i];if(!e.alive)continue;

@@ -3,7 +3,7 @@
 // clash movement, mode-flag leaks, endless restart, and the store.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {boot, startClassic, tapBtn, center} from './harness.mjs';
+import {loadGame, boot, startClassic, tapBtn, center} from './harness.mjs';
 
 function state(g) { return JSON.parse(g.window.render_game_to_text()); }
 
@@ -290,6 +290,38 @@ test('no button hitboxes overlap on any screen (layout regression net)', async (
   g.tap(195, 422); g.frame(2);
   if (state(g).phase === 'wave') check('wave-hud');
   g.window._setGamePhase('paused'); g.frame(3); check('paused');
+});
+
+test('arsenal cards apply their effects (deep pockets, iron will, scavenger)', async () => {
+  // Seed a save with three cards unlocked and equipped.
+  const g = await loadGame({
+    seed: {loadout: {unlockedCards: ['deep_pockets', 'iron_will', 'scavenger'],
+                     equippedCards: ['deep_pockets', 'iron_will', 'scavenger'],
+                     unlockedSkins: {}, equippedSkins: {}, matchCount: 0}}
+  }).ready();
+  g.frame(170);
+  await startClassic(g);
+  const s = state(g);
+  assert.equal(s.phase, 'build');
+  assert.equal(s.nexium, 350, 'deep_pockets: +50 starting nexium');
+  assert.equal(s.lives, 28, 'iron_will: +3 starting lives');
+  // scavenger: +15% kill rewards — place a sentinel, clear wave 1, check math:
+  // 6 skitterlings x round(5 * 1.15) = 36 kills-nectar + 60 wave bonus, -50 tower.
+  const L = g.window._getLayout();
+  g.tap(L.offsetX + 3.5 * L.cellSize, L.offsetY + 2.5 * L.cellSize); g.frame(2);
+  const radial = g.window._getBtns().radial;
+  const sentinel = radial.find(r => r.idx === 0);
+  g.tap(sentinel.x, sentinel.y); g.frame(2);
+  assert.equal(state(g).towerCount, 1);
+  tapBtn(g, 'startWave');
+  g.tap(195, 422); g.frame(2);
+  let f = 0;
+  while (state(g).phase === 'wave' && f++ < 180 * 60) g.frame(1);
+  const after = state(g);
+  assert.ok(after.totalKills >= 1, 'sentinel should score kills');
+  if (state(g).phase === 'waveSummary') { g.tap(195, 422); g.frame(2); }
+  // 350 - 50 (tower) + 36 (6 kills x scavenger-boosted 6) + 60 (wave bonus) = 396.
+  assert.equal(state(g).nexium, 396, 'scavenger: kill rewards at +15%');
 });
 
 test('every screen renders without throwing', async () => {
