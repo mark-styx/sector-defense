@@ -313,6 +313,10 @@ Campaign attack action called `startGame()` which launched a standard tower defe
 ### Save-Corruption Hardening Round (final)
 - **Corrupted or old-shape saves bricked the game** (black screen): a non-array `campaign.territories` (truncated/legacy save) crashed the campaign map render (`territories.filter is not a function`), and mistyped settings values (`musicVol: null`) crashed the settings screen. `loadAllState` now sanitizes: campaign saves restore only with a well-formed 20-territory array (else discarded), settings values coerced with type/fallback validation. Regression-tested with garbage saves; boot, settings, and campaign screens all render. This matters commercially: the March-origin release means real players will upgrade with old-shape data.
 
+### Data-Integrity Round (final)
+- **Campaign graph had three asymmetric adjacency edges** (10→4, 19→5, 19→6): the hex map draws these connections, but the mechanics (attack targeting, swarm expansion, adjacency checks) read one-directional lists — so e.g. a player holding The Crucible could never attack Relay Station or Watchtower, and the swarm couldn't cross those edges from the far side. Silently impossible conquest paths. Edges made symmetric (4↔10, 5↔19, 6↔19); a data-integrity test now locks bidirectionality, adjacency range, and orthogonal path contiguity across all 10 maps.
+- Citadel assault budget 150→200 (flaked 8/10 once; margin for combat randomness).
+
 ## TODO / Next Steps
 - Phase 9: Native Packaging (Capacitor wrapper, Xcode, App Store submission)
 - Push merged main to origin when network access to the remote is available (history is reconciled; push will fast-forward)

@@ -413,6 +413,38 @@ test('corrupted or old-shape saves do not brick the game (boot hardening)', asyn
   assert.ok(opt && opt.length >= 9, 'settings rows render with sanitized values');
 });
 
+test('campaign graph is symmetric and map paths are contiguous (data integrity)', async () => {
+  const g = await boot();
+  tapBtn(g, 'menuCampaign');
+  tapBtn(g, 'campaignMenuNew');
+  g.frame(2);
+  const terr = g.window._getCampaignState().territories;
+  // Adjacency must be bidirectional: half-edges silently make conquest paths
+  // impossible from one side while the hex map still draws the connection.
+  const asym = [];
+  for (const t of terr) for (const a of t.adj)
+    if (!terr[a].adj.includes(t.id)) asym.push(t.id + '->' + a);
+  assert.deepEqual(asym, [], 'asymmetric adjacency edges: ' + asym.join(','));
+  for (const t of terr) {
+    assert.equal(typeof t.mapId, 'string', 'territory ' + t.id + ' mapId');
+    for (const a of t.adj) assert.ok(a >= 0 && a < terr.length, 'territory ' + t.id + ' adj out of range: ' + a);
+  }
+  // Map paths: consecutive cells must be orthogonally adjacent (gaps would
+  // visibly teleport enemies).
+  for (let i = 0; i < 10; i++) {
+    const def = g.window._getMapDef(i);
+    assert.ok(def, 'map ' + i + ' exists');
+    for (const path of def.paths) {
+      assert.ok(path.length >= 2, def.id + ' path too short');
+      for (let k = 1; k < path.length; k++) {
+        const dx = Math.abs(path[k][0] - path[k - 1][0]);
+        const dy = Math.abs(path[k][1] - path[k - 1][1]);
+        assert.ok(dx + dy === 1, `${def.id} path gap at step ${k}: ${path[k - 1]} -> ${path[k]}`);
+      }
+    }
+  }
+});
+
 test('every screen renders without throwing', async () => {
   const g = await boot();
   await startClassic(g);
