@@ -205,7 +205,7 @@ test('every screen renders without throwing', async () => {
   const phases = [
     'menu', 'mapSelect', 'diffSelect', 'heroSelect', 'heroRoster', 'store',
     'loadout', 'profile', 'achievements', 'howToPlay', 'settings', 'biomeSelect',
-    'campaignMap', 'campaignSwarmAttack', 'campaignVictory', 'campaignDefeat',
+    'campaignMenu', 'campaignMap', 'campaignSwarmAttack', 'campaignVictory', 'campaignDefeat',
     'offenseMapSelect', 'wavePreview', 'waveSummary', 'paused', 'gameover',
     'victory', 'alliedVictory', 'clashFinal', 'clashAttackResult', 'offenseResult'
   ];

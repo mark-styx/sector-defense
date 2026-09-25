@@ -41,6 +41,9 @@ test('helix war: attack captures a territory, defense holds it, flow survives', 
   const g = await boot();
   tapBtn(g, 'menuCampaign');
   g.frame(2);
+  assert.equal(state(g).phase, 'campaignMenu');
+  tapBtn(g, 'campaignMenuNew'); // no save yet -> BEGIN CAMPAIGN
+  g.frame(2);
   assert.equal(state(g).phase, 'campaignMap');
   g.window._setGameState('gameSpeed', 3);
 

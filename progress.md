@@ -198,9 +198,40 @@ Original prompt: build an iphone game that is a knockoff of starcraft2 tower def
 - `test/modes.test.mjs`: 3 end-to-end mode bots — Helix War attack+defend loop, full Sector Clash match, 30-wave Allied Defense co-op.
 - `npm test` — 20 tests total; every game mode has machine-verified winnability or flow evidence.
 
+## Bug Fix: Helix War Offense Mode Glitch — COMPLETE (from origin)
+
+### Root Cause
+Campaign attack action called `startGame()` which launched a standard tower defense (build/wave) mode instead of an offense mode. Players clicking ATTACK expected to send units to overwhelm enemy defenses, but instead got a defense game — making the spawn panel non-existent and any unit-clicking attempts do nothing.
+
+### Fix Applied
+- Created `startCampaignOffense(tid, source)` function that sets up a proper offense game:
+  - Uses the target territory's map
+  - Places AI defender towers procedurally based on territory difficulty + garrison
+  - Bio-mass scales with army composition (infantry: +30, armor: +20, artillery: +40)
+  - Goal units scale with difficulty (8 base + 3 per difficulty tier + garrison bonus)
+  - Bio-mass regenerates at 1.5/sec during gameplay
+- Modified offense result screen for campaign context:
+  - Shows "TERRITORY CAPTURED!" or "ASSAULT REPELLED" instead of generic messages
+  - Single CONTINUE button instead of Play Again/Main Menu
+  - Routes back to campaign via `processCampaignAfterBattle(won)`
+- HUD shows "HELIX WAR — ATTACK" during campaign offense
+- Added `offense.campaignAttacking` flag to distinguish campaign vs standalone offense
+- Standalone Swarm Commander and Sector Clash modes verified unaffected
+- Added campaign state debug hooks: `_getCampaignState`, `_setCampaignField`, etc.
+
+### Testing
+- Full attack flow: Select territory → ATTACK → Select target → Offense game → Spawn units → Win → CONTINUE → Campaign map (territory captured)
+- Standalone offense mode verified working with no regression
+- Sector Clash defend mode verified working
+
+## Origin Merge: Helix War Campaign Improvements — MERGED
+- Campaign persistence: Resume vs New Game menu when entering Helix War; auto-save after every campaign action; mid-battle forfeit warning (quit counts as a loss)
+- Enhanced campaign map stats bar (turn, income/turn, territories, battles won, threat)
+- Campaign balance pass: starting nexium 150, softer swarm expansion (probabilistic), gentler threat ramp (+0.35/turn), reduced attack chance curve, richer offense bio-mass scaling (220 base), lower assault goals, fewer defender towers
+- Reconciled with local work: pause-quit keeps campaign forfeit handling AND full mode-flag resets; initCampaign keeps wave cap
+
 ## TODO / Next Steps
 - Phase 9: Native Packaging (Capacitor wrapper, Xcode, App Store submission)
-- Reconcile git: local main and origin/main have diverged (needs user decision)
 - Legendary difficulty winnability check (locked behind Commander level 20; all three unlocked tiers verified winnable)
 - Human playtest on physical iPhone: fun-factor, safe areas, touch targets (bots prove winnability, not feel)
 - Cloud save / account system for cross-device progression
