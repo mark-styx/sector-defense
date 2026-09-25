@@ -7,7 +7,7 @@
   "scripts": {
     "test": "node --test test/",
     "test:browser": "node test/browser-smoke.mjs",
-    "serve": "npx serve . -l 3000"
+    "serve": "npx serve . -l 8021"
   },
   "devDependencies": {
     "playwright": "^1.63.0"

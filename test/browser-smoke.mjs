@@ -1,8 +1,9 @@
-// Real-browser smoke test: loads the game in headless Chromium (iPhone-sized),
-// plays a real session with real input events, and asserts zero console/page
-// errors plus a sane frame rate. Run: npm run test:browser
-// (requires: npx playwright install chromium-headless-shell)
-import {chromium} from 'playwright';
+// Real-browser smoke test: loads the game in real browser engines (Chromium
+// AND WebKit — WebKit is the same core as iOS Safari/WKWebView, the actual
+// shipping target), plays a real session with real input events, and asserts
+// zero console/page errors plus a sane frame rate. Run: npm run test:browser
+// (requires: npx playwright install chromium-headless-shell webkit)
+import {chromium, webkit} from 'playwright';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -11,8 +12,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 const url = 'file://' + path.join(ROOT, 'index.html');
 
-const browser = await chromium.launch();
-const page = await browser.newPage({viewport: {width: 390, height: 844}, deviceScaleFactor: 2});
+async function runSession(engineName, launch) {
+  const browser = await launch();
+  const page = await browser.newPage({viewport: {width: 390, height: 844}, deviceScaleFactor: 2});
 
 const consoleErrors = [];
 const pageErrors = [];
@@ -40,7 +42,9 @@ const clickAt = async (x, y) => { await page.mouse.click(x, y); await page.waitF
 // Skip splash with a tap (also unlocks audio path).
 await page.mouse.click(195, 400);
 await page.waitForFunction(() => JSON.parse(window.render_game_to_text()).phase === 'menu', null, {timeout: 6000});
-console.log('✓ loaded in real browser, reached menu');
+// Wait for the first menu render to populate hitboxes (engine-dependent timing).
+await page.waitForFunction(() => window._getBtns().menuPlay != null, null, {timeout: 10000});
+console.log(`✓ [${engineName}] loaded in real browser, reached menu`);
 
 // --- Classic flow ---
 await clickBtn('menuPlay');
@@ -54,7 +58,7 @@ await waitForPhase('heroSelect');
 await clickBtn('heroNone');
 await clickBtn('heroDeploy');
 await waitForPhase('build');
-console.log('✓ classic run started');
+console.log(`✓ [${engineName}] classic run started`);
 
 // --- Place a tower via real taps (cell -> radial -> sentinel) ---
 const L = await page.evaluate(() => window._getLayout());
@@ -64,7 +68,7 @@ const sentinel = await page.evaluate(() => window._getBtns().radial.find(b => b.
 await clickAt(sentinel.x, sentinel.y);
 let s = await state();
 assert.equal(s.towerCount, 1, 'tower placed in real browser');
-console.log('✓ tower placed via radial menu');
+console.log(`✓ [${engineName}] tower placed via radial menu`);
 
 // --- Start wave 1 and sample the frame rate during combat ---
 await clickBtn('startWave');
@@ -79,7 +83,7 @@ const fps = await page.evaluate(() => new Promise(resolve => {
 }));
 s = await state();
 assert.ok(s.enemyCount > 0 || s.totalKills > 0, 'wave 1 should have activity');
-console.log(`✓ wave running in real browser: ${fps.toFixed(1)} fps, enemies=${s.enemyCount}, kills=${s.totalKills}`);
+console.log(`✓ [${engineName}] wave running: ${fps.toFixed(1)} fps, enemies=${s.enemyCount}, kills=${s.totalKills}`);
 assert.ok(fps >= 15, `frame rate catastrophically low: ${fps.toFixed(1)} fps`);
 
 // --- Pause -> quit -> store renders ---
@@ -94,16 +98,21 @@ await clickAt(tabs[4].x + tabs[4].w / 2, tabs[4].y + tabs[4].h / 2); // CREDITS
 await page.waitForTimeout(200);
 const creditItem = await page.evaluate(() => window._getBtns().storeItems.find(i => i.type === 'credits'));
 assert.ok(creditItem, 'credits tab renders in real browser');
-console.log('✓ store renders with credit tiers');
+console.log(`✓ [${engineName}] store renders with credit tiers`);
 
 // --- Campaign menu renders ---
 await clickBtn('storeBack');
 await clickBtn('menuCampaign');
 await waitForPhase('campaignMenu');
-console.log('✓ campaign menu renders');
+console.log(`✓ [${engineName}] campaign menu renders`);
 
 await browser.close();
 
-assert.deepEqual(pageErrors, [], 'no uncaught page errors in real browser');
-assert.deepEqual(consoleErrors, [], 'no console errors in real browser');
-console.log('\nBROWSER SMOKE PASSED — zero console/page errors across a real play session');
+assert.deepEqual(pageErrors, [], `[${engineName}] no uncaught page errors`);
+assert.deepEqual(consoleErrors, [], `[${engineName}] no console errors`);
+console.log(`✓ [${engineName}] SMOKE PASSED — zero console/page errors`);
+}
+
+await runSession('chromium', () => chromium.launch());
+await runSession('webkit', () => webkit.launch()); // iOS Safari engine core
+console.log('\nALL BROWSER ENGINES PASSED');
