@@ -293,6 +293,10 @@ Campaign attack action called `startGame()` which launched a standard tower defe
   - Global-ability row now hides while the tower info panel is open (it overlapped the info buttons' lower edge and is tap-checked first).
 - Screenshot capture script added (`test/capture-shots.mjs`) writing menu/build/combat/store/campaign shots to `test-artifacts/` (gitignored) for human visual QA.
 
+### Frame-Time & Final Docs Round
+- **Jank probe**: 51 live entities (dense late-game load) measured at **0.27ms/frame** for the full update+render cycle — 60x headroom against the 16.6ms/60fps budget. No logic-side stutter source exists (path-geometry cache confirmed paying off); remaining frame cost is canvas/GPU work only, measurable on device.
+- README test count corrected (33).
+
 ## TODO / Next Steps
 - Phase 9: Native Packaging (Capacitor wrapper, Xcode, App Store submission)
 - Push merged main to origin when network access to the remote is available (history is reconciled; push will fast-forward)
