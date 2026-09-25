@@ -29,7 +29,12 @@ function playOffense(g, capSec = 150) {
     if (alive >= 10) tapAb('frenzy');
     const spawn = g.window._getBtns().offenseSpawn || g.window._getBtns().clashAttackSpawn || [];
     if (spawn.length) {
-      const pick = off.bioMass >= 10 ? spawn.find(b => b.idx === 1) : spawn.find(b => b.idx === 0);
+      // Meat shields break entry camps: devastators when rich, venomspine
+      // pushes otherwise, skitterling flood as the floor.
+      let pick = null;
+      if (off.bioMass >= 45) pick = spawn.find(b => b.idx === 4);
+      else if (off.bioMass >= 10) pick = spawn.find(b => b.idx === 1);
+      else pick = spawn.find(b => b.idx === 0);
       if (pick) { const c = center(pick); g.tap(c.x, c.y); }
     }
     g.frame(1);

@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no,viewport-fit=cover">
 <title>Sector Defense</title>
+<meta name="description" content="Sector Defense — sci-fi tower defense in The Helix Sector. Defend against the Swarm across 6 game modes, 10 towers, and 5 heroes.">
+<meta name="theme-color" content="#0a0e1a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sector Defense">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -541,7 +547,7 @@ const DIFFS=[
 {id:'standard',name:'Standard',hpM:1.0,spdM:1.0,lives:25,nex:300,rewM:1.0,costM:1.0,color:'#44ff88'},
 {id:'veteran',name:'Veteran',hpM:1.3,spdM:1.15,lives:15,nex:225,rewM:0.85,costM:1.0,color:'#ffaa22'},
 {id:'elite',name:'Elite',hpM:1.6,spdM:1.3,lives:10,nex:175,rewM:0.7,costM:1.1,color:'#ff4466'},
-{id:'legendary',name:'Legendary',hpM:2.0,spdM:1.5,lives:5,nex:150,rewM:0.5,costM:1.2,color:'#ff00ff',locked:true,reqLvl:20}
+{id:'legendary',name:'Legendary',hpM:2.0,spdM:1.5,lives:10,nex:150,rewM:0.5,costM:1.2,color:'#ff00ff',locked:true,reqLvl:20}
 ];
 
 // Waves
@@ -1932,7 +1938,7 @@ for(const grp of waveDef.e){for(let i=0;i<grp.c;i++){const pi=np>1?i%np:0;G.spaw
 G.spawnTimer=0;G.waveKills=0;G.waveNex=0;playSound('wave_start');return;}
 if(G.wave>=getMatchWaveGoal()&&!G.endlessMode)return;G.phase='wave';
 let waveDef;
-if(G.endlessMode){if(!endlessNextWave){const budget=100*Math.pow(1.08,G.endlessWave);endlessNextWave=generateEndlessWave(budget);}waveDef=endlessNextWave;}
+if(G.endlessMode){if(!endlessNextWave){const budget=100*Math.pow(1.08,G.endlessWave);endlessNextWave=generateEndlessWave(budget,G.endlessWave);}waveDef=endlessNextWave;}
 else{waveDef=WAVES[G.wave];}
 G.spawnQueue=[];let delay=0;const np=currentPaths.length;
 for(const grp of waveDef.e){for(let i=0;i<grp.c;i++){const pi=np>1?i%np:0;G.spawnQueue.push({type:grp.t,time:delay,pathIdx:pi});delay+=grp.d;}}
@@ -1940,10 +1946,17 @@ G.spawnTimer=0;G.waveKills=0;G.waveNex=0;VFX.waveFlash=1;playSound('wave_start')
 function updateWaveSpawning(dt){if(G.spawnQueue.length===0)return;G.spawnTimer+=dt;while(G.spawnQueue.length>0&&G.spawnQueue[0].time<=G.spawnTimer){const s=G.spawnQueue.shift();spawnEnemy(s.type,s.pathIdx);}}
 function isWaveComplete(){return G.spawnQueue.length===0&&G.enemies.filter(e=>e.alive).length===0;}
 
-// Endless wave generation
-function generateEndlessWave(budget){const types=['skitterling','venomspine','ironshell','stingwing','devastator','blisterbomb','hivemind','plaguebearer','tunneler','swarmcarrier','phasewraith','siegecrawler'];
+// Endless wave generation — units tier-gate by wave so early waves can't roll
+// bosses or all-air comps the player has no answer for yet (air unlocks wave 5,
+// bosses wave 15, mirroring classic pacing).
+function generateEndlessWave(budget,wave){const tiers=[['skitterling','venomspine'],['ironshell','stingwing','blisterbomb','tunneler'],['swarmcarrier','phasewraith','plaguebearer'],['hivemind','devastator'],['siegecrawler']];
+let unlocked=tiers[0].slice();
+if(wave>=4)unlocked=unlocked.concat(tiers[1]);
+if(wave>=9)unlocked=unlocked.concat(tiers[2]);
+if(wave>=14)unlocked=unlocked.concat(tiers[3]);
+if(wave>=19)unlocked=unlocked.concat(tiers[4]);
 const costs={skitterling:5,venomspine:15,ironshell:25,stingwing:15,devastator:80,blisterbomb:8,hivemind:50,plaguebearer:40,tunneler:20,swarmcarrier:30,phasewraith:20,siegecrawler:40};
-const e=[];let rem=budget;while(rem>5){const t=types[Math.floor(Math.random()*types.length)];const c=costs[t]||10;if(c>rem){e.push({t:'skitterling',c:Math.floor(rem/5),d:0.3});break;}const count=Math.min(Math.floor(rem/c),Math.floor(Math.random()*10)+1);e.push({t:t,c:count,d:0.3+Math.random()*0.5});rem-=count*c;}
+const e=[];let rem=budget;while(rem>5){const t=unlocked[Math.floor(Math.random()*unlocked.length)];const c=costs[t]||10;if(c>rem){e.push({t:'skitterling',c:Math.floor(rem/5),d:0.3});break;}const count=Math.min(Math.floor(rem/c),Math.floor(Math.random()*10)+1);e.push({t:t,c:count,d:0.3+Math.random()*0.5});rem-=count*c;}
 return{e};}
 
 // Endless procedural map
@@ -3391,7 +3404,7 @@ dmgNumPool.pool.forEach(d=>d.active=false);chainPool.pool.forEach(c=>c.active=fa
 clash._clashWaves=[];
 for(let i=0;i<5;i++){
 const budget=(60+i*30)*(1+clash.aiThreat*0.01)*clash.aiDifficulty;
-clash._clashWaves.push(generateEndlessWave(budget));}
+clash._clashWaves.push(generateEndlessWave(budget,i));}
 G.phase='build';_matchFinalized=false;
 startAmbient(MAPS[mi].biome);}
 
@@ -3407,9 +3420,9 @@ setupMap(G.mapIdx);
 G.towers=[];G.enemies=[];G.spawnQueue=[];
 for(const td of om.towers){
 if(td.col<currentCols&&td.row<currentRows){
-G.towers.push({col:td.col,row:td.row,typeIdx:Math.min(td.type,TT.length-1),level:Math.min(1,Math.floor(clash.aiDifficulty)),cooldown:0,totalSpent:0,abilityCooldown:0,abilityActive:0,overcharged:false,beamTarget:null,disabled:0,chainTargets:null,overloadNext:false,droneCount:3});}}
-clash.attackBio=200+Math.floor(clash.threat*0.3);
-clash.attackSpawnCD=0;clash.attackGoal=15;clash.attackUnitsPast=0;clash.attackWave=0;
+G.towers.push({col:td.col,row:td.row,typeIdx:Math.min(td.type,TT.length-1),level:clash.aiDifficulty>=1.5?1:0,cooldown:0,totalSpent:0,abilityCooldown:0,abilityActive:0,overcharged:false,beamTarget:null,disabled:0,chainTargets:null,overloadNext:false,droneCount:3});}}
+clash.attackBio=500+Math.floor(clash.threat*0.5);
+clash.attackSpawnCD=0;clash.attackGoal=10;clash.attackUnitsPast=0;clash.attackWave=0;
 G.lives=20;G.maxLives=20;
 offense.active=true;offense.bioMass=clash.attackBio;offense.unitsPast=0;offense.goalUnits=clash.attackGoal;offense.spawnCooldown=0;
 G.phase='clashAttack';
@@ -3445,7 +3458,7 @@ G._btns.clashAttackSpawn.push({x:bx,y:by,w:bw,h:bw+16,idx:i});}}
 function updateClashAttack(dt){
 if(G.phase!=='clashAttack')return;
 offense.spawnCooldown=Math.max(0,offense.spawnCooldown-dt);
-offense.bioMass+=dt*2;// Bio regenerates
+offense.bioMass+=dt*3;// Bio regenerates (parity with offense mode)
 for(const e of G.enemies){if(!e.alive)continue;
 let spd=e.speed;if(e.slowTimer>0){spd*=0.4;e.slowTimer-=dt;}
 const pathLen=getPathLen(e.pathIdx);e.progress+=(spd*cellSize*dt)/pathLen;
@@ -4599,7 +4612,7 @@ if(['paused','wavePreview','waveSummary','menu','mapSelect','diffSelect','howToP
 const sdt=dt*G.gameSpeed;if(G.shakeTimer>0)G.shakeTimer-=dt;
 if(pressedBtnTimer>0){pressedBtnTimer-=dt;}else{pressedBtn=null;}
 if(G.phase==='offenseGame'){updateOffenseGame(dt);updateSwarmEnhanced(dt);return;}
-if(G.phase==='clashAttack'){updateClashAttack(dt);updateToasts(dt);updateScreenFade(dt);return;}
+if(G.phase==='clashAttack'){updateClashAttack(sdt);updateToasts(dt);updateScreenFade(dt);return;}
 updateToasts(dt);updateScreenFade(dt);updateNexGen(dt);updateCritAlarm(dt);lastTouchFlash.timer=Math.max(0,(lastTouchFlash.timer||0)-dt);
 if(allied.active)updateAlliedAI(dt);
 if(G.orbitalCD>0)G.orbitalCD-=dt;if(G.chronoCD>0)G.chronoCD-=dt;if(G.repairCD>0)G.repairCD-=dt;if(G.chronoActive>0)G.chronoActive-=dt;
@@ -4844,7 +4857,7 @@ if(hitTest(px,py,G._btns.sell)){sellTower(G.towerInfoIdx);G.showTowerInfo=false;
 if(G.phase==='build'&&G._btns.startWave&&hitTest(px,py,G._btns.startWave)){
   if(TUTORIAL.active&&TUTORIAL.waitingFor==='start_wave'){TUTORIAL.advance();}
   else if(TUTORIAL.active&&TUTORIAL.waitingFor!=='start_wave'){return;}
-  if(G.endlessMode&&!endlessNextWave){endlessNextWave=generateEndlessWave(100*Math.pow(1.08,G.endlessWave));}
+  if(G.endlessMode&&!endlessNextWave){endlessNextWave=generateEndlessWave(100*Math.pow(1.08,G.endlessWave),G.endlessWave);}
   G.phase='wavePreview';return;}
 const cell=getGridCell(px,py);if(!cell){G.showTowerInfo=false;G.towerInfoIdx=-1;return;}
 for(let i=0;i<G.towers.length;i++){if(G.towers[i].col===cell.col&&G.towers[i].row===cell.row){G.showTowerInfo=true;G.towerInfoIdx=i;playSound('click');return;}}

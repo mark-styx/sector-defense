@@ -196,7 +196,8 @@ Original prompt: build an iphone game that is a knockoff of starcraft2 tower def
 - `test/game.test.mjs`: 13 tests covering economy idempotency, offense targeting regression, clash movement regression, mode-flag leaks, endless restart, store IAP grants, hero deploy, pause/settings flow, full build→wave→summary loop, and crash-free rendering of all 26 screens.
 - `test/balance.test.mjs`: 4 winnability soaks — Classic Standard/Veteran/Elite full 40-wave campaigns (all won by a tap-driven bot) and a fortress assault with bio-abilities.
 - `test/modes.test.mjs`: 3 end-to-end mode bots — Helix War attack+defend loop, full Sector Clash match, 30-wave Allied Defense co-op.
-- `npm test` — 20 tests total; every game mode has machine-verified winnability or flow evidence.
+- `test/hardening.test.mjs`: 4 tests — Legendary winnability (level-20 save), endless 25-wave survival, hero ability integration, and save/purchase persistence across an app restart.
+- `npm test` — 24 tests total; every difficulty tier and game mode has machine-verified winnability or flow evidence.
 
 ## Bug Fix: Helix War Offense Mode Glitch — COMPLETE (from origin)
 
@@ -230,9 +231,17 @@ Campaign attack action called `startGame()` which launched a standard tower defe
 - Campaign balance pass: starting nexium 150, softer swarm expansion (probabilistic), gentler threat ramp (+0.35/turn), reduced attack chance curve, richer offense bio-mass scaling (220 base), lower assault goals, fewer defender towers
 - Reconciled with local work: pause-quit keeps campaign forfeit handling AND full mode-flag resets; initCampaign keeps wave cap
 
+### Hardening Round (final)
+- **Endless/Clash wave generation wasn't tier-gated**: endless wave 1 could roll a flying Hivemind boss + all-air wave against a player with zero anti-air (classic introduces air at wave 8). Units now unlock progressively (basics → air/armored → spawners/healers → bosses → siege at waves 5/10/15/20), applied to endless and Clash defend rounds.
+- **Clash attack rounds were unwinnable vs entry-camped defenses**: attack goal 15→10 (parity with assault mode), defender towers L0 until AI difficulty ≥1.5, attack bank 500 + threat-scaled (a devastator meat-shield push breaks entry camps in one burst), biomass regen 3/s (was 2/s, inconsistent with offense mode), and attack rounds now respect game speed.
+- **Legendary (hpM 2.0) was a hard wall at wave 28**: lives 5→10. Proven winnable by a bot using global abilities and late-game tower flooding (finished 10/10 lives); all four difficulties now CI-verified.
+- **iOS home-screen polish**: apple-mobile-web-app meta (standalone, black-translucent status bar, app title), theme-color, description.
+- **New tests**: Legendary winnability (level-20 pre-seeded save), endless 25-wave survival, hero ability integration (Q/ULT fire mid-wave, cooldowns run, hero persists across waves), and a persistence round-trip (credits + purchased skin + equipped skin survive a full app restart via localStorage).
+- Bots now play like strong humans: orbital strike on the leading enemy, field repair when hurt, temporal surge on swarms, late-game surplus flooded into extra towers.
+
 ## TODO / Next Steps
 - Phase 9: Native Packaging (Capacitor wrapper, Xcode, App Store submission)
-- Legendary difficulty winnability check (locked behind Commander level 20; all three unlocked tiers verified winnable)
+- Push merged main to origin when network access to the remote is available (history is reconciled; push will fast-forward)
 - Human playtest on physical iPhone: fun-factor, safe areas, touch targets (bots prove winnability, not feel)
 - Cloud save / account system for cross-device progression
 - Real multiplayer for Sector Clash (currently AI simulation)

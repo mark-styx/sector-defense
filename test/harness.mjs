@@ -26,18 +26,14 @@ function makeCtxStub() {
   });
 }
 
-export function loadGame({width = 390, height = 844} = {}) {
+export function loadGame({width = 390, height = 844, storage = null, seed = {}} = {}) {
   const html = readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   const m = html.match(/<script>([\s\S]*)<\/script>/);
   if (!m) throw new Error('game script not found in index.html');
   const code = m[1];
 
-  const storage = new Map();
-  const localStorage = {
-    getItem: k => (storage.has(k) ? storage.get(k) : null),
-    setItem: (k, v) => storage.set(k, String(v)),
-    removeItem: k => storage.delete(k)
-  };
+  const store = storage || new Map();
+  for (const [k, v] of Object.entries(seed)) store.set('sd_' + k, JSON.stringify(v));
 
   const listeners = {};
   const ctxStub = makeCtxStub();
@@ -61,7 +57,12 @@ export function loadGame({width = 390, height = 844} = {}) {
     parseFloat, parseInt, Boolean, RegExp, Error, TypeError, Symbol, isFinite, isNaN,
     window: {
       innerWidth: width, innerHeight: height, devicePixelRatio: 2,
-      localStorage, addEventListener() {}, open() {},
+      localStorage: {
+        getItem: k => (store.has(k) ? store.get(k) : null),
+        setItem: (k, v) => store.set(k, String(v)),
+        removeItem: k => store.delete(k)
+      },
+      addEventListener() {}, open() {},
       AudioContext: undefined, webkitAudioContext: undefined
     },
     document: documentStub,
@@ -170,13 +171,16 @@ export function tryUpgrade(g, towerIdx) {
   return ok;
 }
 
-// Bot with a fixed [col,row,typeIdx] plan (map-specific).
+// Bot with a fixed [col,row,typeIdx] plan (map-specific). After the plan and
+// upgrades are exhausted, spends late-game surplus on extra towers.
+const LATE_MIX = [4, 5, 1, 7, 2];
 export function makePlanBot(g, PLAN) {
   let ptr = 0;
+  let latePtr = 0;
   return {
     play() {
       let acted = true, guard = 0;
-      while (acted && guard++ < 200) {
+      while (acted && guard++ < 300) {
         acted = false;
         const s = botState(g);
         const l0 = s.towers.findIndex(t => t.level === 0);
@@ -190,6 +194,16 @@ export function makePlanBot(g, PLAN) {
         }
         const l1 = s.towers.findIndex(t => t.level === 1);
         if (l1 >= 0 && s.nexium >= 70 && tryUpgrade(g, l1)) { acted = true; continue; }
+        // Late game: flood surplus into extra big-ticket towers.
+        if (ptr >= PLAN.length && s.nexium > 600 && s.towerCount < 30) {
+          const cells = g.window._getValidCells();
+          const tp = LATE_MIX[latePtr % LATE_MIX.length];
+          const cell = cells[latePtr % Math.max(1, cells.length)];
+          if (cell && TT_COST[tp] <= s.nexium && tryPlace(g, cell.col, cell.row, tp)) {
+            latePtr++; acted = true; continue;
+          }
+          if (!cell) break;
+        }
       }
     }
   };
@@ -232,7 +246,25 @@ export function runBotWave(g, maxSec = 180) {
   tapBtn(g, 'startWave');
   g.tap(W / 2, H / 2); g.frame(2);
   let f = 0;
-  while (botState(g).phase === 'wave' && f++ < maxSec * 60) g.frame(1);
+  while (botState(g).phase === 'wave' && f++ < maxSec * 60) {
+    // Strong play: use global abilities when ready.
+    if (f % 30 === 0) {
+      const btns = g.window._getBtns();
+      if (btns.globals && btns.globals.length >= 3) {
+        const s = botState(g);
+        const es = g.window._getEnemies().filter(e => e.alive);
+        if (es.length > 0) {
+          const lead = es.reduce((a, b) => (b.progress > a.progress ? b : a));
+          const oc = center(btns.globals[0]);
+          g.tap(oc.x, oc.y); g.frame(1);
+          if (botState(g).phase === 'wave') { g.tap(lead.px, lead.py); g.frame(1); }
+        }
+        if (s.lives <= 10) { const rc = center(btns.globals[2]); g.tap(rc.x, rc.y); g.frame(1); }
+        if (es.length >= 8) { const sc = center(btns.globals[1]); g.tap(sc.x, sc.y); g.frame(1); }
+      }
+    }
+    g.frame(1);
+  }
   const s = botState(g);
   if (s.phase === 'waveSummary') { g.tap(W / 2, H / 2); g.frame(2); }
   return botState(g);
