@@ -50,6 +50,15 @@ const clickBtn = async name => {
   await page.waitForTimeout(120);
 };
 const clickAt = async (x, y) => { await page.mouse.click(x, y); await page.waitForTimeout(120); };
+// Fresh profiles see one-time mode briefings — dismiss when one opens.
+const dismissBriefing = async () => {
+  const m = await page.evaluate(() => window._getModal());
+  if (m && m.btns && m.btns.yes) {
+    await page.mouse.click(m.btns.yes.x + m.btns.yes.w / 2, m.btns.yes.y + m.btns.yes.h / 2);
+    await page.waitForTimeout(120);
+  }
+  return !!m;
+};
 
 // Skip splash with a tap (also unlocks audio path).
 await page.mouse.click(195, 400);
@@ -63,6 +72,7 @@ console.log(`✓ [${engineName}] loaded in real browser, reached menu (${menuCol
 
 // --- Classic flow ---
 await clickBtn('menuPlay');
+await dismissBriefing();
 await waitForPhase('mapSelect');
 const map0 = await page.evaluate(() => window._getBtns().maps[0]);
 await clickAt(map0.x + map0.w / 2, map0.y + map0.h / 2);
@@ -120,6 +130,7 @@ console.log(`✓ [${engineName}] store renders with credit tiers`);
 // --- Campaign menu renders ---
 await clickBtn('storeBack');
 await clickBtn('menuCampaign');
+await dismissBriefing();
 await waitForPhase('campaignMenu');
 console.log(`✓ [${engineName}] campaign menu renders`);
 
@@ -168,6 +179,10 @@ await runSession('webkit', () => webkit.launch()); // iOS Safari engine core
   await tapAt(195, 400); // skip splash via touch
   await page.waitForFunction(() => window._getBtns().menuPlay != null, null, {timeout: 10000});
   await tapBtn('menuPlay');
+  { // dismiss the first-run briefing via touch
+    const m = await page.evaluate(() => window._getModal());
+    if (m && m.btns && m.btns.yes) await tapAt(m.btns.yes.x + m.btns.yes.w / 2, m.btns.yes.y + m.btns.yes.h / 2);
+  }
   await waitForPhase('mapSelect');
   const map0 = await page.evaluate(() => window._getBtns().maps[0]);
   await tapAt(map0.x + map0.w / 2, map0.y + map0.h / 2);
@@ -213,6 +228,12 @@ await runSession('webkit', () => webkit.launch()); // iOS Safari engine core
   assert.deepEqual(fit.overflow, [], `buttons overflow iPhone SE viewport: ${fit.overflow.join(',')}`);
   const play = await page.evaluate(() => window._getBtns().menuPlay);
   await page.touchscreen.tap(play.x + play.w / 2, play.y + play.h / 2);
+  await page.waitForTimeout(250); // let the synthesized click open the briefing
+  { // dismiss first-run briefing modal via touch
+    const m = await page.evaluate(() => window._getModal());
+    if (m && m.btns && m.btns.yes)
+      await page.touchscreen.tap(m.btns.yes.x + m.btns.yes.w / 2, m.btns.yes.y + m.btns.yes.h / 2);
+  }
   await page.waitForFunction(() => JSON.parse(window.render_game_to_text()).phase === 'mapSelect', null, {timeout: 10000});
   assert.deepEqual(pageErrors, [], '[iPhone SE] no page errors');
   console.log(`✓ [iPhone SE] all ${fit.count}+ menu buttons fit 375x667; navigation works`);

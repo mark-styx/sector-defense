@@ -333,7 +333,7 @@ test('arsenal cards apply their effects (deep pockets, iron will, scavenger)', a
   const s = state(g);
   assert.equal(s.phase, 'build');
   assert.equal(s.nexium, 350, 'deep_pockets: +50 starting nexium');
-  assert.equal(s.lives, 28, 'iron_will: +3 starting lives');
+  assert.equal(s.lives, 21, 'iron_will: +3 starting lives (Standard base 18)');
   // scavenger: +15% kill rewards — place a sentinel, clear wave 1, check math:
   // 6 skitterlings x round(5 * 1.15) = 36 kills-nectar + 60 wave bonus, -50 tower.
   const L = g.window._getLayout();

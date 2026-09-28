@@ -33,7 +33,11 @@ export function loadGame({width = 390, height = 844, storage = null, seed = {}} 
   const code = m[1];
 
   const store = storage || new Map();
-  for (const [k, v] of Object.entries(seed)) store.set('sd_' + k, JSON.stringify(v));
+  // Bots and most tests drive menus directly: treat all mode briefings as
+  // already seen unless the caller seeds an explicit (e.g. empty) list.
+  const DEFAULT_BRIEFINGS = ['menuPlay', 'menuEndless', 'menuCampaign', 'menuOffense', 'menuAllied', 'menuClash'];
+  const seedAll = seed.briefings === undefined ? {...seed, briefings: DEFAULT_BRIEFINGS} : seed;
+  for (const [k, v] of Object.entries(seedAll)) store.set('sd_' + k, JSON.stringify(v));
 
   const listeners = {};
   const ctxStub = makeCtxStub();
