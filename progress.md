@@ -345,3 +345,26 @@ Campaign attack action called `startGame()` which launched a standard tower defe
 - Human playtest on physical iPhone: fun-factor, safe areas, touch targets (bots prove winnability, not feel)
 - Cloud save / account system for cross-device progression
 - Real multiplayer for Sector Clash (currently AI simulation)
+
+## Round 33 — First live-device playtest feedback (v7.2.1)
+
+Source: user played on iPhone via LAN/tunnel URLs. Five findings, all fixed (2c3c0de):
+
+1. **Achievement toasts stuck at top** — updateToasts only ran in combat phases;
+   menus/result screens drew toasts that never expired. Now ticks in every phase;
+   stack capped at 4; notch-safe y offset (safeTop+44).
+2. **No way to leave a game** — Swarm Commander + Clash attack had NO exit;
+   classic pause hitbox was 24px and dead during wavePreview/waveSummary (and
+   tapping it there started the wave). All fixed: 44px hitbox, tryPause() helper,
+   ✕ abandon buttons + confirm modals; clash forfeit = loss + Elo penalty;
+   pause-quit during clash defend now forfeits properly.
+3. **Credit system opaque** — itemized EARNED THIS MATCH block on result screens
+   (_creditLog via gainHelixCredits); win payouts scale with performance
+   (flawless+10/solid+5/scraped+2, defeat 10→3, stars×5 unchanged); How To Play
+   explains ◆ Nexium vs ◇ Helix Credits; menu footer + store show balance/earning hint.
+4. **Modes unexplained** — one-time briefing modal per mode (persisted, skippable);
+   campaign/biome subtitles; harness seeds briefings seen for bots.
+5. **Classic too easy** — Standard lives 25→18.
+
+Tests: +7 (playtest.test.mjs) = 47/47 headless, dual-engine browser smoke green
+(briefing dismissal wired into all three browser sessions).
