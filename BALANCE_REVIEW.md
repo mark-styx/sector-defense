@@ -18,7 +18,9 @@ Every number below is machine-measured on the current build (v7.2.3, main @ 93d6
 >   to 10, peak bank 7,681** — the top tier finally threatens strong play.
 >   Weak 6-tower bot dies w32 (was w35): skill cliff preserved.
 > - R5 barrier 12 dps base (dps/100 5.0→6.0); sentinel card states its real role.
->   The Citadel (only barrier offense map) needed its skitterling-flood counter kept.
+>   The Citadel's soak flake traced to pre-existing path-RNG (offense spawns
+>   picked lanes randomly); offense spawns now round-robin like defense waves,
+>   making assault plannable and the winnability gate deterministic.
 > - R6 skitterling 4 bio / blisterbomb 6: hp/bio spread now ironshell 13.0 > venomspine
 >   10.4 > skitterling 9.8 (was skitterling dominant at 13.0).
 > - R7 allied kills attributed live (playerKills/aiKills shown on the victory screen).
