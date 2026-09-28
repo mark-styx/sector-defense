@@ -45,10 +45,14 @@ Then open `http://localhost:8021` on your phone or in a mobile-sized browser win
 Two layers:
 
 ```bash
-npm test             # 40 headless VM tests (~41s, no browser needed)
+npm test             # 49 headless VM tests (~45s, no browser needed)
 npm run test:browser # real-browser smoke, Chromium + WebKit (iOS Safari core)
                      # (needs: npx playwright install chromium-headless-shell webkit)
+node tools/balance-audit.mjs  # live balance report: tower ROI, wave economies,
+                              # bot margins per difficulty, exploit probes, card audit
 ```
+
+Findings and prioritized fixes live in BALANCE_REVIEW.md (round 36 measured critique) and MODE_REVIEW.md (round 34 mode-logic critique).
 
 Covers: match economy (one-time finalization), offense-mode tower targeting, Clash attack unit movement, mode-flag leak prevention, endless restart, store purchases, hero deployment, pause/settings navigation, a full build→wave→summary loop, crash-free rendering of every screen, the guided tutorial end-to-end, and machine-verified winnability: bots win Classic on **all four difficulties** (40 waves each, including Legendary via a level-20 save), a fortress assault with bio-abilities, a Helix War attack+defend cycle, a full Sector Clash match, the 30-wave Allied Defense co-op, 25 endless waves, hero ability integration, and save/purchase/settings persistence across an app restart.
 
