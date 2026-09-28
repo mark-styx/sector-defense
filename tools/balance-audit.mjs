@@ -518,7 +518,7 @@ async function cardsReport() {
   // any occurrence after that is an actual combat/economy read.
   const setupEnd = code.indexOf('function applyDamage');
   const symbols = {
-    'rapid_deploy (no build-time system)': 'rapid_deploy',
+    'rapid_deploy (buildTime)': 'buildTime',
     'deep_pockets (extraNexium)': 'extraNexium',
     'scavenger (scavengerBonus)': 'scavengerBonus',
     'iron_will (extraLives)': 'extraLives',
@@ -543,9 +543,9 @@ async function cardsReport() {
     const reads = total - inSetup;
     console.log('  ' + pad(label, 40) + ' reads=' + reads + (reads <= 0 ? '  <-- DEAD (never read)' : ''));
   }
-  // Empirical: frost_field promised "all towers slow enemies slightly".
-  // Measured: enemies are slowed only for their first ~0.5s (the refill guard
-  // is `!slowTimer`, and float decay never lands on exactly 0 again).
+  // Empirical: frost_field promises "all towers slow enemies slightly".
+  // Since round 37 it is a true permanent aura: ~0.82 ratio = the designed
+  // 18% slow; ~0.9 = the old broken behavior (first-0.5s only).
   const bootCfg = cards => ({seed: {loadout: {unlockedCards: cards, equippedCards: cards, unlockedSkins: {}, matchCount: 0}}});
   async function walkProgress(equipped) {
     const g = await boot(equipped ? bootCfg(equipped) : {});
@@ -564,7 +564,7 @@ async function cardsReport() {
   const frost = await walkProgress(['frost_field']);
   if (base && frost)
     console.log('  frost_field live probe: 180-frame progress ratio = ' + (frost / base).toFixed(3) +
-      ' (0.4 = permanent slow as implied; ~0.9 = first-0.5s only, actual behavior)');
+      ' (0.82 = designed 18% permanent aura; ~0.9 = old broken first-0.5s-only)');
 }
 
 // ------------------------------------------------------------------- main

@@ -5,6 +5,28 @@ Method: static math extracted from the live game data tables (`node tools/balanc
 plus outcome-space measurement with the real-tap bots (`classic|allied|clash|endless`).
 Every number below is machine-measured on the current build (v7.2.3, main @ 93d6968).
 
+> **ROUND 37 STATUS: all ten recommendations implemented** (branch `feat/balance-upgrades`).
+> Re-measured outcomes on the fixed build:
+> - R1 clash attack: stall capped (bio 587→946 = +359 of 360 reserve), 120s timer ends
+>   stalled rounds; skitterling-spam now LOSES 0/10 (attack needs mixed play; the
+>   modes.test bot still wins it). Defend budgets recalibrated 120+60i (classic midwave).
+> - R2 ladder: afford now 1.00/0.90/0.82/0.65 — the Elite→Legendary cliff is -21% economy
+>   (was -43%) plus a visible stat jump (HP +120%, density +10%, disclosed on the card).
+> - R3+R4 late game: Standard strong-bot peak bank 15,071→14,602 (30-tower flood absorbs
+>   the rest); **Legendary strong-bot is no longer flawless: minLives=3 (dips waves 9-17),
+>   recovers to 10** — the top tier finally threatens strong play. Weak 6-tower bot dies
+>   w32 (was w35): skill cliff preserved.
+> - R5 barrier 12 dps base (dps/100 5.0→6.0); sentinel card states its real role.
+>   The Citadel (only barrier offense map) needed its skitterling-flood counter kept.
+> - R6 skitterling 4 bio / blisterbomb 6: hp/bio spread now ironshell 13.0 > venomspine
+>   10.4 > skitterling 9.8 (was skitterling dominant at 13.0).
+> - R7 allied kills attributed live (playerKills/aiKills shown on the victory screen).
+> - R9 cards: all 18 audit-read; frost_field probe 0.820 = the designed 18% aura;
+>   rapid_deploy powers a real build-time system (1.5s spin-up mid-wave, 0.75s carded).
+> - R10 campaign: building costs +50% per same-type owned (outpost 30→45→60...).
+> Numbers in the findings below describe the round-36 build the review measured.
+
+
 ---
 
 ## The balance goals (as the project states them)

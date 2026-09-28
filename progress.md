@@ -487,3 +487,55 @@ Third self-check pass (accuracy audit of the review's own claims):
   w63-68 across runs (both updated from single-run numbers).
 Audit tool gained `cards` section + 6c progression table; full pipeline
 (all sections) verified end-to-end in one run.
+
+## Round 37 — Balance upgrades: all ten review recommendations implemented
+
+Branch feat/balance-upgrades (ff to main after). No review verdict was
+taken on faith: every change re-measured with the audit tool and the
+winnability gates re-run until green.
+
+- **R9 cards (0986dab)**: hawkeye/heavy_rounds multiply getTowerStats
+  range/damage; quick_reflexes scales orbital/chrono/repair CDs;
+  thick_armor cuts leak life damage; drone_support = first Drone Bay
+  free; rapid_deploy powers a REAL build-time system (1.5s mid-wave
+  spin-up, 0.75s with card, progress arc drawn, build-phase placements
+  are instant so pre-wave planning is never punished); frost_field is a
+  true permanent 18% aura (probe ratio 0.820) — the per-frame slowTimer
+  refill loops deleted, including the offense-mode copy that actively
+  helped the AI's towers slow the player's own swarm.
+- **R1+R8 clash (d4d85a4 + 0a6cedc retune)**: attack bio draws from a
+  finite 360 reserve (120s x 3/s) + hard 120s round timer in the HUD;
+  stall probe now caps at +359 bio and times out; skitterling-spam 0/10
+  (attack takes mixed play; strategy bots still win). Defend budgets
+  120+60i (classic midwave equivalent) — the naive x3.5 first reading
+  made round-1 wave 5 endless-wave-23 hard and beat the bot outright.
+- **R2-R4 economy (d4d85a4)**: Elite 0.75/1.05, Legendary 0.65/1.1 with
+  hpM 2.2 / cntM 1.1 carrying the tier; difficulty card discloses
+  rewards/costs/density. Kill taper after w25 (60% floor, endless
+  exempt), waves 30-40 density x(1+wave/120). Measured: afford cliff
+  -43% -> -21%; **Legendary strong-bot minLives 10 -> 3** (dips w9-17,
+  recovers) — the top tier now threatens strong play while staying
+  winnable; weak 6-tower bot still dies (w32).
+- **R5**: barrier 5 -> 12 dps; sentinel card text honest ("Best damage
+  per ◆"). The Citadel (only barrier offense map) keeps its
+  skitterling-flood counter in the soak test.
+- **R6**: skitterling 4 bio, blisterbomb 6. hp/bio spread now
+  ironshell 13.0 > venomspine 10.4 > skitterling 9.8.
+- **R7**: allied playerKills/aiKills attributed through the kill chain
+  (t.isAI on direct kills, p._towerIsAI on projectiles) and shown on
+  the victory screen.
+- **R10**: campaign building costs +50% per same-type owned; helper is
+  top-level (first nesting inside the tap handler broke rendering —
+  caught by the new test).
+
+**Two bot-infrastructure bugs surfaced by the retune (7b64c4a)**:
+the plan/generic bots used a stale base-price table, so under costM>1
+they burned plan slots on unaffordable taps (alone this flipped
+Legendary from winnable to dead at w3); the generic bot had no
+late-game flood and sat on a 17k bank while w37-40 stacked up. Both
+fixed (live costs via _getTowerCosts, slot-burn stopped, flood added).
+
+Tests: 49 -> 62 (new test/balance-fixes.test.mjs, 13 tests covering
+every R mechanic). Full suite green, browser smoke green (Chromium +
+WebKit + touch), audit re-run: cards 18/18 read, stall capped, ladder
+re-measured, endless w70 (bot stronger), allied unchanged shape.
