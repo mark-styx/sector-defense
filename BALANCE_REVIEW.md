@@ -20,7 +20,7 @@ Every number below is machine-measured on the current build (v7.2.3, main @ 93d6
 
 | System | Stated goal | Measured outcome | Verdict |
 |---|---|---|---|
-| Classic difficulty ladder | Strictly harder, winnable | Winnable: yes. Harder: only waves 2-7; flawless at all tiers | **Broken at the top: no tier threatens strong play** |
+| Classic difficulty ladder | Strictly harder, winnable | Winnable: yes. Harder: only waves 2-7; flawless or near-flawless at all four tiers | **Broken at the top: no tier threatens strong play** |
 | Classic economy | Constrain builds | Standard: 27,573 income vs ~5,025 needed; 15,071 banked | **Floods; money is meaningless after ~wave 16** |
 | Skill curve | Casual wins, expert sweats | 6 towers = death w35; 16 towers = flawless all tiers | **Cliff, not slope; no nail-biter middle** |
 | Tower roster | 10 meaningful choices | Sentinel 64 dps/$100 = 2x the field; barrier 2.5 | **One dominant tower, one dead tower** |
@@ -63,6 +63,8 @@ Peak single-wave pressure (waveHP / cumulative income), per tier:
 
 The opening (before the flat wave bonus + kill income compound) is 2-3x the pressure of the average late wave. Strong play that survives wave 7 has effectively won at every tier; the plan bot's full investment (~4,755: 1,750 towers + 3,005 upgrades) is fully re-earned by cumulative income at ~wave 16 (Standard: cumIncome w16 = 4,592, w20 = 6,572).
 
+Caveat that strengthens the finding: the wave tables above exclude healer/spawner hidden HP. Plaguebearers heal 5 hp/s (stacking per healer, countered only by shockwave's heal-block) and hiveminds spawn 2 swarmers every 4s alive; estimated impact is +7.2% / +9.2% / +6.2% effective HP for waves 16-19 / 20-29 / 30-40 at Standard. Even with that correction the late waves sit well below the waves-2-7 peak.
+
 ### F3. Outcome-space: no tier threatens strong play; casual play hits a wall
 
 Strong plan-bot, map 0, all 40 waves, real taps (measured this round):
@@ -72,7 +74,7 @@ Strong plan-bot, map 0, all 40 waves, real taps (measured this round):
 | Standard | victory | 0 of 18 | 15,071 |
 | Veteran | victory | 0 of 15 | 14,140 |
 | Elite | victory | 0 of 10 | 11,418 |
-| Legendary | (locked at lvl 20; proven winnable round 34, bot died only in the ×1.15-density variant) | | |
+| Legendary | victory | finished 10/10, one observed dip to 9 (wave 2; the repair ability, +5 lives/120s, is in constant use from wave 1 at this tier since lives start at 10, so raw leak count is masked but small) | 3,871 |
 
 Weak-bot (casual proxy), Standard: 4 towers → **gameover wave 17**; 6 towers → **gameover wave 35**.
 
@@ -101,6 +103,8 @@ Per-nexium single-target DPS (armor 0), live formulas from `getTowerStats`:
 
 - **Sentinel is 2x the field on dps-per-nexium** at L0 and still 1.6x at L2. Optimal play is sentinel flood + big-hit towers for bosses; both bots that "prove winnability" independently converged on sentinel-majority builds. That IS the meta, hidden in plain sight.
 - **Barrier is nearly dead**: 5-9 dps for 200. Its slow doesn't stack (same 0.4x as neural) and neural covers the same role with 10-20 dps and a bigger radius. Barrier's only unique trick is armor-bypass, at a dps level where it doesn't matter.
+- **Shockwave reads as a bad dps tower but is actually the anti-heal answer**: any shockwave hit disables Plaguebearer healing for 3s (healDisabled), the only counter to a mechanic that adds an estimated +6-9% effective HP in waves 20-40 (see F2). Nothing in its card ("Disable heal" is the entire description) conveys that this is its job, so players will skip it reading it as a weak damage tower, then lose slowly to heal-stacked waves. Role clarity fix, not a stat fix.
+- **Tower activated abilities are pure upside humans get and the measured tables don't include** (bots never tap them): sustained value if used on cooldown is x1.17 (sentinel Overdrive) to x1.24 (barrier Fortify), plus burst/control actives (Firestorm nuke, Barrage, Neural Storm AOE that bypasses armor, Supercharge 5x, Shockpulse stun). Every number in this review is therefore a floor for human play.
 - Fusion L2 is the single-target king (187.5) and armor flips it vs nova, which is good rock-paper-scissors... except armor values (5/10) hit fusion's per-tick (dmg/6) hardest: the design works, see F6.
 - Air coverage is implicit: only hawk can *target* flying, but fusion/arctesla/dronebay/barrier all hit air incidentally and splash damages it. Air pressure is therefore soft everywhere; stingwing/phasewraith never force the anti-air answer.
 
@@ -188,5 +192,8 @@ node tools/balance-audit.mjs allied     # table 9 (~10s)
 node tools/balance-audit.mjs clash      # table 10 (~20s, includes the 180s stall test)
 node tools/balance-audit.mjs endless    # table 11 (~15s)
 ```
+ # table 11 (~15s)
+```
+``
  # table 11 (~15s)
 ```

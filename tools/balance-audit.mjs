@@ -177,6 +177,48 @@ function staticReport(D) {
     });
     console.log('  waves ' + lo + '-' + hi + ': armored(>=5) share of HP = ' + (hp ? (arm / hp * 100).toFixed(1) : 0) + '%');
   }
+
+  console.log('\n===================== 6b. TOWER ABILITY uptime value (used on cooldown) =====================');
+  // Average sustained multiplier/addition if the player activates on CD. Bots
+  // never tap these; they are pure human upside on top of the tables above.
+  const abRows = [
+    ['sentinel  Overdrive ', 'rate x2 5s / 30s CD', 1 + 1 * 5 / 30],
+    ['thunder   Firestorm  ', '+1 nuke shot (3x dmg, 2x splash) / 45s', null],
+    ['hawk      Barrage    ', '+8 missiles / 25s', null],
+    ['neural    Storm      ', 'AOE dmg x3/s for 3s / 40s (bypasses armor)', null],
+    ['nova      Supercharge', 'next shot 5x / 60s', null],
+    ['shockwave Shockpulse ', 'stun 3s + disable-heal 5s / 35s (control)', null],
+    ['fusion    Core Breach', 'dmg x2 6s / 30s CD', 1 + 1 * 6 / 30],
+    ['arctesla  Overload   ', 'chain 8 once / 30s', null],
+    ['dronebay  Swarm Mode ', '6 drones 8s / 40s CD', 1 + 3 * 8 / 40 / 3],
+    ['barrier   Fortify    ', 'eff x2 6s / 25s CD', 1 + 1 * 6 / 25]
+  ];
+  for (const [name, desc, mult] of abRows)
+    console.log('  ' + pad(name, 26) + pad(desc, 44) + (mult ? 'avg x' + mult.toFixed(2) : 'burst/control'));
+
+  console.log('\n===================== 6c. HIDDEN HP: healers + spawners (excluded from wave tables) =====================');
+  // Plaguebearer heals 5 hp/s to every ally within 2.5 cells (stacks per healer,
+  // canceled 3s by any shockwave hit). Hivemind spawns 2 swarmers (15hp x hpM)
+  // every 4s alive; swarmers cost 0 lives and pay 2 each.
+  for (const [lo, hi] of [[16, 19], [20, 29], [30, 40]]) {
+    let plague = 0, hivemind = 0, base = 0;
+    WAVES.slice(lo - 1, hi).forEach(w => {
+      for (const g of w.e) {
+        const et = ET[g.t];
+        base += g.c * Math.round(et.hp * d0.hpM);
+        if (et.heals) plague += g.c;
+        if (et.spawns) hivemind += g.c;
+        if (et.releases) base += g.c * 6 * Math.round(ET.skitterling.hp * d0.hpM);
+      }
+    });
+    // Assumes ~12s average alive time for healers/bosses (chokepoint defense),
+    // 2 overlapping healers on big targets.
+    const healEst = plague * 12 * 2 * 5;
+    const spawnEst = hivemind * (12 / 4) * 2 * Math.round(15 * d0.hpM);
+    console.log('  waves ' + lo + '-' + hi + ': plaguebearers=' + plague + ' hiveminds=' + hivemind +
+      ' -> est +' + Math.round(healEst) + ' heal HP +' + Math.round(spawnEst) + ' spawner HP' +
+      ' = +' + ((healEst + spawnEst) / base * 100).toFixed(1) + '% of listed HP (Standard)');
+  }
 }
 
 // ------------------------------------------------------------ dynamic runs
@@ -247,6 +289,34 @@ async function classicReport() {
     console.log('  maxTowers=' + maxT + ' result=' + (final ? final.phase : '?') + ' wave=' + (final ? final.wave : '?') +
       ' endLives=' + (final ? final.lives : '?') + ' minLives=' + minLives);
   }
+}
+
+async function legendaryReport() {
+  console.log('\n===================== 7b. LEGENDARY bot margin (level-20 seeded save) =====================');
+  const g = await boot({seed: {prog: {xp: 21000, level: 20, totalKills: 0, totalMatches: 0, totalStars: 0, highestWaves: {}, tutorialDone: true}}});
+  try {
+    await startTier(g, 3);
+  } catch (e) {
+    console.log('  skipped: ' + e.message);
+    return;
+  }
+  g.window._setGameState('gameSpeed', 3);
+  const bot = makePlanBot(g, PLAN);
+  let worstLives = 99, peakNex = 0, final = null, waveLog = [];
+  for (let w = 1; w <= 40; w++) {
+    if (state(g).phase !== 'build') break;
+    bot.play();
+    const post = runBotWave(g, 240);
+    worstLives = Math.min(worstLives, post.lives);
+    peakNex = Math.max(peakNex, post.nexium);
+    waveLog.push(post.lives);
+    final = post;
+    if (post.phase !== 'build') break;
+  }
+  console.log('  Legendary result=' + pad(final ? final.phase : '?', 10) +
+    ' endLives=' + pad(final ? final.lives : '?', 4) + ' minLives=' + pad(worstLives, 4) +
+    ' peakBank=' + pad(Math.round(peakNex), 5) + ' towers=' + (final ? final.towerCount : '?'));
+  console.log('    lives/wave: ' + waveLog.join(','));
 }
 
 async function alliedReport() {
@@ -427,6 +497,7 @@ async function endlessReport() {
 const D = (want('static')) ? loadData() : null;
 if (want('static')) staticReport(D);
 if (want('classic')) await classicReport();
+if (want('legendary')) await legendaryReport();
 if (want('allied')) await alliedReport();
 if (want('clash')) await clashReport();
 if (want('endless')) await endlessReport();

@@ -454,3 +454,11 @@ income; late-wave density escalation).
 
 No game-code changes this round (analysis only). 49/49 headless green
 (one Citadel 9/10 flake, then 4/4 clean — knife-edge margin noted in review).
+
+Gap-closure pass (same round, after self-check): Legendary tier margin
+measured with a level-20 seeded save (victory, finished 10/10, one dip to 9
+at wave 2, repair ability masking raw leaks; peak bank 3,871 vs Standard's
+15,071); tower-ability uptime table added (x1.17-x1.24 sustained if used on
+cooldown, all of it human-only upside the bot tables exclude); healer/
+spawner hidden HP quantified (+6-9% effective HP, waves 16-40); shockwave
+re-framed as the anti-heal answer whose card fails to say so.
