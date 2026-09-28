@@ -3042,7 +3042,11 @@ updateTowers(sdt);updateProjectiles(sdt);updateParticles(sdt);updateDmgNums(sdt)
 function spawnOffenseEnemy(typeId){
 const et2=ET[typeId];if(!et2)return;
 const d=DIFFS[0];
-const pi=Math.floor(Math.random()*currentPaths.length);
+// Round-robin path assignment (matches defense-wave convention): spawn
+// order decides the lane, so assault play is plannable instead of a
+// random free-lane lottery on multi-entry maps.
+offense.spawnCount=(offense.spawnCount||0)+1;
+const pi=offense.spawnCount%currentPaths.length;
 // Player-swarm units use FIXED multipliers (hp x1.30, speed x1.0) so assault
 // difficulty is independent of defense-difficulty tuning.
 const hpMult=1.3/(d.hpM||1);

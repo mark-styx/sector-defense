@@ -557,3 +557,15 @@ Verification pass (goal-completion audit) found and closed three gaps:
 - One assault soak 9/10 (map 1) investigated: flake (random spawn-path
   assignment on multi-path maps), 3x consecutive clean after.
 New test hooks: _getClashState, _getEconomy.
+
+Second verification finding — the assault soak flake was path-RNG, not
+balance: The Citadel failed 3-6 runs in 6 regardless of strategy or the
+R5 barrier value, and the frozen pre-round build failed it too (4/6)
+with the same strategy — the map has 3 spawn paths and offense spawns
+picked them RANDOMLY while defense waves already used deterministic
+round-robin. spawnOffenseEnemy now round-robins paths like every other
+spawn system: assault play becomes plannable instead of a free-lane
+lottery, the gate is deterministic (5/5 clean since, across barrier 10
+and 12 and reserve 700 and 800), and barrier returns to the full spec
+value 12 with The Citadel at its original 700 reserve. Soak tempo for
+rich maps tightened 40 -> 25 (faster, more robust clears).

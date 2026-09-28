@@ -234,7 +234,7 @@ test('swarm commander: every assault map is winnable', async () => {
     // Strategy scales with budget: rich maps break entry camps with sustained
     // devastator tanks; modest budgets stream venomspine with a skitterling
     // floor as ablative bodies.
-    const tankAt = startBio >= 300 ? 40 : 200;
+    const tankAt = startBio >= 300 ? 25 : 200;
     // Skitterling ablative floor for modest/mid budgets; only the two
     // fortress-class maps (450+) save for venomspine below 10 bio.
     const useFloor = startBio < 450;
