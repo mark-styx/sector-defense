@@ -232,8 +232,10 @@ test('swarm commander: every assault map is winnable', async () => {
     g.window._setGameState('gameSpeed', 3);
     const startBio = g.window._getOffenseState().bioMass;
     // Strategy scales with budget: rich maps break entry camps with sustained
-    // devastator tanks; modest budgets stream venomspine.
-    const tankAt = startBio >= 300 ? 45 : 200;
+    // devastator tanks; modest budgets stream venomspine with a skitterling
+    // floor as ablative bodies.
+    const tankAt = startBio >= 300 ? 40 : 200;
+    const useFloor = startBio < 300;
     const capSec = 120;
     let frames = 0;
     while (frames++ < capSec * 60) {
@@ -253,7 +255,9 @@ test('swarm commander: every assault map is winnable', async () => {
         let pick = null;
         if (off.bioMass >= tankAt) pick = spawn.find(b => b.idx === 4);
         else if (off.bioMass >= 10) pick = spawn.find(b => b.idx === 1);
-        else pick = spawn.find(b => b.idx === 0);
+        // Rich maps save for venomspine below 10 bio (skitterlings are the
+        // worst hp/bio post-reprice); modest budgets keep flooding bodies.
+        else if (useFloor) pick = spawn.find(b => b.idx === 0);
         if (pick) { const c = center(pick); g.tap(c.x, c.y); }
       }
       g.frame(1);

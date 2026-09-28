@@ -190,6 +190,10 @@ export function makePlanBot(g, PLAN) {
   return {
     play() {
       closeInfoIfOpen(g);
+      // Live prices (difficulty costM applied) — a stale base-price table
+      // under-checks on costM>1 tiers and burns plan slots on taps that
+      // cannot afford the tower.
+      const COSTS = g.window._getTowerCosts();
       let acted = true, guard = 0;
       while (acted && guard++ < 300) {
         acted = false;
@@ -198,9 +202,9 @@ export function makePlanBot(g, PLAN) {
         if (l0 >= 0 && s.nexium >= 40 && tryUpgrade(g, l0)) { acted = true; continue; }
         if (ptr < PLAN.length) {
           const [col, row, tp] = PLAN[ptr];
-          if (TT_COST[tp] <= s.nexium) {
-            tryPlace(g, col, row, tp);
-            ptr++; acted = true; continue;
+          if (COSTS[tp] <= s.nexium) {
+            if (tryPlace(g, col, row, tp)) { ptr++; acted = true; continue; }
+            break; // cannot afford/invalid cell — retry next build phase
           }
         }
         const l1 = s.towers.findIndex(t => t.level === 1);
@@ -210,7 +214,7 @@ export function makePlanBot(g, PLAN) {
           const cells = g.window._getValidCells();
           const tp = LATE_MIX[latePtr % LATE_MIX.length];
           const cell = cells[latePtr % Math.max(1, cells.length)];
-          if (cell && TT_COST[tp] <= s.nexium && tryPlace(g, cell.col, cell.row, tp)) {
+          if (cell && COSTS[tp] <= s.nexium && tryPlace(g, cell.col, cell.row, tp)) {
             latePtr++; acted = true; continue;
           }
           if (!cell) break;
@@ -224,8 +228,13 @@ export function makePlanBot(g, PLAN) {
 // sit inside tower range (naturally favors chokepoints and multi-lane
 // convergence points over entry clusters), then upgrades greedily.
 const GENERIC_MIX = [0, 0, 1, 0, 2, 0, 1, 2, 0, 1, 5, 0, 2, 1];
+// Late-game surplus flood (same policy as the plan bot): once the opening
+// mix is down and upgrades are maxed, pour bank into big-ticket towers —
+// strong play never sits on a 15k bank while waves 37-40 stack up.
+const FLOOD_MIX = [4, 5, 1, 7, 2];
 export function makeGenericBot(g, maxTowers = 14) {
   let placed = 0;
+  let floodPtr = 0;
   let pathCells = null;
   let layoutStamp = null;  const bestCell = () => {
     const L = g.window._getLayout();
@@ -252,6 +261,7 @@ export function makeGenericBot(g, maxTowers = 14) {
   return {
     play() {
       closeInfoIfOpen(g);
+      const COSTS = g.window._getTowerCosts();
       let acted = true, guard = 0;
       while (acted && guard++ < 250) {
         acted = false;
@@ -261,7 +271,7 @@ export function makeGenericBot(g, maxTowers = 14) {
         if (placed < maxTowers && placed < GENERIC_MIX.length) {
           const tp = GENERIC_MIX[placed];
           const cell = bestCell();
-          if (cell && TT_COST[tp] <= s.nexium) {
+          if (cell && COSTS[tp] <= s.nexium) {
             // Map-restricted types fall back to never-restricted ones so no
             // build slot is wasted (restrictions only hit thunder/nova/neural/fusion).
             if (!tryPlace(g, cell.col, cell.row, tp)) {
@@ -273,6 +283,16 @@ export function makeGenericBot(g, maxTowers = 14) {
         }
         const l1 = s.towers.findIndex(t => t.level === 1);
         if (l1 >= 0 && s.nexium >= 70 && tryUpgrade(g, l1)) { acted = true; continue; }
+        // Late-game surplus flood.
+        if (placed >= GENERIC_MIX.length && s.nexium > 600 && s.towerCount < 30) {
+          const cells = g.window._getValidCells();
+          const tp = FLOOD_MIX[floodPtr % FLOOD_MIX.length];
+          const cell = cells[floodPtr % Math.max(1, cells.length)];
+          if (cell && COSTS[tp] <= s.nexium && tryPlace(g, cell.col, cell.row, tp)) {
+            floodPtr++; acted = true; continue;
+          }
+          if (!cell) break;
+        }
       }
     }
   };
