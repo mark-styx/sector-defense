@@ -219,7 +219,7 @@ const ARSENAL_CARDS=[
 {id:'thick_armor',name:'Thick Armor',desc:'Enemies deal 1 less life dmg',icon:'🔰'},
 {id:'lucky_strike',name:'Lucky Strike',desc:'10% double damage',icon:'🍀'},
 {id:'tactical_retreat',name:'Tactical Retreat',desc:'Sell for 80% instead of 60%',icon:'💱'},
-{id:'drone_support',name:'Drone Support',desc:'Free Drone Bay on 1st spot',icon:'🤖'},
+{id:'drone_support',name:'Drone Support',desc:'First Drone Bay is free',icon:'🤖'},
 {id:'chain_reaction',name:'Chain Reaction',desc:'Splash damage +20%',icon:'🔗'},
 {id:'frost_field',name:'Frost Field',desc:'All towers slow enemies slightly',icon:'❄️'},
 {id:'emergency_fund',name:'Emergency Fund',desc:'+100◆ when lives < 5',icon:'🚨'},
@@ -1152,13 +1152,13 @@ spawnCooldown:0,selectedEnemy:-1,enemies:[],aiTowers:[],totalWaves:5,campaignAtt
 const loadoutBonuses={extraNexium:0,extraLives:0,damageMultiplier:1.0,rangeMultiplier:1.0,
 splatMultiplier:1.0,sellMultiplier:0.6,abilityCdMultiplier:1.0,scavengerBonus:0,
 frostField:false,luckyStrike:false,thickArmor:false,emergencyFund:false,emergencyUsed:false,
-veteranInsight:false,droneSupportUsed:false};
+veteranInsight:false,droneSupportUsed:false,fireRateMultiplier:1.0,reflectChance:0,nexiumGen:false,buildTime:1.5,frostSlowPct:0};
 function calculateLoadoutBonuses(){
 loadoutBonuses.extraNexium=0;loadoutBonuses.extraLives=0;loadoutBonuses.damageMultiplier=1.0;
 loadoutBonuses.rangeMultiplier=1.0;loadoutBonuses.splatMultiplier=1.0;loadoutBonuses.sellMultiplier=0.6;
 loadoutBonuses.abilityCdMultiplier=1.0;loadoutBonuses.scavengerBonus=0;loadoutBonuses.frostField=false;
 loadoutBonuses.luckyStrike=false;loadoutBonuses.thickArmor=false;loadoutBonuses.emergencyFund=false;
-loadoutBonuses.emergencyUsed=false;loadoutBonuses.veteranInsight=false;loadoutBonuses.droneSupportUsed=false;loadoutBonuses.fireRateMultiplier=1.0;loadoutBonuses.reflectChance=0;loadoutBonuses.nexiumGen=false;
+loadoutBonuses.emergencyUsed=false;loadoutBonuses.veteranInsight=false;loadoutBonuses.droneSupportUsed=false;loadoutBonuses.fireRateMultiplier=1.0;loadoutBonuses.reflectChance=0;loadoutBonuses.nexiumGen=false;loadoutBonuses.buildTime=1.5;loadoutBonuses.frostSlowPct=0;
 for(const cid of loadout.equippedCards){
 if(cid==='deep_pockets')loadoutBonuses.extraNexium+=50;
 if(cid==='iron_will')loadoutBonuses.extraLives+=3;
@@ -1168,7 +1168,7 @@ if(cid==='quick_reflexes')loadoutBonuses.abilityCdMultiplier=0.85;
 if(cid==='tactical_retreat')loadoutBonuses.sellMultiplier=0.8;
 if(cid==='scavenger')loadoutBonuses.scavengerBonus=0.15;
 if(cid==='chain_reaction')loadoutBonuses.splatMultiplier+=0.2;
-if(cid==='frost_field')loadoutBonuses.frostField=true;
+if(cid==='frost_field'){loadoutBonuses.frostField=true;loadoutBonuses.frostSlowPct=0.18;}
 if(cid==='lucky_strike')loadoutBonuses.luckyStrike=true;
 if(cid==='thick_armor')loadoutBonuses.thickArmor=true;
 if(cid==='emergency_fund')loadoutBonuses.emergencyFund=true;
@@ -1176,7 +1176,8 @@ if(cid==='veterans_insight')loadoutBonuses.veteranInsight=true;
 if(cid==='drone_support')loadoutBonuses.droneSupportUsed=false;
 if(cid==='overclocked')loadoutBonuses.fireRateMultiplier=0.9;
 if(cid==='reflective_shield')loadoutBonuses.reflectChance=0.2;
-if(cid==='nexium_generator')loadoutBonuses.nexiumGen=true;}}
+if(cid==='nexium_generator')loadoutBonuses.nexiumGen=true;
+if(cid==='rapid_deploy')loadoutBonuses.buildTime=0.75;}}
 
 // Campaign research bonuses (per-battle)
 const campaignResearch={damageBonus:0,extraLives:0,nexiumBonus:0};
@@ -1239,17 +1240,20 @@ function getBiome(){return BIOMES[MAPS[G.mapIdx].biome]||BIOMES.urban;}
 function getAvailableTowers(){const m=MAPS[G.mapIdx];if(!m.restricted||!m.restricted.length)return TT;return TT.filter(t=>!m.restricted.includes(t.id));}
 
 // Damage
-function applyDamage(e,dmg,splash,slows,disHeal,isNuke,towerTypeId){if(e.shieldTimer>0)dmg*=0.5;if(loadoutBonuses.luckyStrike&&Math.random()<0.1)dmg*=2;
+function applyDamage(e,dmg,splash,slows,disHeal,isNuke,towerTypeId,towerIsAI){if(e.shieldTimer>0)dmg*=0.5;if(loadoutBonuses.luckyStrike&&Math.random()<0.1)dmg*=2;
 // Hero damage bonuses
 const _hdm = getEnemyDamageMultiplier(e.id);
 if(_hdm !== 1) dmg = Math.round(dmg * _hdm);if(loadoutBonuses.reflectChance&&Math.random()<loadoutBonuses.reflectChance){const rd=Math.floor(dmg*0.2);e.hp-=rd;spawnDmgNum(e.px,e.py-5,rd,'#88ddff');}splash*=loadoutBonuses.splatMultiplier;
 const eff=Math.max(1,dmg-(e.empTimer>0?0:e.armor));e.hp-=eff;VFX.addHitFlash(e.id);
 spawnDmgNum(e.px,e.py,eff,C_DNG);
 if(slows)e.slowTimer=2.0;if(disHeal)e.healDisabled=3.0;
-if(e.hp<=0&&e.alive)killEnemy(e,towerTypeId);
-if(splash>0){const sp=splash*cellSize*(isNuke?2:1);for(let i=0;i<G.enemies.length;i++){const o=G.enemies[i];if(o===e||!o.alive)continue;const dx=o.px-e.px,dy=o.py-e.py;if(Math.sqrt(dx*dx+dy*dy)<sp){const sd=Math.max(1,Math.floor(dmg*(isNuke?0.8:0.5))-(o.empTimer>0?0:o.armor));o.hp-=sd;spawnDmgNum(o.px,o.py,sd,C_WRN);if(slows)o.slowTimer=2.0;if(disHeal)o.healDisabled=3.0;if(o.hp<=0&&o.alive)killEnemy(o,towerTypeId);}}}}
+if(e.hp<=0&&e.alive)killEnemy(e,towerTypeId,towerIsAI);
+if(splash>0){const sp=splash*cellSize*(isNuke?2:1);for(let i=0;i<G.enemies.length;i++){const o=G.enemies[i];if(o===e||!o.alive)continue;const dx=o.px-e.px,dy=o.py-e.py;if(Math.sqrt(dx*dx+dy*dy)<sp){const sd=Math.max(1,Math.floor(dmg*(isNuke?0.8:0.5))-(o.empTimer>0?0:o.armor));o.hp-=sd;spawnDmgNum(o.px,o.py,sd,C_WRN);if(slows)o.slowTimer=2.0;if(disHeal)o.healDisabled=3.0;if(o.hp<=0&&o.alive)killEnemy(o,towerTypeId,towerIsAI);}}}}
 function applySplashDmg(px,py,dmg,splash){const sp=splash*cellSize;for(let i=0;i<G.enemies.length;i++){const e=G.enemies[i];if(!e.alive)continue;const dx=e.px-px,dy=e.py-py;if(Math.sqrt(dx*dx+dy*dy)<sp){const sd=Math.max(1,Math.floor(dmg*0.5)-(e.empTimer>0?0:e.armor));e.hp-=sd;spawnDmgNum(e.px,e.py,sd,C_WRN);if(e.hp<=0&&e.alive)killEnemy(e);}}}
-function killEnemy(e,towerTypeId){e.alive=false;const scavBonus=loadoutBonuses.scavengerBonus;const d=DIFFS[G.diffIdx];const rew=Math.round(e.reward*d.rewM);G.nexium+=Math.round(rew*(1+scavBonus+(campaign.active?campaignResearch.nexiumBonus:0)));G.score+=rew;G.totalKills++;G.waveKills++;G.totalNexEarned+=rew;G.waveNex+=rew;G.enemiesAlive=Math.max(0,G.enemiesAlive-1);emitP(e.px,e.py,18,e.color,120,0.7,5);emitP(e.px,e.py,8,'#ffffff',80,0.3,2);VFX.addDeathRing(e.px,e.py,e.color,e.size*cellSize*3);
+function killEnemy(e,towerTypeId,towerIsAI){e.alive=false;
+// Allied mode: credit the kill to whichever side's tower landed it.
+if(allied.active){if(towerIsAI)allied.aiKills++;else allied.playerKills++;}
+const scavBonus=loadoutBonuses.scavengerBonus;const d=DIFFS[G.diffIdx];const rew=Math.round(e.reward*d.rewM);G.nexium+=Math.round(rew*(1+scavBonus+(campaign.active?campaignResearch.nexiumBonus:0)));G.score+=rew;G.totalKills++;G.waveKills++;G.totalNexEarned+=rew;G.waveNex+=rew;G.enemiesAlive=Math.max(0,G.enemiesAlive-1);emitP(e.px,e.py,18,e.color,120,0.7,5);emitP(e.px,e.py,8,'#ffffff',80,0.3,2);VFX.addDeathRing(e.px,e.py,e.color,e.size*cellSize*3);
 tryVibrate(25);if(towerTypeId){towerMasteryKills[towerTypeId]=(towerMasteryKills[towerTypeId]||0)+1;if(getMasteryTier(towerTypeId)>=5)checkAchievement('tower_master');}
 if(e.explodes){emitP(e.px,e.py,25,'#aaff22',150,0.8,5);playSound('explosion');}
 if(e.releases){for(let i=0;i<6;i++){spawnEnemy('skitterling',e.pathIdx,e.progress);}}
@@ -1279,8 +1283,10 @@ if(e.phased){e.phaseTimer-=dt;if(e.phaseTimer<=0)e.phased=false;}}
 // Siege Crawler disable
 if(e.disables){e.disableTimer-=dt;if(e.disableTimer<=0){e.disableTimer=2;for(const t of G.towers){const tx=offsetX+t.col*cellSize+cellSize/2,ty=offsetY+t.row*cellSize+cellSize/2;const dx=tx-e.px,dy=ty-e.py;if(Math.sqrt(dx*dx+dy*dy)<cellSize*2){t.disabled=3;playSound('disable');emitP(tx,ty,8,'#ff3333',60,0.3,3);}}}}
 let spd=e.speed;if(e.slowTimer>0)spd*=0.4;
+// Frost Field card: a real, permanent 18% aura (card says "slightly").
+if(loadoutBonuses.frostField)spd*=1-(loadoutBonuses.frostSlowPct||0);
 if(!e.burrowed){const pathLen=getPathLen(e.pathIdx);e.progress+=(spd*cellSize*dt)/pathLen;}
-if(e.progress>=1){e.alive=false;G.lives-=e.livesCost;G.enemiesAlive--;emitP(e.px,e.py,8,C_DNG,80,0.4,3);if(G.lives<=0&&loadoutBonuses.emergencyFund&&!loadoutBonuses.emergencyUsed){loadoutBonuses.emergencyUsed=true;G.nexium+=100;G.lives=1;emitP(W/2,H/2,20,'#ffcc00',150,0.8,4);}else if(G.lives<=0){G.lives=0;finalizeMatch(false);G.phase='gameover';saveAllState();playSound('gameover');tryVibrate([100,30,100,30,200]);}continue;}
+if(e.progress>=1){e.alive=false;G.lives-=Math.max(0,e.livesCost-(loadoutBonuses.thickArmor?1:0));G.enemiesAlive--;emitP(e.px,e.py,8,C_DNG,80,0.4,3);if(G.lives<=0&&loadoutBonuses.emergencyFund&&!loadoutBonuses.emergencyUsed){loadoutBonuses.emergencyUsed=true;G.nexium+=100;G.lives=1;emitP(W/2,H/2,20,'#ffcc00',150,0.8,4);}else if(G.lives<=0){G.lives=0;finalizeMatch(false);G.phase='gameover';saveAllState();playSound('gameover');tryVibrate([100,30,100,30,200]);}continue;}
 const pos=getPosOnPath(e.progress,e.pathIdx);e.px=pos.x;e.py=pos.y;
 if(e.spawns){e.spawnCD-=dt;if(e.spawnCD<=0){e.spawnCD=4;spawnSwarmer(e.px,e.py,e.pathIdx,e.progress);spawnSwarmer(e.px,e.py,e.pathIdx,e.progress);}}
 if(e.heals&&e.healDisabled<=0){const hr=cellSize*2.5,ha=5*dt;for(const o of G.enemies){if(o===e||!o.alive)continue;const dx=o.px-e.px,dy=o.py-e.py;if(Math.sqrt(dx*dx+dy*dy)<hr&&o.healDisabled<=0)o.hp=Math.min(o.maxHp,o.hp+ha);}}}
@@ -1339,10 +1345,15 @@ if(e.stunTimer>0){ctx.font='600 '+Math.max(8,s)+'px '+FB;ctx.textAlign='center';
 
 // Tower placement & management
 function isTowerRestricted(towerIdx){const m=MAPS[G.mapIdx];if(!m.restricted||!m.restricted.length)return false;return m.restricted.includes(TT[towerIdx].id);}
-function placeTower(col,row,typeIdx){const type=TT[typeIdx];const d=DIFFS[G.diffIdx];const cost=Math.round(type.cost*d.costM);if(G.nexium<cost)return false;if(!isValidPlacement(col,row))return false;if(isTowerRestricted(typeIdx))return false;for(const t of G.towers)if(t.col===col&&t.row===row)return false;G.nexium-=cost;G.totalNexSpent+=cost;G.towersPlaced++;G.towers.push({col,row,typeIdx,level:0,cooldown:0,totalSpent:cost,abilityCooldown:0,abilityActive:0,overcharged:false,beamTarget:null,disabled:0,chainTargets:null,overloadNext:false,droneCount:3});G.placementAnims.push({x:offsetX+col*cellSize+cellSize/2,y:offsetY+row*cellSize+cellSize/2,timer:0.4});playSound('place');tryVibrate(10);return true;}
+function placeTower(col,row,typeIdx){const type=TT[typeIdx];const d=DIFFS[G.diffIdx];let cost=Math.round(type.cost*d.costM);
+// Drone Support: the first Drone Bay of the match is free.
+if(type.id==='dronebay'&&loadout.equippedCards.has('drone_support')&&!loadoutBonuses.droneSupportUsed)cost=0;
+if(G.nexium<cost)return false;if(!isValidPlacement(col,row))return false;if(isTowerRestricted(typeIdx))return false;for(const t of G.towers)if(t.col===col&&t.row===row)return false;
+if(cost===0)loadoutBonuses.droneSupportUsed=true;
+G.nexium-=cost;G.totalNexSpent+=cost;G.towersPlaced++;G.towers.push({col,row,typeIdx,level:0,cooldown:0,totalSpent:cost,abilityCooldown:0,abilityActive:0,overcharged:false,beamTarget:null,disabled:0,chainTargets:null,overloadNext:false,droneCount:3,buildTimer:loadoutBonuses.buildTime});G.placementAnims.push({x:offsetX+col*cellSize+cellSize/2,y:offsetY+row*cellSize+cellSize/2,timer:0.4});playSound('place');tryVibrate(10);return true;}
 function upgradeTower(idx){const t=G.towers[idx];const type=TT[t.typeIdx];if(t.level>=2)return false;const d=DIFFS[G.diffIdx];const cost=Math.round(type.upCost[t.level]*d.costM);if(G.nexium<cost)return false;G.nexium-=cost;G.totalNexSpent+=cost;t.totalSpent+=cost;t.level++;playSound('place');return true;}
 function sellTower(idx){const t=G.towers[idx];const ref=Math.floor(t.totalSpent*loadoutBonuses.sellMultiplier);G.nexium+=ref;G.towers.splice(idx,1);playSound('sell');}
-function getTowerStats(t){const type=TT[t.typeIdx];const m=1+t.level*0.4,rm=1+t.level*0.15;let frm=(1-t.level*0.1)*(loadoutBonuses.fireRateMultiplier||1.0);if(t.abilityActive>0&&type.ab.type==='stim')frm*=0.5;if(G.chronoActive>0)frm*=0.67;let dm=m;if(t.abilityActive>0&&type.ab.type==='meltdown')dm*=2;if(t.abilityActive>0&&type.ab.type==='fortify')dm*=2;return{damage:Math.round(type.damage*dm),range:type.range*rm,fireRate:type.fireRate*frm,splash:type.splash*(1+t.level*0.2),slows:type.slows||(t.abilityActive>0&&type.ab.type==='fortify'),antiAir:type.antiAir,disableHeal:type.id==='shockwave'};}
+function getTowerStats(t){const type=TT[t.typeIdx];const m=1+t.level*0.4,rm=1+t.level*0.15;let frm=(1-t.level*0.1)*(loadoutBonuses.fireRateMultiplier||1.0);if(t.abilityActive>0&&type.ab.type==='stim')frm*=0.5;if(G.chronoActive>0)frm*=0.67;let dm=m;if(t.abilityActive>0&&type.ab.type==='meltdown')dm*=2;if(t.abilityActive>0&&type.ab.type==='fortify')dm*=2;return{damage:Math.round(type.damage*dm*(loadoutBonuses.damageMultiplier||1)),range:type.range*rm*(loadoutBonuses.rangeMultiplier||1),fireRate:type.fireRate*frm,splash:type.splash*(1+t.level*0.2),slows:type.slows||(t.abilityActive>0&&type.ab.type==='fortify'),antiAir:type.antiAir,disableHeal:type.id==='shockwave'};}
 function getTowerCost(idx){return Math.round(TT[idx].cost*DIFFS[G.diffIdx].costM);}
 
 function activateAbility(idx){const t=G.towers[idx];const type=TT[t.typeIdx];if(t.abilityCooldown>0)return false;const ab=type.ab;t.abilityCooldown=ab.cd;const tx=offsetX+t.col*cellSize+cellSize/2,ty=offsetY+t.row*cellSize+cellSize/2;const stats=getTowerStats(t);const rp=stats.range*cellSize;
@@ -1364,26 +1375,28 @@ for(const t of G.towers){const type=TT[t.typeIdx];
 if(t.disabled>0){t.disabled-=dt;continue;}
 if(t.abilityCooldown>0)t.abilityCooldown-=dt;
 if(t.abilityActive>0){t.abilityActive-=dt;if(t.abilityActive<=0&&type.ab.type==='swarm')t.droneCount=3;}
+// Rapid Deploy build time — towers power up shortly after placement.
+if(t.buildTimer>0){t.buildTimer-=dt;continue;}
 // Storm AOE
-if(t.abilityActive>0&&type.ab.type==='storm'){const stats=getTowerStats(t);const rp=stats.range*cellSize;const tx=offsetX+t.col*cellSize+cellSize/2,ty=offsetY+t.row*cellSize+cellSize/2;for(const e of G.enemies){if(!e.alive||e.burrowed||e.phased)continue;const dx=e.px-tx,dy=e.py-ty;if(Math.sqrt(dx*dx+dy*dy)<=rp){e.hp-=stats.damage*3*dt;spawnDmgNum(e.px,e.py,stats.damage*3*dt,'#aa44ff');if(e.hp<=0&&e.alive)killEnemy(e,type.id);}}}
+if(t.abilityActive>0&&type.ab.type==='storm'){const stats=getTowerStats(t);const rp=stats.range*cellSize;const tx=offsetX+t.col*cellSize+cellSize/2,ty=offsetY+t.row*cellSize+cellSize/2;for(const e of G.enemies){if(!e.alive||e.burrowed||e.phased)continue;const dx=e.px-tx,dy=e.py-ty;if(Math.sqrt(dx*dx+dy*dy)<=rp){e.hp-=stats.damage*3*dt;spawnDmgNum(e.px,e.py,stats.damage*3*dt,'#aa44ff');if(e.hp<=0&&e.alive)killEnemy(e,type.id,t.isAI);}}}
 // Barrier AOE
-if(type.id==='barrier'){const stats=getTowerStats(t);const rp=stats.range*cellSize;const tx=offsetX+t.col*cellSize+cellSize/2,ty=offsetY+t.row*cellSize+cellSize/2;const mult=t.abilityActive>0?2:1;for(const e of G.enemies){if(!e.alive||e.burrowed||e.phased)continue;const dx=e.px-tx,dy=e.py-ty;if(Math.sqrt(dx*dx+dy*dy)<=rp){e.hp-=stats.damage*mult*dt;e.slowTimer=0.5;if(e.hp<=0&&e.alive)killEnemy(e,type.id);}}}
+if(type.id==='barrier'){const stats=getTowerStats(t);const rp=stats.range*cellSize;const tx=offsetX+t.col*cellSize+cellSize/2,ty=offsetY+t.row*cellSize+cellSize/2;const mult=t.abilityActive>0?2:1;for(const e of G.enemies){if(!e.alive||e.burrowed||e.phased)continue;const dx=e.px-tx,dy=e.py-ty;if(Math.sqrt(dx*dx+dy*dy)<=rp){e.hp-=stats.damage*mult*dt;e.slowTimer=0.5;if(e.hp<=0&&e.alive)killEnemy(e,type.id,t.isAI);}}}
 // Drone Bay
-if(type.id==='dronebay'){const stats=getTowerStats(t);const rp=stats.range*cellSize;const tx=offsetX+t.col*cellSize+cellSize/2,ty=offsetY+t.row*cellSize+cellSize/2;t.cooldown-=dt;if(t.cooldown<=0){t.cooldown=stats.fireRate;const dc=t.droneCount||3;let hits=0;for(const e of G.enemies){if(!e.alive||e.burrowed||e.phased||hits>=dc)continue;const dx=e.px-tx,dy=e.py-ty;if(Math.sqrt(dx*dx+dy*dy)<=rp){e.hp-=stats.damage;spawnDmgNum(e.px,e.py,stats.damage,type.color);if(e.hp<=0&&e.alive)killEnemy(e,type.id);hits++;emitP(e.px,e.py,3,type.color,40,0.2,2);}}if(hits>0)playSound('shoot','dronebay');}continue;}
+if(type.id==='dronebay'){const stats=getTowerStats(t);const rp=stats.range*cellSize;const tx=offsetX+t.col*cellSize+cellSize/2,ty=offsetY+t.row*cellSize+cellSize/2;t.cooldown-=dt;if(t.cooldown<=0){t.cooldown=stats.fireRate;const dc=t.droneCount||3;let hits=0;for(const e of G.enemies){if(!e.alive||e.burrowed||e.phased||hits>=dc)continue;const dx=e.px-tx,dy=e.py-ty;if(Math.sqrt(dx*dx+dy*dy)<=rp){e.hp-=stats.damage;spawnDmgNum(e.px,e.py,stats.damage,type.color);if(e.hp<=0&&e.alive)killEnemy(e,type.id,t.isAI);hits++;emitP(e.px,e.py,3,type.color,40,0.2,2);}}if(hits>0)playSound('shoot','dronebay');}continue;}
 t.cooldown-=dt;if(t.cooldown>0)continue;
 const stats=getTowerStats(t);const rp=stats.range*cellSize;const tx=offsetX+t.col*cellSize+cellSize/2,ty=offsetY+t.row*cellSize+cellSize/2;
 // Fusion beam
-if(type.id==='fusion'){let cl=null,cd2=Infinity;for(const e of G.enemies){if(!e.alive||e.burrowed||e.phased)continue;const dx=e.px-tx,dy=e.py-ty;const dist=Math.sqrt(dx*dx+dy*dy);if(dist<=rp&&dist<cd2){cl=e;cd2=dist;}}if(cl){t.beamTarget={x:cl.px,y:cl.py,id:cl.id};t.cooldown=stats.fireRate;const ed=Math.max(1,stats.damage/6-(cl.empTimer>0?0:cl.armor));cl.hp-=ed;spawnDmgNum(cl.px,cl.py,ed,type.color);if(cl.hp<=0&&cl.alive)killEnemy(cl,type.id);}else{t.beamTarget=null;}continue;}
+if(type.id==='fusion'){let cl=null,cd2=Infinity;for(const e of G.enemies){if(!e.alive||e.burrowed||e.phased)continue;const dx=e.px-tx,dy=e.py-ty;const dist=Math.sqrt(dx*dx+dy*dy);if(dist<=rp&&dist<cd2){cl=e;cd2=dist;}}if(cl){t.beamTarget={x:cl.px,y:cl.py,id:cl.id};t.cooldown=stats.fireRate;const ed=Math.max(1,stats.damage/6-(cl.empTimer>0?0:cl.armor));cl.hp-=ed;spawnDmgNum(cl.px,cl.py,ed,type.color);if(cl.hp<=0&&cl.alive)killEnemy(cl,type.id,t.isAI);}else{t.beamTarget=null;}continue;}
 // Arc Tesla chain lightning
-if(type.id==='arctesla'){let targets=[];let first=null,fp=-1;for(const e of G.enemies){if(!e.alive||e.burrowed||e.phased)continue;const dx=e.px-tx,dy=e.py-ty;if(Math.sqrt(dx*dx+dy*dy)<=rp&&e.progress>fp){first=e;fp=e.progress;}}if(first){t.cooldown=stats.fireRate;const maxChain=t.overloadNext?8:4;if(t.overloadNext)t.overloadNext=false;let cur=first;const hit=new Set([cur.id]);targets.push({x:tx,y:ty,ex:cur.px,ey:cur.py});let dmg=stats.damage;applyDamage(cur,dmg,0,false,false,false,type.id);for(let ch=1;ch<maxChain;ch++){let next=null,nd=Infinity;for(const e of G.enemies){if(!e.alive||hit.has(e.id)||e.burrowed||e.phased)continue;const dx=e.px-cur.px,dy=e.py-cur.py;const dist=Math.sqrt(dx*dx+dy*dy);if(dist<cellSize*3&&dist<nd){next=e;nd=dist;}}if(!next)break;targets.push({x:cur.px,y:cur.py,ex:next.px,ey:next.py});dmg=Math.max(1,Math.round(dmg*0.85));applyDamage(next,dmg,0,false,false,false,type.id);hit.add(next.id);cur=next;}for(const seg of targets){const c=chainPool.get();if(c){c.x1=seg.x;c.y1=seg.y;c.x2=seg.ex;c.y2=seg.ey;c.life=0.2;c.color='#88eeff';}}playSound('shoot','arctesla');}continue;}
+if(type.id==='arctesla'){let targets=[];let first=null,fp=-1;for(const e of G.enemies){if(!e.alive||e.burrowed||e.phased)continue;const dx=e.px-tx,dy=e.py-ty;if(Math.sqrt(dx*dx+dy*dy)<=rp&&e.progress>fp){first=e;fp=e.progress;}}if(first){t.cooldown=stats.fireRate;const maxChain=t.overloadNext?8:4;if(t.overloadNext)t.overloadNext=false;let cur=first;const hit=new Set([cur.id]);targets.push({x:tx,y:ty,ex:cur.px,ey:cur.py});let dmg=stats.damage;applyDamage(cur,dmg,0,false,false,false,type.id,!!t.isAI);for(let ch=1;ch<maxChain;ch++){let next=null,nd=Infinity;for(const e of G.enemies){if(!e.alive||hit.has(e.id)||e.burrowed||e.phased)continue;const dx=e.px-cur.px,dy=e.py-cur.py;const dist=Math.sqrt(dx*dx+dy*dy);if(dist<cellSize*3&&dist<nd){next=e;nd=dist;}}if(!next)break;targets.push({x:cur.px,y:cur.py,ex:next.px,ey:next.py});dmg=Math.max(1,Math.round(dmg*0.85));applyDamage(next,dmg,0,false,false,false,type.id,!!t.isAI);hit.add(next.id);cur=next;}for(const seg of targets){const c=chainPool.get();if(c){c.x1=seg.x;c.y1=seg.y;c.x2=seg.ex;c.y2=seg.ey;c.life=0.2;c.color='#88eeff';}}playSound('shoot','arctesla');}continue;}
 // Standard targeting
 let best=null,bp=-1;for(const e of G.enemies){if(!e.alive||e.burrowed||e.phased)continue;if(e.flying&&!type.antiAir&&type.id!=='nova'&&type.id!=='shockwave')continue;const dx=e.px-tx,dy=e.py-ty;const dist=Math.sqrt(dx*dx+dy*dy);if(dist<=rp&&e.progress>bp){best=e;bp=e.progress;}}
-if(best){t.cooldown=stats.fireRate;VFX.towerAngles[t.col+','+t.row]=Math.atan2(best.py-(offsetY+t.row*cellSize+cellSize/2),best.px-(offsetX+t.col*cellSize+cellSize/2));let dmg=stats.damage;if(t.overcharged){dmg*=5;t.overcharged=false;}const p=projectilePool.get();if(p){p.x=tx;p.y=ty;p.tx=best.px;p.ty=best.py;p.speed=type.id==='nova'?250:type.id==='shockwave'?350:400;p.damage=dmg;p.splash=stats.splash;p.slows=stats.slows;p.disableHeal=stats.disableHeal;p.color=type.color;p.targetId=best.id;p.isNuke=false;p._towerTypeId=type.id;}
+if(best){t.cooldown=stats.fireRate;VFX.towerAngles[t.col+','+t.row]=Math.atan2(best.py-(offsetY+t.row*cellSize+cellSize/2),best.px-(offsetX+t.col*cellSize+cellSize/2));let dmg=stats.damage;if(t.overcharged){dmg*=5;t.overcharged=false;}const p=projectilePool.get();if(p){p.x=tx;p.y=ty;p.tx=best.px;p.ty=best.py;p.speed=type.id==='nova'?250:type.id==='shockwave'?350:400;p.damage=dmg;p.splash=stats.splash;p.slows=stats.slows;p.disableHeal=stats.disableHeal;p.color=type.color;p.targetId=best.id;p.isNuke=false;p._towerTypeId=type.id;p._towerIsAI=!!t.isAI;}
 playSound('shoot',type.id);}}}
 
 function updateProjectiles(dt){projectilePool.forEach(proj=>{let target=null;if(proj.targetId>=0)for(let i=0;i<G.enemies.length;i++)if(G.enemies[i].id===proj.targetId&&G.enemies[i].alive){target=G.enemies[i];break;}
 if(target){proj.tx=target.px;proj.ty=target.py;}const dx=proj.tx-proj.x,dy=proj.ty-proj.y;const dist=Math.sqrt(dx*dx+dy*dy);
-if(dist<=Math.max(3,proj.speed*dt)){if(target&&target.alive&&!target.burrowed&&!target.phased){applyDamage(target,proj.damage,proj.splash,proj.slows,proj.disableHeal,proj.isNuke,proj._towerTypeId);}else if(proj.splash>0){applySplashDmg(proj.tx,proj.ty,proj.damage,proj.splash);}emitP(proj.x,proj.y,proj.splash>0?12:4,proj.color,proj.splash>0?120:60,0.4,proj.splash>0?4:2);if(proj.splash>0)playSound('explosion');projectilePool.release(proj);}else{const speed=proj.speed*dt;proj.x+=(dx/dist)*speed;proj.y+=(dy/dist)*speed;if(!proj._trail)proj._trail=[];proj._trail.push({x:proj.x,y:proj.y});if(proj._trail.length>8)proj._trail.shift();}});}
+if(dist<=Math.max(3,proj.speed*dt)){if(target&&target.alive&&!target.burrowed&&!target.phased){applyDamage(target,proj.damage,proj.splash,proj.slows,proj.disableHeal,proj.isNuke,proj._towerTypeId,proj._towerIsAI);}else if(proj.splash>0){applySplashDmg(proj.tx,proj.ty,proj.damage,proj.splash);}emitP(proj.x,proj.y,proj.splash>0?12:4,proj.color,proj.splash>0?120:60,0.4,proj.splash>0?4:2);if(proj.splash>0)playSound('explosion');projectilePool.release(proj);}else{const speed=proj.speed*dt;proj.x+=(dx/dist)*speed;proj.y+=(dy/dist)*speed;if(!proj._trail)proj._trail=[];proj._trail.push({x:proj.x,y:proj.y});if(proj._trail.length>8)proj._trail.shift();}});}
 
 function updateParticles(dt){particlePool.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=30*dt;p.life-=dt;if(p.life<=0)particlePool.release(p);});}
 function updateDmgNums(dt){dmgNumPool.forEach(d=>{d.y-=40*dt;d.life-=dt;if(d.life<=0)dmgNumPool.release(d);});}
@@ -2024,9 +2037,9 @@ while(path.length<20){const last=path[path.length-1];const[lx,ly]=last;const opt
 return{paths:[path],cols,rows,baseCell:path[path.length-1]};}
 
 // Global abilities
-function useVanguardStrike(px,py){if(G.orbitalCD>0)return;G.orbitalCD=60;const r=cellSize*3;for(const e of G.enemies){if(!e.alive)continue;const dx=e.px-px,dy=e.py-py;if(Math.sqrt(dx*dx+dy*dy)<r){e.hp-=200;if(e.hp<=0&&e.alive)killEnemy(e);}}emitP(px,py,40,'#ff8800',250,0.8,6);emitP(px,py,20,'#ffcc00',200,0.6,4);if(settings.screenShake){G.shakeTimer=0.5;G.shakeIntensity=8;}G.orbitalTargeting=false;playSound('orbital');}
-function useTemporalSurge(){if(G.chronoCD>0)return;G.chronoCD=90;G.chronoActive=10;playSound('ability');}
-function useFieldRepair(){if(G.repairCD>0)return;G.repairCD=120;G.lives=Math.min(G.maxLives,G.lives+5);playSound('ability');}
+function useVanguardStrike(px,py){if(G.orbitalCD>0)return;G.orbitalCD=60*loadoutBonuses.abilityCdMultiplier;const r=cellSize*3;for(const e of G.enemies){if(!e.alive)continue;const dx=e.px-px,dy=e.py-py;if(Math.sqrt(dx*dx+dy*dy)<r){e.hp-=200;if(e.hp<=0&&e.alive)killEnemy(e);}}emitP(px,py,40,'#ff8800',250,0.8,6);emitP(px,py,20,'#ffcc00',200,0.6,4);if(settings.screenShake){G.shakeTimer=0.5;G.shakeIntensity=8;}G.orbitalTargeting=false;playSound('orbital');}
+function useTemporalSurge(){if(G.chronoCD>0)return;G.chronoCD=90*loadoutBonuses.abilityCdMultiplier;G.chronoActive=10;playSound('ability');}
+function useFieldRepair(){if(G.repairCD>0)return;G.repairCD=120*loadoutBonuses.abilityCdMultiplier;G.lives=Math.min(G.maxLives,G.lives+5);playSound('ability');}
 
 // Stars
 let _stars=null;
@@ -2105,6 +2118,8 @@ function drawTower(t){const type=TT[t.typeIdx];const skinColor=getTowerColor(t);
 if(t.disabled>0){ctx.globalAlpha=0.4+0.2*Math.sin(performance.now()*0.01);}
 // Hexagonal base platform
 ctx.fillStyle='rgba(25,35,55,0.95)';ctx.beginPath();for(let i=0;i<6;i++){const ba=Math.PI/3*i;if(i===0)ctx.moveTo(x+(s+4)*Math.cos(ba),y+(s+4)*Math.sin(ba));else ctx.lineTo(x+(s+4)*Math.cos(ba),y+(s+4)*Math.sin(ba));}ctx.closePath();ctx.fill();
+// Building (Rapid Deploy system): scaffolding + progress arc until ready
+if(t.buildTimer>0){ctx.strokeStyle=skinColor;ctx.lineWidth=2;const bt0=loadoutBonuses.buildTime||1.5;const bp=Math.max(0,1-t.buildTimer/bt0);ctx.beginPath();ctx.arc(x,y,s+3,-Math.PI/2,-Math.PI/2+bp*Math.PI*2);ctx.stroke();ctx.globalAlpha=0.55;ctx.fillStyle=skinColor;ctx.beginPath();ctx.arc(x,y,s*0.4,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;ctx.font='600 9px '+FD;ctx.textAlign='center';ctx.fillStyle=C_TXT;ctx.fillText('⚙',x,y+3);return;}
 // Base ring glow
 ctx.strokeStyle=skinColor;ctx.globalAlpha=0.3+t.level*0.15;ctx.lineWidth=1;ctx.beginPath();ctx.arc(x,y,s+3,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
 // Level rings
@@ -3010,7 +3025,7 @@ const aliveCount=G.enemies.filter(e2=>e2.alive).length;
 const cheapest=Math.min(...OFFENSE_ENEMIES.map(o=>o.cost));
 if(offense.bioReserve<=0&&offense.bioMass<cheapest&&aliveCount===0&&G.spawnQueue.length===0){G.phase='offenseResult';return;}
 // AI towers attack
-updateTowers(sdt);if(loadoutBonuses.frostField){for(const e2 of G.enemies)if(e2.alive&&!e2.slowTimer)e2.slowTimer=Math.max(e2.slowTimer||0,0.5);}updateProjectiles(sdt);updateParticles(sdt);updateDmgNums(sdt);updateChains(sdt);}
+updateTowers(sdt);updateProjectiles(sdt);updateParticles(sdt);updateDmgNums(sdt);updateChains(sdt);}
 
 function spawnOffenseEnemy(typeId){
 const et2=ET[typeId];if(!et2)return;
@@ -4821,7 +4836,7 @@ updateScreenFade(dt);updateNexGen(dt);updateCritAlarm(dt);lastTouchFlash.timer=M
 if(allied.active)updateAlliedAI(dt);
 if(G.orbitalCD>0)G.orbitalCD-=dt;if(G.chronoCD>0)G.chronoCD-=dt;if(G.repairCD>0)G.repairCD-=dt;if(G.chronoActive>0)G.chronoActive-=dt;
 updatePlacementAnims(dt);
-if(G.phase==='wave'){updateHero(dt);updateWaveSpawning(sdt);updateEnemies(sdt);updateTowers(sdt);if(loadoutBonuses.frostField){for(const e2 of G.enemies)if(e2.alive&&!e2.slowTimer)e2.slowTimer=Math.max(e2.slowTimer||0,0.5);}updateProjectiles(sdt);updateParticles(sdt);updateDmgNums(sdt);updateChains(sdt);
+if(G.phase==='wave'){updateHero(dt);updateWaveSpawning(sdt);updateEnemies(sdt);updateTowers(sdt);updateProjectiles(sdt);updateParticles(sdt);updateDmgNums(sdt);updateChains(sdt);
 if(isWaveComplete()){playWaveStinger();tryVibrate(50);
 if(allied.active){allied.wave++;if(allied.wave>=allied.totalWaves){G.phase='alliedVictory';playVictoryFanfare();finalizeMatch(true);}else{const bonus=50+allied.wave*10;G.nexium+=bonus;G.totalNexEarned+=bonus;G.phase='build';}}
 else if(clash.active&&clash.phase==='defend'){
@@ -4831,7 +4846,7 @@ if(G.wave>=5){handleClashResult();}
 else{const bonus=40+G.wave*10;G.nexium+=bonus;G.totalNexEarned+=bonus;G.phase='build';}}
 else if(G.endlessMode){G.endlessWave++;if(G.endlessWave>=50)checkAchievement('endless_legend');const bonus=50+G.endlessWave*10;G.nexium+=bonus;G.totalNexEarned+=bonus;endlessNextWave=null;G.phase='build';}
 else{G.wave++;if(G.wave>=getMatchWaveGoal()){G.phase='victory';playVictoryFanfare();tryVibrate([50,30,50,30,100]);finalizeMatch(true);}else{const bonus=50+G.wave*10;G.nexium+=bonus;G.totalNexEarned+=bonus;G.phase='waveSummary';}}}}
-else{updateHero(dt);updateParticles(sdt);updateProjectiles(sdt);updateDmgNums(sdt);updateChains(sdt);}}
+else{for(const _t of G.towers)if(_t.buildTimer>0)_t.buildTimer-=sdt;updateHero(dt);updateParticles(sdt);updateProjectiles(sdt);updateDmgNums(sdt);updateChains(sdt);}}
 
 // Game loop
 let lastTime=0,_frames=0,_lastFps=performance.now(),_fps=0;

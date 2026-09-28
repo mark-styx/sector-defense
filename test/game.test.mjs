@@ -343,6 +343,9 @@ test('arsenal cards apply their effects (deep pockets, iron will, scavenger)', a
   const sentinel = radial.find(r => r.idx === 0);
   g.tap(sentinel.x, sentinel.y); g.frame(2);
   assert.equal(state(g).towerCount, 1);
+  // Towers now power up for 1.5s after placement (Rapid Deploy build-time
+  // system) — let the build phase finish the spin-up before the wave starts.
+  for (let i = 0; i < 100; i++) g.frame(1);
   tapBtn(g, 'startWave');
   g.tap(195, 422); g.frame(2);
   let f = 0;
