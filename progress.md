@@ -470,9 +470,20 @@ Second self-check pass found two un-critiqued systems, both now covered:
   drone_support. frost_field is a trap: its `!slowTimer` refill guard never
   re-fires after float decay, so "all towers slow enemies slightly" is a
   one-time 0.5s slow per enemy (measured progress ratio 0.903 vs 0.4 for a
-  real aura). 39% of the unlock economy sells duds (R9).
+  real aura). 39% of the unlock economy sells duds (R9). Cards are win-drop
+  only; the store sells no cards (severity = broken grind promises).
 - Campaign strategic layer (F14/F12): threat escalation works (expansion
   0.51-0.85, attacks 0.19-0.70, defense to Elite by ~turn 17) but the
   economy is decorative: outpost = 2-turn payback strictly dominates,
   nothing costs enough to gate a decision past turn ~5 (R10).
-Audit tool gained `cards` section (symbol-read counter + live frost probe).
+
+Third self-check pass (accuracy audit of the review's own claims):
+- F1 strengthened with code evidence: the difficulty card discloses HP/Speed
+  % and lives/nexium but hides rewM/costM/cntM — the harshest axes are the
+  undisclosed ones.
+- F11 extended with progression pacing: level-20 gate = 19,000 XP =
+  10-11 flawless wins (1,879-2,090 XP/win, kills dominate). Reasonable.
+- Variance honesty: allied idle dies w6-12 across runs; endless death
+  w63-68 across runs (both updated from single-run numbers).
+Audit tool gained `cards` section + 6c progression table; full pipeline
+(all sections) verified end-to-end in one run.

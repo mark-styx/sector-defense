@@ -196,7 +196,22 @@ function staticReport(D) {
   for (const [name, desc, mult] of abRows)
     console.log('  ' + pad(name, 26) + pad(desc, 44) + (mult ? 'avg x' + mult.toFixed(2) : 'burst/control'));
 
-  console.log('\n===================== 6c. HIDDEN HP: healers + spawners (excluded from wave tables) =====================');
+  console.log('\n===================== 6c. PROGRESSION pacing: the level-20 Legendary gate =====================');
+  // addXP(waves,kills,stars) = waves*10 + kills + stars*50; cumulative XP for
+  // commander level L = 50*L*(L-1). Cards drop one per win; the gate to
+  // Legendary is level 20.
+  const unitsTotal = DIFFS.map(d => WAVES.reduce((a, w) => a + w.e.reduce((b, g) => {
+    const c = Math.max(1, Math.round(g.c * (d.cntM || 1)));
+    return b + c + (ET[g.t].releases ? c * 6 : 0);
+  }, 0), 0));
+  DIFFS.forEach((d, i) => {
+    const xpPerWin = 40 * 10 + unitsTotal[i] + 3 * 50;
+    const winsTo20 = Math.ceil(19000 / xpPerWin);
+    console.log('  ' + pad(d.name, 11) + ' flawless-win XP=' + pad(xpPerWin, 6) +
+      ' (kills ' + unitsTotal[i] + ') -> wins to level 20: ' + winsTo20);
+  });
+
+  console.log('\n===================== 6d. HIDDEN HP: healers + spawners (excluded from wave tables) =====================');
   // Plaguebearer heals 5 hp/s to every ally within 2.5 cells (stacks per healer,
   // canceled 3s by any shockwave hit). Hivemind spawns 2 swarmers (15hp x hpM)
   // every 4s alive; swarmers cost 0 lives and pay 2 each.

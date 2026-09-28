@@ -48,6 +48,7 @@ Every number below is machine-measured on the current build (v7.2.3, main @ 93d6
 
 - Stat-space difficulty rises smoothly (1.24 → 3.08, ~2.5x). But the **economy axis is where the ladder explodes**: Elite→Legendary affordability drops 0.73 → 0.42 (-43%) while enemy challenge rises only 19%. The single biggest jump between any two tiers is in the player's wallet.
 - rewM (0.85/0.7/0.5) cuts kill income exactly when kills matter: kill rewards are ~50% of income during waves 1-10 (the pressure peak, F2) but only ~18% by wave 40 (flat 50+10w bonus dominates late). So the poverty penalty concentrates on the opening.
+- Disclosure is code-verified one-sided: the difficulty select card shows "HP +X%, Speed +Y%" and "N lives • M nexium", but rewM (kill income -15/-30/-50%), costM (tower cost +10/+20%) and cntM (density) appear nowhere in the UI. The two harshest axes are the hidden ones; the milder ones are disclosed. Either disclose all axes or move the challenge into the disclosed ones.
 - Genre critique: "enemies are tougher" reads fair; "you earn half and pay 20% more" reads punitive and is invisible until mid-match. Elite/Legendary punish experimentation (can't afford to try a tower) and slavishly reward the one proven build (F5).
 
 ### F2. The whole match is decided in waves 2-7; everything after is cleanup
@@ -127,7 +128,7 @@ Measured (this round, elo 1000):
 Measured (player bot restricted to the left half, ally owns the right half):
 - Ally out-builds the player **26 towers to 10-11** by wave ~22 (ally income 25+5w every ~5s during build+wave ≈ 900-1,800 per wave-cycle late game, vs player ~550-800: 50+10w bonus + kills).
 - Runs finish 30/30 and 26/30 lives (variance) with a 10-tower player.
-- Idle probe (player builds nothing, waits 30s per build phase): **gameover at wave 6 of 30** (9 ally towers). The ally cannot solo; the player's early towers are load-bearing.
+- Idle probe (player builds nothing, waits 30s per build phase): **gameover at wave 6-12 of 30 across runs** (9-25 ally towers, RNG-dependent). The ally cannot solo; the player's early towers are load-bearing.
 - Verdict: the mode is a spectator sport after ~wave 15 unless the player deliberately builds little. Also `allied.playerKills`/`aiKills` are initialized, reset, displayed-adjacent, and **never incremented anywhere** — the end screen shows 0/0 kills no matter what happens (truth-in-UI bug, same class as the round-34 RECRUIT descriptions).
 
 ### F9. Offense: the cheapest unit is the most bio-efficient
@@ -153,6 +154,8 @@ Strong bot: dies at wave 63 with 10,466 kills. Budget 100×1.08^w compounds at t
 ### F11. Heroes sit on top of the economy, not inside it
 
 Oracle's passive (+2 nex/s ≈ +120/min) is a bigger economy lever than the entire Elite-vs-Standard rewM gap at mid-game. Vanguard's ult (2x fire, 10s/90s ≈ +11% average dps) and Phantom's 500-dmg/20s strike are large-but-optional power adds. Balance was tuned (and bot-proven) without heroes, so heroes make every tier easier for humans than the bot measurements show — worth stating in the difficulty select screen ("+hero = one tier easier") rather than retuning around.
+
+Progression pacing (the Legendary gate): addXP = waves×10 + kills + stars×50 and commander level L needs 50×L×(L-1) cumulative XP, so level 20 = 19,000 XP. A flawless win earns 1,879-2,090 XP depending on tier (kills dominate), making the gate 10-11 flawless wins — roughly 3-5 hours of strong play, longer for casual. Reasonable for a mobile arc; no change recommended.
 
 ### F12. Campaign strategic layer: escalating defense is real, the economy is decorative
 
