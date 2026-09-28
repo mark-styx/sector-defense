@@ -414,3 +414,43 @@ clean finite-resource losses instead of infinite grind.
 
 New: finite-reserve regression test (plateau + reachable defeat).
 49/49 headless + dual-engine browser smoke green.
+
+## Round 36 — Balance deep dive: measured critique (BALANCE_REVIEW.md)
+
+Goal: be critical about balance goals vs outcomes, numbers over opinions.
+
+Tooling: tools/balance-audit.mjs — extracts live data tables from the game
+(tower ROI, wave economy, budget curves, offense unit efficiency) and measures
+outcome-space with the real-tap bots (classic margins per tier, weak-bot
+deaths, allied ally-vs-player contribution, clash stall exploit, endless
+death point).
+
+Headline findings (all measured, details in BALANCE_REVIEW.md):
+- Strong play is flawless at EVERY tier: 18/18, 15/15, 10/10 lives, zero
+  losses across 40 waves; Standard banks 15,071 unspent (27,573 income vs
+  ~4,755 needed). The "a bit too easy" verdict is now a number.
+- Skill curve is a cliff: 6-tower casual bot dies wave 35, 16-tower bot never
+  loses a life. No measured middle ground.
+- The ladder's biggest jump is economic, not enemy: Elite->Legendary
+  affordability 0.73 -> 0.42 (-43%) vs enemy challenge +19%. rewM punishes
+  exactly during the waves-2-7 pressure peak (which is 2-3x late-wave
+  pressure at every tier).
+- Tower roster: sentinel 64 dps/$100 = 2x the field (hidden meta confirmed);
+  barrier 2.5 dps/$100 near-dead. Armor inversion (nova/fusion/thunder vs
+  bosses) genuinely works — keep.
+- Clash attack is unloseable: infinite bio regen (measured 551->2,171 over
+  9 sim-minutes idle), no timer; stall + skitterling-spam wins 10/10. Defend
+  round is a formality (20/20 lives, 600 total budget ~ classic wave 5).
+  Round-35's finite reserve fixed offense mode but not clash.
+- Allied: ally builds 26 towers vs player 10; runs finish 26-30/30 lives;
+  idle player dies wave 6 (not AFK-winnable, but ally carries late game).
+  playerKills/aiKills never increment (truth bug).
+- Endless passes (strong bot dies w63); offense skitterling dominates
+  hp/bio (13.0 vs 10.4 next) — repricing candidates listed.
+
+Prioritized recommendations R1-R8 in BALANCE_REVIEW.md (top: port finite
+reserve to clash attack; flatten economy axes of the ladder; trim late-game
+income; late-wave density escalation).
+
+No game-code changes this round (analysis only). 49/49 headless green
+(one Citadel 9/10 flake, then 4/4 clean — knife-edge margin noted in review).
