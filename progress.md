@@ -462,3 +462,17 @@ at wave 2, repair ability masking raw leaks; peak bank 3,871 vs Standard's
 cooldown, all of it human-only upside the bot tables exclude); healer/
 spawner hidden HP quantified (+6-9% effective HP, waves 16-40); shockwave
 re-framed as the anti-heal answer whose card fails to say so.
+
+Second self-check pass found two un-critiqued systems, both now covered:
+- Arsenal cards (F13): automated symbol-read audit found 6 of 18 cards are
+  DEAD (equipped, effect never read anywhere): rapid_deploy (no build-time
+  system exists at all), hawkeye, heavy_rounds, quick_reflexes, thick_armor,
+  drone_support. frost_field is a trap: its `!slowTimer` refill guard never
+  re-fires after float decay, so "all towers slow enemies slightly" is a
+  one-time 0.5s slow per enemy (measured progress ratio 0.903 vs 0.4 for a
+  real aura). 39% of the unlock economy sells duds (R9).
+- Campaign strategic layer (F14/F12): threat escalation works (expansion
+  0.51-0.85, attacks 0.19-0.70, defense to Elite by ~turn 17) but the
+  economy is decorative: outpost = 2-turn payback strictly dominates,
+  nothing costs enough to gate a decision past turn ~5 (R10).
+Audit tool gained `cards` section (symbol-read counter + live frost probe).

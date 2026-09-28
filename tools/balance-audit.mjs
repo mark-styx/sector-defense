@@ -493,6 +493,65 @@ async function endlessReport() {
     ' kills=' + (final && final.totalKills) + ' towers=' + (final && final.towerCount) + ' (' + ((Date.now() - t0) / 1000).toFixed(0) + 's)');
 }
 
+async function cardsReport() {
+  console.log('\n===================== 12. ARSENAL CARDS: symbol-read audit + live probe =====================');
+  // Static: every card bonus symbol must be read somewhere beyond its own
+  // init/reset/equip lines (baseline 3 occurrences). Fewer = dead card.
+  const html = readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const code = html.match(/<script>([\s\S]*)<\/script>/)[1];
+  // Occurrences before applyDamage are all setup (literal init, reset, equip);
+  // any occurrence after that is an actual combat/economy read.
+  const setupEnd = code.indexOf('function applyDamage');
+  const symbols = {
+    'rapid_deploy (no build-time system)': 'rapid_deploy',
+    'deep_pockets (extraNexium)': 'extraNexium',
+    'scavenger (scavengerBonus)': 'scavengerBonus',
+    'iron_will (extraLives)': 'extraLives',
+    'hawkeye (rangeMultiplier)': 'rangeMultiplier',
+    'heavy_rounds (damageMultiplier)': 'damageMultiplier',
+    'quick_reflexes (abilityCdMultiplier)': 'abilityCdMultiplier',
+    'thick_armor (thickArmor)': 'thickArmor',
+    'lucky_strike (luckyStrike)': 'luckyStrike',
+    'tactical_retreat (sellMultiplier)': 'sellMultiplier',
+    'drone_support (droneSupportUsed)': 'droneSupportUsed',
+    'chain_reaction (splatMultiplier)': 'splatMultiplier',
+    'frost_field (frostField)': 'frostField',
+    'emergency_fund (emergencyFund)': 'emergencyFund',
+    'veterans_insight (veteranInsight)': 'veteranInsight',
+    'overclocked (fireRateMultiplier)': 'fireRateMultiplier',
+    'reflective_shield (reflectChance)': 'reflectChance',
+    'nexium_generator (nexiumGen)': 'nexiumGen'
+  };
+  for (const [label, sym] of Object.entries(symbols)) {
+    const total = code.split(sym).length - 1;
+    const inSetup = code.slice(0, setupEnd).split(sym).length - 1;
+    const reads = total - inSetup;
+    console.log('  ' + pad(label, 40) + ' reads=' + reads + (reads <= 0 ? '  <-- DEAD (never read)' : ''));
+  }
+  // Empirical: frost_field promised "all towers slow enemies slightly".
+  // Measured: enemies are slowed only for their first ~0.5s (the refill guard
+  // is `!slowTimer`, and float decay never lands on exactly 0 again).
+  const bootCfg = cards => ({seed: {loadout: {unlockedCards: cards, equippedCards: cards, unlockedSkins: {}, matchCount: 0}}});
+  async function walkProgress(equipped) {
+    const g = await boot(equipped ? bootCfg(equipped) : {});
+    await startClassic(g);
+    const start = g.window._getBtns().startWave;
+    const c = center(start); g.tap(c.x, c.y); g.frame(2);
+    g.tap(390 / 2, 844 / 2); g.frame(2);
+    const snap = () => g.window._getEnemies().filter(e => e.alive).map(e => ({id: e.id, p: e.progress}));
+    const es = snap();
+    if (!es.length) return null;
+    g.frame(180);
+    const after = snap().find(e => e.id === es[0].id);
+    return (after ? after.p : 1) - es[0].p;
+  }
+  const base = await walkProgress(null);
+  const frost = await walkProgress(['frost_field']);
+  if (base && frost)
+    console.log('  frost_field live probe: 180-frame progress ratio = ' + (frost / base).toFixed(3) +
+      ' (0.4 = permanent slow as implied; ~0.9 = first-0.5s only, actual behavior)');
+}
+
 // ------------------------------------------------------------------- main
 const D = (want('static')) ? loadData() : null;
 if (want('static')) staticReport(D);
@@ -501,4 +560,5 @@ if (want('legendary')) await legendaryReport();
 if (want('allied')) await alliedReport();
 if (want('clash')) await clashReport();
 if (want('endless')) await endlessReport();
+if (want('cards')) await cardsReport();
 console.log('\naudit complete.');

@@ -21,7 +21,7 @@ Every number below is machine-measured on the current build (v7.2.3, main @ 93d6
 | System | Stated goal | Measured outcome | Verdict |
 |---|---|---|---|
 | Classic difficulty ladder | Strictly harder, winnable | Winnable: yes. Harder: only waves 2-7; flawless or near-flawless at all four tiers | **Broken at the top: no tier threatens strong play** |
-| Classic economy | Constrain builds | Standard: 27,573 income vs ~5,025 needed; 15,071 banked | **Floods; money is meaningless after ~wave 16** |
+| Classic economy | Constrain builds | Standard: 27,573 income vs ~4,755 needed; 15,071 banked | **Floods; money is meaningless after ~wave 16** |
 | Skill curve | Casual wins, expert sweats | 6 towers = death w35; 16 towers = flawless all tiers | **Cliff, not slope; no nail-biter middle** |
 | Tower roster | 10 meaningful choices | Sentinel 64 dps/$100 = 2x the field; barrier 2.5 | **One dominant tower, one dead tower** |
 | Armor system | Big hits beat armor | 30-50% of late HP armored; nova 85.8 vs fusion 62.5 vs sentinel 20 dps vs arm10 | **Works. Genuine strength.** |
@@ -82,7 +82,7 @@ So the outcome distribution is bimodal: placement quality + tower count either f
 
 ### F4. The economy floods after the mid-game
 
-Standard 40-wave income: 27,573 total (start 300 + kills + bonuses) vs ~5,025 for a full endgame board. Even the late-mix tower spam only spends it down to a 15k peak bank. Kill income alone at wave 40 (2,036) exceeds the entire plan investment every ~2.5 waves. Consequences: no build-order decisions late, no sell/refund decisions, upgrades are no-brainers, and the emergencyFund/tactical_retreat card perks are dead weight for anyone past wave 20.
+Standard 40-wave income: 27,573 total (start 300 + kills + bonuses) vs ~4,755 for a full endgame board. Even the late-mix tower spam only spends it down to a 15k peak bank. Kill income alone at wave 40 (2,036) re-earns the entire plan investment every ~2.3 waves. Consequences: no build-order decisions late, no sell/refund decisions, upgrades are no-brainers, and the emergencyFund/tactical_retreat card perks are dead weight for anyone past wave 20.
 
 ### F5. Tower roster: sentinel doubles the field, barrier is nearly dead
 
@@ -154,9 +154,24 @@ Strong bot: dies at wave 63 with 10,466 kills. Budget 100×1.08^w compounds at t
 
 Oracle's passive (+2 nex/s ≈ +120/min) is a bigger economy lever than the entire Elite-vs-Standard rewM gap at mid-game. Vanguard's ult (2x fire, 10s/90s ≈ +11% average dps) and Phantom's 500-dmg/20s strike are large-but-optional power adds. Balance was tuned (and bot-proven) without heroes, so heroes make every tier easier for humans than the bot measurements show — worth stating in the difficulty select screen ("+hero = one tier easier") rather than retuning around.
 
-### F12. Campaign (recap, mostly resolved in rounds 34-35)
+### F12. Campaign strategic layer: escalating defense is real, the economy is decorative
 
-Defense now scales (diffIdx = min(2, threat/3), waveCap 10-18) and army effects are real. Remaining known gap (open item 4 in MODE_REVIEW.md): attack difficulty derives from map distance only.
+- Income: start 60/turn (3 starting territories at 25/20/15), full map ~300/turn. The only building with a return is the Outpost: 30 cost, +15/turn = 2-turn payback, plus +50 defense nexium — strictly dominant over Garrison (40, +3 lives) and Lab (50, +5% damage), which are defense-only side-grades. No upkeep, no cost scaling, no sink past mid-game; the bank floods exactly like the tactical economy (F4).
+- Swarm pressure is the layer's real tension and it works: threat +0.35/turn drives neutral-expansion probability 0.51 → 0.85, player-attack probability 0.19 → 0.70, defense waveCap 10 → 18 and defense difficulty to Elite by ~turn 17. Turtling is genuinely punished with harder fights.
+- But money never gates a decision: attacking costs 2 AP (not nexium), buildings and recruits cost 20-50 against an income that passes 100/turn by mid-game, so by turn ~5 every option is always affordable. Strategic decisions are only "what order", never "afford or not".
+- Attack difficulty still derives from map distance only (open item 4, MODE_REVIEW.md).
+
+### F13. Arsenal cards: six of eighteen are dead, one is a trap
+
+Automated symbol-read audit (every card's bonus symbol must be read somewhere past its setup code — `node tools/balance-audit.mjs cards`) plus live probes:
+
+**Dead — equipped, zero effect (6):** rapid_deploy ("Towers build 50% faster": no build-time system exists in the game at all), hawkeye (+10% range: rangeMultiplier never read), heavy_rounds (+10% damage: damageMultiplier never read), quick_reflexes (ability CD -15%: abilityCdMultiplier never read), thick_armor (enemies deal 1 less life dmg: thickArmor never read — leaks subtract `e.livesCost` raw), drone_support (free Drone Bay: droneSupportUsed never consumed).
+
+**Trap — works, but not as described (1):** frost_field ("All towers slow enemies slightly") applies a 0.5s 40% slow only when an enemy's slowTimer is exactly 0. The refill guard is `!slowTimer`, but floating-point decay from 0.5 by 1/60 steps never lands on exactly 0 again, so each enemy is slowed once for its first half-second and never after. Measured: 180-frame path-progress ratio 0.903 vs unequipped (a permanent slow would read ~0.4). Net effect over a full path traverse: ~2-3% average speed reduction — the card that reads strongest is close to worthless.
+
+**Working as described (11):** deep_pockets, scavenger, iron_will, lucky_strike, tactical_retreat, chain_reaction, emergency_fund, veterans_insight, overclocked, reflective_shield, nexium_generator.
+
+Commercial severity: cards are the unlock economy (a random card per win, on top of store purchases). 7 of 18 (39%) are duds or near-duds — players grind matches to unlock effects that do not exist. Same truth-in-mechanics class as the round-34 RECRUIT bug, but in the progression/monetization layer. Among the 11 working cards the power spread is reasonable (iron_will +30% effective lives at Elite/Legendary, nexium_generator ~+1.8-3k nex per full match, scavenger ~+2.6k at Standard, overclocked/lucky_strike ~+10-11% dps) and the 3-card equip limit keeps stacking in check.
 
 ---
 
@@ -172,6 +187,8 @@ Defense now scales (diffIdx = min(2, threat/3), waveCap 10-18) and army effects 
 | R6 | **Reprice offense skitterling** 3→4 bio (and blisterbomb 5→6) | Menu middle becomes viable; spam stops dominating efficiency table | Small; re-run 5-map soak |
 | R7 | **Fix `allied.playerKills`/`aiKills`** (increment in killEnemy by tower ownership) or remove the stat from the UI | Truth-in-UI, round-34 class of bug | Small |
 | R8 | **Scale clash defend budgets** to classic-midwave equivalents (budget ×3-4) so the defend half of each round is a real contest | Both halves of the duel matter | Medium; verify bot still wins ~50-70% at 1000 elo |
+| R9 | **Wire or remove the six dead arsenal cards** (rapid_deploy, hawkeye, heavy_rounds, quick_reflexes, thick_armor, drone_support) and fix frost_field's refill guard (`!slowTimer` → `slowTimer<=0`) | 39% of the unlock economy stops selling duds; frost_field becomes the aura its card promises (then re-check dominance: a true permanent 40% global slow may need toning to 15-20%) | Small for wiring/removal; frost_field rebalance medium |
+| R10 | **Campaign economy sink**: scaling building costs (cost × (1 + owned × 0.5)) or per-turn upkeep, so "afford or not" becomes a decision | Strategic layer gains real trade-offs; outpost spam stops being a no-brainer | Medium; replay a full campaign after |
 
 Not recommended: retuning around heroes (F11), endless curve changes (F10 passes), touching the armor system (F6 works).
 
@@ -188,12 +205,9 @@ Not recommended: retuning around heroes (F11), endless curve changes (F10 passes
 node tools/balance-audit.mjs            # full report (static + all dynamic)
 node tools/balance-audit.mjs static     # tables 1-6 (pure math, ~instant)
 node tools/balance-audit.mjs classic    # tables 7-8 (~60s: 3 full 40-wave runs + weak-bot runs)
+node tools/balance-audit.mjs legendary  # table 7b (Legendary margin, ~20s)
 node tools/balance-audit.mjs allied     # table 9 (~10s)
-node tools/balance-audit.mjs clash      # table 10 (~20s, includes the 180s stall test)
+node tools/balance-audit.mjs clash      # table 10 (~20s, includes the stall test)
 node tools/balance-audit.mjs endless    # table 11 (~15s)
-```
- # table 11 (~15s)
-```
-``
- # table 11 (~15s)
+node tools/balance-audit.mjs cards      # table 12: card symbol-read audit + frost_field probe (~10s)
 ```
