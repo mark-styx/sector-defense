@@ -5196,6 +5196,7 @@ window._getLoadoutBonuses=function(){return JSON.parse(JSON.stringify(loadoutBon
 window._getTowerStatsAt=function(i){return JSON.parse(JSON.stringify(getTowerStats(G.towers[i])));};
 window._getAlliedState=function(){return JSON.parse(JSON.stringify({active:allied.active,wave:allied.wave,playerKills:allied.playerKills,aiKills:allied.aiKills}));};
 window._getClashState=function(){return JSON.parse(JSON.stringify({active:clash.active,round:clash.round,phase:clash.phase,playerWins:clash.playerWins,aiWins:clash.aiWins,playerLivesLeft:clash.playerLivesLeft,aiLivesLeft:clash.aiLivesLeft,aiThreat:clash.aiThreat,elo:clash.elo}));};
+window._getEconomy=function(){return {earned:G.totalNexEarned,spent:G.totalNexSpent,bank:G.nexium};};
 window._killRewardTaper=function(w){return killRewardTaper(w);};
 window._getTutorial=function(){return {active:TUTORIAL.active,step:TUTORIAL.step,wait:TUTORIAL.waitingFor,done:prog.tutorialDone};};
 window._getModal=function(){return G._modal?{title:G._modal.title,yes:G._modal.yesLabel,no:G._modal.noLabel,btns:{yes:G._btns.modalYes,no:G._btns.modalNo}}:null;};
