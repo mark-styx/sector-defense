@@ -547,10 +547,10 @@ const MAPS=[
 ];
 
 const DIFFS=[
-{id:'standard',name:'Standard',hpM:1.0,spdM:1.0,lives:18,nex:300,rewM:1.0,costM:1.0,color:'#44ff88'},
-{id:'veteran',name:'Veteran',hpM:1.3,spdM:1.15,lives:15,nex:225,rewM:0.85,costM:1.0,color:'#ffaa22'},
-{id:'elite',name:'Elite',hpM:1.6,spdM:1.3,lives:10,nex:175,rewM:0.7,costM:1.1,color:'#ff4466'},
-{id:'legendary',name:'Legendary',hpM:2.0,spdM:1.5,lives:10,nex:150,rewM:0.5,costM:1.2,color:'#ff00ff',locked:true,reqLvl:20}
+{id:'standard',name:'Standard',hpM:1.15,spdM:1.08,cntM:1.0,lives:18,nex:300,rewM:1.0,costM:1.0,color:'#44ff88'},
+{id:'veteran',name:'Veteran',hpM:1.45,spdM:1.22,cntM:1.1,lives:15,nex:225,rewM:0.85,costM:1.0,color:'#ffaa22'},
+{id:'elite',name:'Elite',hpM:1.7,spdM:1.32,cntM:1.15,lives:10,nex:175,rewM:0.7,costM:1.1,color:'#ff4466'},
+{id:'legendary',name:'Legendary',hpM:2.05,spdM:1.5,cntM:1.0,lives:10,nex:150,rewM:0.5,costM:1.2,color:'#ff00ff',locked:true,reqLvl:20}
 ];
 
 // Waves
@@ -1994,7 +1994,9 @@ let waveDef;
 if(G.endlessMode){if(!endlessNextWave){const budget=100*Math.pow(1.08,G.endlessWave);endlessNextWave=generateEndlessWave(budget,G.endlessWave);}waveDef=endlessNextWave;}
 else{waveDef=WAVES[G.wave];}
 G.spawnQueue=[];let delay=0;const np=currentPaths.length;
-for(const grp of waveDef.e){for(let i=0;i<grp.c;i++){const pi=np>1?i%np:0;G.spawnQueue.push({type:grp.t,time:delay,pathIdx:pi});delay+=grp.d;}}
+// Higher difficulties field denser waves (cntM) on top of tougher enemies.
+const cntM=DIFFS[G.diffIdx].cntM||1;
+for(const grp of waveDef.e){const gc=Math.max(1,Math.round(grp.c*cntM));for(let i=0;i<gc;i++){const pi=np>1?i%np:0;G.spawnQueue.push({type:grp.t,time:delay,pathIdx:pi});delay+=grp.d;}}
 G.spawnTimer=0;G.waveKills=0;G.waveNex=0;VFX.waveFlash=1;playSound('wave_start');}
 function updateWaveSpawning(dt){if(G.spawnQueue.length===0)return;G.spawnTimer+=dt;while(G.spawnQueue.length>0&&G.spawnQueue[0].time<=G.spawnTimer){const s=G.spawnQueue.shift();spawnEnemy(s.type,s.pathIdx);}}
 function isWaveComplete(){return G.spawnQueue.length===0&&G.enemies.filter(e=>e.alive).length===0;}
@@ -2572,13 +2574,17 @@ const incomePerTurn=getCampaignIncome();
 ctx.font='600 '+Math.min(10,W*0.025)+'px '+FB;ctx.fillStyle=C_TXT;
 ctx.fillText('Turn '+campaign.turn+' | ◆'+campaign.nexiumBank+' (+'+incomePerTurn+'/turn) | AP: '+campaign.actionPoints+'/'+campaign.maxAP,W/2,34);
 ctx.font='500 '+Math.min(9,W*0.022)+'px '+FB;ctx.fillStyle=C_MUT;
-ctx.fillText('Territories: '+pc+'/'+(campaign.territories?campaign.territories.length:20)+' | Swarm: '+sc+' | Battles Won: '+campaign.battlesWon+' | Threat: '+campaign.swarmThreat.toFixed(1),W/2,47);
+ctx.fillText('You '+pc+' · Swarm '+sc+' | Battles Won: '+campaign.battlesWon+' | Swarm Aggression: '+campaign.swarmThreat.toFixed(1),W/2,47);
+ctx.fillStyle='#44aaff';ctx.fillText('■ you',W*0.5-110,60);
+ctx.fillStyle='#ff6666';ctx.fillText('■ swarm',W*0.5-55,60);
+ctx.fillStyle='#8899aa';ctx.fillText('■ neutral',W*0.5+4,60);
+ctx.fillStyle='rgba(255,200,0,0.6)';ctx.fillText('★ take the Swarm Hive to win',W*0.5+72,60);
 // Hex grid - compact to fit above panel
 const hexR=Math.min(W*0.075,34),hexH=hexR*Math.sqrt(3);
 const availH=mapAreaH-70;
 const gapX=hexR*2.2,gapY=Math.min(hexH*1.6,availH/4.5);
 const gridW=5,gridH=5;
-const startX=W/2-(gridW-1)*gapX/2,startY=62;
+const startX=W/2-(gridW-1)*gapX/2,startY=78;
 G._btns.campaignHexes=[];
 if(!campaign.territories)return;
 // Draw connections
@@ -2688,7 +2694,7 @@ else if(campaign.subAction==='build'&&sel){
 const infoY=panelY+22;
 ctx.font='700 14px '+FD;ctx.textAlign='center';ctx.fillStyle='#44ff88';ctx.fillText('BUILD on '+sel.name,W/2,infoY);
 ctx.font='500 10px '+FB;ctx.fillStyle=C_MUT;ctx.fillText('Choose a building type:',W/2,infoY+16);
-const opts=[{name:'Outpost',desc:'+15 income/turn',cost:30,icon:'△',id:'outpost'},{name:'Garrison',desc:'+1 defense level',cost:40,icon:'■',id:'garrison'},{name:'Lab',desc:'+5% tower damage',cost:50,icon:'☆',id:'lab'}];
+const opts=[{name:'Outpost',desc:'+15 income/turn · +50 ◆ defending',cost:30,icon:'△',id:'outpost'},{name:'Garrison',desc:'+3 defending lives per level',cost:40,icon:'■',id:'garrison'},{name:'Lab',desc:'+5% tower damage defending',cost:50,icon:'☆',id:'lab'}];
 const cw2=Math.min(W*0.85,340),ch2=50,gap2=8,sy2=infoY+28;
 G._btns.campaignBuildOpts=[];
 for(let i=0;i<opts.length;i++){const o=opts[i];const cx=W/2-cw2/2,cy=sy2+i*(ch2+gap2);
@@ -2710,7 +2716,7 @@ else if(campaign.subAction==='recruit'&&sel){
 const infoY=panelY+22;
 ctx.font='700 14px '+FD;ctx.textAlign='center';ctx.fillStyle=C_ACC;ctx.fillText('RECRUIT at '+sel.name,W/2,infoY);
 ctx.font='500 10px '+FB;ctx.fillStyle=C_MUT;ctx.fillText('Choose a unit type:',W/2,infoY+16);
-const opts=[{name:'Infantry',desc:'+3 lives when attacking',cost:20,icon:'🗡',id:'infantry'},{name:'Armor',desc:'+15% tower damage',cost:35,icon:'🛡',id:'armor'},{name:'Artillery',desc:'Free starting tower',cost:45,icon:'💣',id:'artillery'}];
+const opts=[{name:'Infantry',desc:'+35 assault bio each',cost:20,icon:'🗡',id:'infantry'},{name:'Armor',desc:'Shields your swarm +25 bio',cost:35,icon:'🛡',id:'armor'},{name:'Artillery',desc:'Free Devastator +50 bio',cost:45,icon:'💣',id:'artillery'}];
 const cw2=Math.min(W*0.85,340),ch2=50,gap2=8,sy2=infoY+28;
 G._btns.campaignRecruitOpts=[];
 for(let i=0;i<opts.length;i++){const o=opts[i];const cx=W/2-cw2/2,cy=sy2+i*(ch2+gap2);
@@ -2733,7 +2739,8 @@ ctx.font='700 14px '+FD;ctx.textAlign='center';ctx.fillStyle=C_DNG;ctx.fillText(
 ctx.font='500 11px '+FB;ctx.fillStyle=C_MUT;
 ctx.fillText('Tap an adjacent neutral or swarm territory',W/2,infoY+18);
 if(campaign.attackSource>=0){const src=campaign.territories[campaign.attackSource];
-ctx.fillText('Attacking from: '+src.name,W/2,infoY+34);}
+ctx.fillText('Attacking from: '+src.name,W/2,infoY+34);
+ctx.fillText('Your army deploys as bio-mass + heavy strains',W/2,infoY+50);}
 const cbx=W/2-50,cby=infoY+46;
 ctx.fillStyle='rgba(20,20,30,0.8)';ctx.strokeStyle=C_MUT;ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(cbx,cby,100,30,6);ctx.fill();ctx.stroke();
 ctx.font='600 11px '+FD;ctx.textAlign='center';ctx.fillStyle=C_MUT;ctx.fillText('CANCEL',W/2,cby+18);
@@ -2766,7 +2773,7 @@ const t=campaign.territories[campaign.swarmAttackTarget];
 ctx.font='600 14px '+FB;ctx.fillStyle=C_TXT;ctx.fillText('The Swarm attacks: '+t.name,W/2,H*0.22);
 ctx.font='500 11px '+FB;ctx.fillStyle=C_MUT;
 ctx.fillText('Garrison level: '+t.garrison+' | Buildings: '+(t.buildings||[]).length,W/2,H*0.28);
-ctx.fillText('Defend or lose this territory!',W/2,H*0.34);
+ctx.fillText('Defense: '+(10+Math.min(8,Math.floor(campaign.swarmThreat)))+' waves — or lose this territory!',W/2,H*0.34);
 const bw=160,bh=44,bx=W/2-bw/2;let by=H*0.42;
 ctx.fillStyle='#003344';ctx.strokeStyle=C_ACC;ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(bx,by,bw,bh,8);ctx.fill();ctx.stroke();
 ctx.font='700 16px '+FD;ctx.fillStyle=C_ACC;ctx.fillText('DEFEND',W/2,by+bh/2+2);
@@ -2831,7 +2838,7 @@ ctx.font='600 '+Math.min(12,W*0.03)+'px '+FD;ctx.textAlign='center';ctx.fillStyl
 G._btns.offenseBack={x:W/2-bw/2,y:by,w:bw,h:bh};}
 
 function startOffenseGame(mapIdx){
-offense.active=true;offense.mapIdx=mapIdx;offense.bioMass=OFFENSE_MAPS[mapIdx].bio||150;offense.unitsPast=0;offense.goalUnits=10;offense.waveCurrent=1;offense.spawnCooldown=0;offense.enemies=[];
+offense.active=true;offense.mapIdx=mapIdx;offense.bioMass=OFFENSE_MAPS[mapIdx].bio||150;offense.unitsPast=0;offense.goalUnits=10;offense.waveCurrent=1;offense.spawnCooldown=0;offense.enemies=[];offense._escT=0;offense._escLevel=0;offense._freeHeavies=0;
 const om=OFFENSE_MAPS[mapIdx];const mi=MAPS.findIndex(m=>m.id===om.mapId);
 G.mapIdx=mi;setupMap(mi);
 // Place AI towers
@@ -2846,10 +2853,15 @@ G.phase='offenseGame';offense.campaignAttacking=false;offense._rewarded=false;re
 function startCampaignOffense(tid,source){
 const mi=getCampaignMapIdx(tid);const di=getCampaignDiffIdx(tid);
 offense.active=true;offense.campaignAttacking=true;offense.mapIdx=0;
-offense.unitsPast=0;offense.spawnCooldown=0;
+offense.unitsPast=0;offense.spawnCooldown=0;offense._escT=0;offense._escLevel=0;
 // Scale difficulty based on territory distance (di)
 const bioBase=220+source.army.infantry*35+source.army.armor*25+source.army.artillery*50;
 offense.bioMass=bioBase;
+// Army composition shapes the assault beyond raw bio:
+//  - armor units pre-harden the strain (spawned units briefly shielded)
+//  - artillery units deploy as free heavy strains at the start
+if(source.army.armor>0)swarmEnhanced.armorTimer=Math.max(swarmEnhanced.armorTimer||0,5+source.army.armor*3);
+offense._freeHeavies=Math.min(3,source.army.artillery||0);
 const goalBase=6+di*2+(campaign.territories[tid].garrison||0)*2;
 offense.goalUnits=goalBase;
 offense.waveCurrent=1;
@@ -2871,6 +2883,8 @@ G.orbitalCD=999;G.chronoCD=999;G.repairCD=999;G.chronoActive=0;G.orbitalTargetin
 G.showRadialMenu=false;G.showTowerInfo=false;G.towerInfoIdx=-1;G._btns={};G.endlessMode=false;
 nextEnemyId=0;particlePool.pool.forEach(p=>p.active=false);projectilePool.pool.forEach(p=>p.active=false);
 dmgNumPool.pool.forEach(d2=>d2.active=false);chainPool.pool.forEach(c=>c.active=false);
+// Artillery deploys as free heavy strains on the field at kickoff.
+for(let i=0;i<(offense._freeHeavies||0);i++)spawnOffenseEnemy('devastator');
 G.phase='offenseGame';
 startAmbient(MAPS[mi].biome);}
 
@@ -2898,7 +2912,7 @@ ctx.fillText(offense.unitsPast+'/'+offense.goalUnits+' units past',W/2,barY+barH
 ctx.textBaseline='alphabetic';
 // Bio-energy display + swarm ability buttons
 ctx.font='600 9px '+FD;ctx.textAlign='left';ctx.fillStyle='#aa88ff';
-ctx.fillText('⚡'+Math.floor(swarmEnhanced.bioEnergy),10,topBarH+14);
+ctx.fillText('⚡'+Math.floor(swarmEnhanced.bioEnergy)+' PULSE',10,topBarH+14);
 const swarmAbs=[{type:'frenzy',label:'FREN',cost:30},{type:'armor',label:'ARMR',cost:40},{type:'tunnel',label:'TNEL',cost:50}];
 if(swarmEnhanced.hiveTitanUnlocked)swarmAbs.push({type:'titan',label:'TITAN',cost:0});
 G._btns.swarmAbilities=[];
@@ -2994,8 +3008,10 @@ function spawnOffenseEnemy(typeId){
 const et2=ET[typeId];if(!et2)return;
 const d=DIFFS[0];
 const pi=Math.floor(Math.random()*currentPaths.length);
-const hpMult=1.3;
-const e={id:nextEnemyId++,type:typeId,hp:Math.round(et2.hp*d.hpM*hpMult),maxHp:Math.round(et2.hp*d.hpM*hpMult),speed:et2.speed*d.spdM,reward:0,lives:et2.lives,color:et2.color,shape:et2.shape,size:et2.size,armor:et2.armor,flying:et2.flying,pathIdx:pi,pathProgress:0,progress:0,px:0,py:0,alive:true,slowTimer:0,empTimer:0,healDisabled:0,shieldTimer:swarmEnhanced.armorTimer>0?10:0,explodes:et2.explodes||false,spawns:et2.spawns||false,heals:et2.heals||false,burrows:et2.burrows||false,releases:et2.releases||false,phases:et2.phases||false,disables:et2.disables||false,burrowTimer:0,phaseTimer:0,disableTimer:0,releaseTimer:0,lastPhaseToggle:0};
+// Player-swarm units use FIXED multipliers (hp x1.30, speed x1.0) so assault
+// difficulty is independent of defense-difficulty tuning.
+const hpMult=1.3/(d.hpM||1);
+const e={id:nextEnemyId++,type:typeId,hp:Math.round(et2.hp*d.hpM*hpMult),maxHp:Math.round(et2.hp*d.hpM*hpMult),speed:et2.speed,reward:0,lives:et2.lives,color:et2.color,shape:et2.shape,size:et2.size,armor:et2.armor,flying:et2.flying,pathIdx:pi,pathProgress:0,progress:0,px:0,py:0,alive:true,slowTimer:0,empTimer:0,healDisabled:0,shieldTimer:swarmEnhanced.armorTimer>0?10:0,explodes:et2.explodes||false,spawns:et2.spawns||false,heals:et2.heals||false,burrows:et2.burrows||false,releases:et2.releases||false,phases:et2.phases||false,disables:et2.disables||false,burrowTimer:0,phaseTimer:0,disableTimer:0,releaseTimer:0,lastPhaseToggle:0};
 const pos=getPosOnPath(0,pi);e.px=pos.x;e.py=pos.y;
 G.enemies.push(e);}
 
@@ -3506,7 +3522,7 @@ drawProjectiles();drawChains();if(!settings.reduceMotion)VFX.drawDeathRings(ctx)
 // HUD
 ctx.fillStyle='rgba(10,14,26,0.9)';ctx.fillRect(0,0,W,44);
 ctx.font='700 14px '+FD;ctx.textAlign='left';ctx.fillStyle=C_ACC;ctx.fillText('SECTOR CLASH — ATTACK',10,16);
-ctx.font='600 12px '+FD;ctx.fillStyle=C_TXT;ctx.fillText('Round '+clash.round+'/'+clash.maxRounds,10,34);
+ctx.font='600 12px '+FD;ctx.fillStyle=C_TXT;ctx.fillText('Round '+clash.round+'/'+clash.maxRounds+' vs RIVAL VEK',10,34);
 ctx.textAlign='right';ctx.fillStyle='#44ff88';ctx.fillText('Bio: '+Math.floor(offense.bioMass),W-56,16);
 ctx.fillStyle=C_WRN;ctx.fillText('Past: '+offense.unitsPast+'/'+offense.goalUnits,W-56,34);
 // Forfeit button — the attack phase previously had no way out.
@@ -3588,8 +3604,8 @@ const badge=getClashBadge(clash.elo);
 ctx.fillStyle=badge.color;ctx.font='700 16px '+FD;
 ctx.fillText(badge.icon+' '+badge.name+' ('+clash.elo+' ELO)',W/2,H*0.26);
 ctx.font='500 12px '+FB;ctx.fillStyle=C_MUT;
-ctx.fillText('Threat generated: '+clash.threat,W/2,H*0.34);
-ctx.fillText('AI threat: '+clash.aiThreat,W/2,H*0.38);
+ctx.fillText('Momentum built: '+clash.threat,W/2,H*0.34);
+ctx.fillText('Rival momentum: '+clash.aiThreat,W/2,H*0.38);
 drawCreditLog(H*0.44);
 // Menu button
 const by=H*0.62,bw2=140,bh2=44;
@@ -3866,30 +3882,36 @@ ctx.fillText('◇ '+helixCredits+' Helix Credits',W/2,H*0.96);
 let seenBriefings=new Set();
 const MODE_BRIEFS={
 menuPlay:{icon:'⬡',color:C_ACC,title:'CLASSIC DEFENSE',lines:[
+'The Swarm overran the Helix Sector. You command its last defenders.',
 'Build towers along the path and survive all '+TOTAL_WAVES+' waves.',
-'Earn ◆ Nexium from kills — spend it on towers, upgrades and abilities.',
+'◆ Nexium from kills pays for towers, upgrades and abilities.',
 'Victories pay ◇ Helix Credits, stars and XP. Keep every life for 3★.']},
 menuEndless:{icon:'∞',color:'#44ff88',title:'ENDLESS MODE',lines:[
+'The Swarm adapts without limit. Neither do you.',
 'Waves scale forever — how deep can you go?',
 'Choose your biome, then hold the line.',
 'Survive to wave 25 and 50 for achievements.']},
 menuCampaign:{icon:'⚔',color:'#ff8844',title:'THE HELIX WAR',lines:[
-'Turn-based conquest for the whole sector.',
-'Attack territories by commanding the swarm yourself.',
-'Defend when the Swarm strikes back.',
-'More territory held = more income each turn.']},
+'Reclaim the sector territory by territory, turn by turn.',
+'Spend AP to build, recruit armies, and attack neighbors.',
+'Attacks are fought as the Swarm: your army becomes your bio-mass.',
+'End your turn and the Swarm strikes back. Aggression rises each turn.',
+'Capture the Swarm Hive — or hold 15 of 20 territories — to win.']},
 menuOffense:{icon:'🦠',color:'#ff4466',title:'SWARM COMMANDER',lines:[
-'Reverse roles — YOU send the swarm.',
-'Spend bio-mass to spawn units. Get enough past the AI towers to win.',
-'Clear all five maps to unlock the Hive Titan.']},
+'You wield a captured hive-strain as a living weapon.',
+'Breed units from bio-mass ◆. Pulse ⚡ charges hive abilities.',
+'Get enough units past the fortress towers to breach the gate.',
+'The fortress reinforces as time passes — press the attack.',
+'Clear all five fortresses to unlock the Hive Titan.']},
 menuAllied:{icon:'👥',color:'#00dddd',title:'ALLIED DEFENSE',lines:[
-'Co-op defense beside AI commander Kira.',
-'She builds on the right flank — you hold the left.',
-'Survive 30 waves together.']},
+'Hold the line beside Commander Kira of the Vanguard.',
+'She fortifies the right flank — you hold the left.',
+'Lives are shared. Survive all 30 waves together.']},
 menuClash:{icon:'⚡',color:'#ffcc00',title:'SECTOR CLASH',lines:[
-'A best-of-5 duel against an AI rival.',
-'Each round: defend your sector, then attack with your own swarm.',
-'Win the match to climb the Elo ladder and earn ◇.']}};
+'A best-of-5 duel against rival commander VEK.',
+'Defend your sector, then counterattack with your own swarm.',
+'Kills build momentum — momentum funds your assault.',
+'Win the series to climb the Elo ladder and earn ◇.']}};
 function showModeBriefing(key,action){
 if(seenBriefings.has(key)){action();return;}
 const brief=MODE_BRIEFS[key];if(!brief){action();return;}

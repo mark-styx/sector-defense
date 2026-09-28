@@ -154,3 +154,37 @@ test('standard difficulty no longer hands out 25 lives (playtest: "too easy")', 
   assert.equal(g.window._getLives(), 18, 'Standard starts with 18 lives');
   assert.equal(state(g).nexium, 300);
 });
+
+test('difficulty ladder: enemies are stronger, faster and denser per stage', async () => {
+  const g = await boot();
+  const measure = async (diffIdx) => {
+    tapBtn(g, 'menuPlay'); g.frame(2);
+    const map0 = g.window._getBtns().maps[0];
+    g.tap(center(map0).x, center(map0).y); g.frame(2);
+    const d = g.window._getBtns().diffs.find(x => x.idx === diffIdx);
+    g.tap(center(d).x, center(d).y); g.frame(2);
+    tapBtn(g, 'heroNone'); tapBtn(g, 'heroDeploy'); g.frame(2);
+    // Let wave 1 run out passively (leaks end the wave), then open wave 2:
+    // base composition 10 skitterlings distinguishes the density ladder
+    // (wave 1's 6 skitterlings rounds identically for x1.1 and x1.15).
+    tapBtn(g, 'startWave'); g.frame(2);
+    g.tap(195, 400); g.frame(2);
+    let guard = 0;
+    while (state(g).phase === 'wave' && guard++ < 90 * 60) g.frame(1);
+    if (state(g).phase === 'waveSummary') { g.tap(195, 400); g.frame(2); }
+    tapBtn(g, 'startWave'); g.frame(2);
+    g.tap(195, 400); g.frame(2);
+    for (let i = 0; i < 120 && g.window._getEnemies().length === 0; i++) g.frame(1);
+    const e = g.window._getEnemies()[0];
+    const queue = state(g).spawnQueueLength + g.window._getEnemies().length;
+    tapBtn(g, 'pause'); g.frame(2); tapBtn(g, 'quit'); g.frame(2);
+    return {queue, hp: e ? e.hp : 0};
+  };
+  const std = await measure(0);
+  const vet = await measure(1);
+  const eli = await measure(2);
+  assert.ok(vet.hp > std.hp, `Veteran enemies tougher than Standard (${vet.hp} vs ${std.hp})`);
+  assert.ok(eli.hp > vet.hp, `Elite enemies tougher than Veteran (${eli.hp} vs ${vet.hp})`);
+  assert.ok(vet.queue > std.queue, `Veteran denser than Standard (${vet.queue} vs ${std.queue})`);
+  assert.ok(eli.queue > vet.queue, `Elite denser than Veteran (${eli.queue} vs ${vet.queue})`);
+});

@@ -217,8 +217,9 @@ test('full wave loop: place tower via radial menu, run wave, collect rewards', a
   const g = await boot();
   await startClassic(g);
   const L = g.window._getLayout();
-  // Cell (0,0) is a valid build spot on Outpost Alpha (adjacent to path row 1).
-  g.tap(L.offsetX + 0.5 * L.cellSize, L.offsetY + 0.5 * L.cellSize);
+  // Cell (3,2) covers a long path stretch on Outpost Alpha (strong spot;
+  // the corner cell (0,0) only clips the path edge).
+  g.tap(L.offsetX + 3.5 * L.cellSize, L.offsetY + 2.5 * L.cellSize);
   g.frame(2);
   const radial = g.window._getBtns().radial;
   assert.ok(radial && radial.length > 0, 'radial menu should open');
