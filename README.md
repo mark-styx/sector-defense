@@ -18,7 +18,7 @@ Built as a single-file HTML5 Canvas game, optimized for iPhone (390×844 portrai
 - 10 tower types with upgrade paths and cosmetic skins
 - 12 enemy types across 3 biomes (Urban, Volcanic, Arctic)
 - 18 Arsenal Cards — equip 3 as a loadout for passive bonuses
-- 4 difficulty levels (Recruit → Veteran → Commander → Legendary)
+- 4 difficulty levels (Standard → Veteran → Elite → Legendary; all stat and economy axes disclosed on the select card)
 - 5 playable heroes with abilities, ultimates, and persistent XP/leveling
 - Helix Store with cosmetic skins, bundles, and simulated IAP (daily first-win and win-streak credit bonuses)
 - 10 achievements, tower mastery, commander levels, and ELO-ranked Sector Clash
@@ -45,7 +45,7 @@ Then open `http://localhost:8021` on your phone or in a mobile-sized browser win
 Two layers:
 
 ```bash
-npm test             # 49 headless VM tests (~45s, no browser needed)
+npm test             # 62 headless VM tests (~50s, no browser needed)
 npm run test:browser # real-browser smoke, Chromium + WebKit (iOS Safari core)
                      # (needs: npx playwright install chromium-headless-shell webkit)
 node tools/balance-audit.mjs  # live balance report: tower ROI, wave economies,
