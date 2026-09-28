@@ -368,3 +368,27 @@ Source: user played on iPhone via LAN/tunnel URLs. Five findings, all fixed (2c3
 
 Tests: +7 (playtest.test.mjs) = 47/47 headless, dual-engine browser smoke green
 (briefing dismissal wired into all three browser sessions).
+
+## Round 34 — Difficulty ladder + critical mode review (v7.2.2)
+
+User directives: (1) difficulty via stronger/faster enemies, not lives;
+(2) critical review of every mode's logic/premise.
+
+Measurements that drove decisions:
+- Stat-only bump (1.15/1.08) left strong-bot Standard margin at 18/18 —
+  identical to baseline. Stats alone don't threaten optimized play.
+- Density x1.2 on Legendary: bot dies wave 9 (unwinnable) -> Legendary stays
+  x1.0 density, rises via 2.05/1.5 stats.
+- Fortress-escalation timer for offense: broke Citadel winnability at 90s,
+  150s, AND single-pass 180s (6/8 fails) -> reverted. The mode's lack of a
+  fail state is a design problem, documented in MODE_REVIEW.md open items.
+
+Final ladder: Std 1.15/1.08/x1.0, Vet 1.45/1.22/x1.1, Elite 1.7/1.32/x1.15,
+Leg 2.05/1.5/x1.0. Offense units pinned hp x1.30 / speed x1.0 (decoupled
+from DIFFS; also cured the Citadel flake).
+
+Smoking gun found by the review: campaign RECRUIT descriptions described
+mechanics that did not exist anywhere in the code. Armies now have distinct,
+truthful effects (armor -> spawn shields, artillery -> free Devastators).
+
+Full critique: MODE_REVIEW.md. 48/48 headless + browser smoke green.
