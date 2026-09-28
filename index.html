@@ -1250,14 +1250,14 @@ if(slows)e.slowTimer=2.0;if(disHeal)e.healDisabled=3.0;
 if(e.hp<=0&&e.alive)killEnemy(e,towerTypeId,towerIsAI);
 if(splash>0){const sp=splash*cellSize*(isNuke?2:1);for(let i=0;i<G.enemies.length;i++){const o=G.enemies[i];if(o===e||!o.alive)continue;const dx=o.px-e.px,dy=o.py-e.py;if(Math.sqrt(dx*dx+dy*dy)<sp){const sd=Math.max(1,Math.floor(dmg*(isNuke?0.8:0.5))-(o.empTimer>0?0:o.armor));o.hp-=sd;spawnDmgNum(o.px,o.py,sd,C_WRN);if(slows)o.slowTimer=2.0;if(disHeal)o.healDisabled=3.0;if(o.hp<=0&&o.alive)killEnemy(o,towerTypeId,towerIsAI);}}}}
 function applySplashDmg(px,py,dmg,splash){const sp=splash*cellSize;for(let i=0;i<G.enemies.length;i++){const e=G.enemies[i];if(!e.alive)continue;const dx=e.px-px,dy=e.py-py;if(Math.sqrt(dx*dx+dy*dy)<sp){const sd=Math.max(1,Math.floor(dmg*0.5)-(e.empTimer>0?0:e.armor));e.hp-=sd;spawnDmgNum(e.px,e.py,sd,C_WRN);if(e.hp<=0&&e.alive)killEnemy(e);}}}
+// Late-game kill rewards taper (floor 60% from wave 41) so flawless runs
+// stop banking 15k surplus; endless mode keeps its own 1.08 economy curve.
+function killRewardTaper(w){return G.endlessMode?1:Math.max(0.6,1-Math.max(0,w-25)*0.025);}
 function killEnemy(e,towerTypeId,towerIsAI){e.alive=false;
 // Allied mode: credit the kill to whichever side's tower landed it.
 if(allied.active){if(towerIsAI)allied.aiKills++;else allied.playerKills++;}
 const scavBonus=loadoutBonuses.scavengerBonus;const d=DIFFS[G.diffIdx];
-// Late-game kill rewards taper (floor 60% from wave 41) so flawless runs
-// stop banking 15k surplus; endless mode keeps its own 1.08 economy curve.
-const taperWave=allied.active?allied.wave:G.wave;
-const taper=G.endlessMode?1:Math.max(0.6,1-Math.max(0,taperWave-25)*0.025);
+const taper=killRewardTaper(allied.active?allied.wave:G.wave);
 const rew=Math.round(e.reward*d.rewM*taper);G.nexium+=Math.round(rew*(1+scavBonus+(campaign.active?campaignResearch.nexiumBonus:0)));G.score+=rew;G.totalKills++;G.waveKills++;G.totalNexEarned+=rew;G.waveNex+=rew;G.enemiesAlive=Math.max(0,G.enemiesAlive-1);emitP(e.px,e.py,18,e.color,120,0.7,5);emitP(e.px,e.py,8,'#ffffff',80,0.3,2);VFX.addDeathRing(e.px,e.py,e.color,e.size*cellSize*3);
 tryVibrate(25);if(towerTypeId){towerMasteryKills[towerTypeId]=(towerMasteryKills[towerTypeId]||0)+1;if(getMasteryTier(towerTypeId)>=5)checkAchievement('tower_master');}
 if(e.explodes){emitP(e.px,e.py,25,'#aaff22',150,0.8,5);playSound('explosion');}
@@ -3121,9 +3121,6 @@ if(G._btns.campaignBack&&hitTest(px,py,G._btns.campaignBack)){G.phase='menu';cam
 // Sub-action cancel
 if(G._btns.campaignSubCancel&&hitTest(px,py,G._btns.campaignSubCancel)){campaign.subAction='';playSound('click');return;}
 // BUILD sub-action options
-// Building costs scale with how many of that type you already own
-// (x1, x1.5, x2, ...) — outpost spam stops being a 2-turn-payback no-brainer.
-function getCampaignBuildCost(opt){let owned=0;for(const t of campaign.territories)if(t.owner==='player')for(const b of t.buildings)if(b===opt.id)owned++;return Math.round(opt.cost*(1+owned*0.5));}
 if(campaign.subAction==='build'&&G._btns.campaignBuildOpts){
 for(const opt of G._btns.campaignBuildOpts){if(hitTest(px,py,opt)){
 if(campaign.nexiumBank>=opt.cost){
@@ -3198,6 +3195,11 @@ function checkCampaignDefeat(){
 const pc=getCampaignPlayerTerritories().length;
 if(pc<2||campaign.territories[0].owner!=='player'){G.phase='campaignDefeat';saveAllState();playSound('gameover');return;}
 campaign.turn++;campaign.maxAP=getCampaignAP();campaign.actionPoints=campaign.maxAP;campaign.selectedTerritory=-1;campaign.subAction='';saveAllState();G.phase='campaignMap';}
+
+// Campaign building costs scale with how many of that type the player
+// already owns (x1, x1.5, x2, ...) — outpost spam stops being a
+// 2-turn-payback no-brainer and "afford or not" becomes a real decision.
+function getCampaignBuildCost(opt){let owned=0;for(const t of campaign.territories)if(t.owner==='player')for(const b of t.buildings)if(b===opt.id)owned++;return Math.round(opt.cost*(1+owned*0.5));}
 
 function checkCampaignVictory(){
 if(campaign.territories[18].owner==='player'){G.phase='campaignVictory';saveAllState();playVictoryFanfare();return true;}
@@ -3525,12 +3527,13 @@ G.orbitalTargeting=false;G.waveKills=0;G.waveNex=0;G.shakeTimer=0;G.placementAni
 G.endlessMode=false;nextEnemyId=0;
 particlePool.pool.forEach(p=>p.active=false);projectilePool.pool.forEach(p=>p.active=false);
 dmgNumPool.pool.forEach(d=>d.active=false);chainPool.pool.forEach(c=>c.active=false);
-// Generate 5 waves with threat scaling — budgets match classic early-wave
-// equivalents (~x3.5 the old formality waves) so the defend half is a real
-// contest, then escalate with AI threat and Elo.
+// Generate 5 waves with threat scaling — budgets sit at classic midwave
+// equivalents (120..360 points) so the defend half of a round-1 duel is a
+// real contest without being endless-wave-20 hard, then scale with AI
+// threat and Elo.
 clash._clashWaves=[];
 for(let i=0;i<5;i++){
-const budget=(210+i*105)*(1+clash.aiThreat*0.01)*clash.aiDifficulty;
+const budget=(120+i*60)*(1+clash.aiThreat*0.01)*clash.aiDifficulty;
 clash._clashWaves.push(generateEndlessWave(budget,i));}
 G.phase='build';_matchFinalized=false;
 startAmbient(MAPS[mi].biome);}
@@ -5188,7 +5191,11 @@ window._getClashActive=function(){return clash.active;};
 window._getProg=function(){return JSON.parse(JSON.stringify(prog));};
 window._getLayout=function(){return {offsetX,offsetY,cellSize,cols:currentCols,rows:currentRows};};
 window._getPathCells=function(){const s=new Set();for(const p of currentPaths)for(const[c,r]of p)s.add(c+','+r);return[...s].map(k=>k.split(',').map(Number));};
-window._getTowersRaw=function(){return G.towers.map(t=>({col:t.col,row:t.row,type:t.typeIdx,level:t.level,cd:t.cooldown,dis:t.disabled,abCd:t.abilityCooldown}));};
+window._getTowersRaw=function(){return G.towers.map(t=>({col:t.col,row:t.row,type:t.typeIdx,level:t.level,cd:t.cooldown,dis:t.disabled,abCd:t.abilityCooldown,bt:t.buildTimer||0}));};
+window._getLoadoutBonuses=function(){return JSON.parse(JSON.stringify(loadoutBonuses));};
+window._getTowerStatsAt=function(i){return JSON.parse(JSON.stringify(getTowerStats(G.towers[i])));};
+window._getAlliedState=function(){return JSON.parse(JSON.stringify({active:allied.active,wave:allied.wave,playerKills:allied.playerKills,aiKills:allied.aiKills}));};
+window._killRewardTaper=function(w){return killRewardTaper(w);};
 window._getTutorial=function(){return {active:TUTORIAL.active,step:TUTORIAL.step,wait:TUTORIAL.waitingFor,done:prog.tutorialDone};};
 window._getModal=function(){return G._modal?{title:G._modal.title,yes:G._modal.yesLabel,no:G._modal.noLabel,btns:{yes:G._btns.modalYes,no:G._btns.modalNo}}:null;};
 window._getCreditLog=function(){return JSON.parse(JSON.stringify(_creditLog));};
