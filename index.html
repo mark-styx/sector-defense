@@ -1529,7 +1529,7 @@ function drawHeroHUD() {
   ctx.lineWidth = 1.5;
   ctx.beginPath(); ctx.roundRect(abX, abY, bSize, bSize, 6); ctx.fill(); ctx.stroke();
   if (!abReady && heroState.abilityCd > 0) {
-    const cdPct = heroState.abilityCd / (hero.ability.cd - heroState.abilityCdBonus);
+    const cdPct = heroState.abilityCd / ((hero.ability.cd - heroState.abilityCdBonus) * loadoutBonuses.abilityCdMultiplier);
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
     ctx.fillRect(abX + 2, abY + 2 + bSize * (1 - cdPct) - 4, bSize - 4, bSize * cdPct);
     ctx.font = '700 9px ' + FD; ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
@@ -1551,7 +1551,7 @@ function drawHeroHUD() {
   ctx.beginPath(); ctx.roundRect(ultX, ultY, bSize, bSize, 6); ctx.fill(); ctx.stroke();
   ctx.shadowBlur = 0;
   if (!ultReady && heroState.ultimateCd > 0) {
-    const ucdPct = heroState.ultimateCd / (hero.ultimate.cd);
+    const ucdPct = heroState.ultimateCd / (hero.ultimate.cd * loadoutBonuses.abilityCdMultiplier);
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
     ctx.fillRect(ultX + 2, ultY + 2 + bSize * (1 - ucdPct) - 4, bSize - 4, bSize * ucdPct);
     ctx.font = '700 9px ' + FD; ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
@@ -1859,7 +1859,7 @@ function useHeroAbility() {
       break;
     }
   }
-  heroState.abilityCd = ab.cd - heroState.abilityCdBonus;
+  heroState.abilityCd = (ab.cd - heroState.abilityCdBonus) * loadoutBonuses.abilityCdMultiplier;
   playSound('ability');
 }
 
@@ -1911,7 +1911,7 @@ function useHeroUltimate() {
       addToast('Prophecy! Enemies weakened and slowed!');
       break;
   }
-  heroState.ultimateCd = ult.cd;
+  heroState.ultimateCd = ult.cd * loadoutBonuses.abilityCdMultiplier;
 }
 
 function findNearestPathPoint(x, y) {

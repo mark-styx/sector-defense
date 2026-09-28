@@ -25,7 +25,8 @@ Every number below is machine-measured on the current build (v7.2.3, main @ 93d6
 >   10.4 > skitterling 9.8 (was skitterling dominant at 13.0).
 > - R7 allied kills attributed live (playerKills/aiKills shown on the victory screen).
 > - R9 cards: all 18 audit-read; frost_field probe 0.820 = the designed 18% aura;
->   rapid_deploy powers a real build-time system (1.5s spin-up mid-wave, 0.75s carded).
+>   rapid_deploy powers a real build-time system (1.5s spin-up mid-wave, 0.75s carded);
+>   quick_reflexes scales the three global cooldowns AND hero ability/ultimate CDs.
 > - R10 campaign: building costs +50% per same-type owned (outpost 30→45→60...).
 > Numbers in the findings below describe the round-36 build the review measured.
 

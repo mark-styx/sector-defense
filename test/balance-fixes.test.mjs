@@ -53,6 +53,31 @@ test('R9: quick_reflexes shortens global ability cooldowns', async () => {
   assert.equal(state(g).phase, 'wave');
 });
 
+test('R9: quick_reflexes also scales hero ability cooldowns', async () => {
+  const g = await loadGame({seed: {loadout: {unlockedCards: ['quick_reflexes'],
+    equippedCards: ['quick_reflexes'], unlockedSkins: {}, equippedSkins: {}, matchCount: 0}}}).ready();
+  g.frame(170);
+  // Deploy Commander Vex (ability cd 45, ultimate cd 90).
+  tapBtn(g, 'menuPlay');
+  const maps = g.window._getBtns().maps;
+  const mc = center(maps[0]); g.tap(mc.x, mc.y); g.frame(2);
+  const diffs = g.window._getBtns().diffs;
+  const dc = center(diffs[0]); g.tap(dc.x, dc.y); g.frame(2);
+  const cards = g.window._getBtns().heroCards;
+  const hc = center(cards[0]); g.tap(hc.x, hc.y); g.frame(2);
+  tapBtn(g, 'heroDeploy');
+  assert.equal(g.window._getHeroState().deployed, true);
+  // Fire the hero ability mid-wave; CD must land at 45*0.85 = 38.25.
+  tapBtn(g, 'startWave');
+  g.tap(195, 422); g.frame(2);
+  const btns = g.window._getBtns();
+  assert.ok(btns.heroAbility, 'hero ability button present during wave');
+  const ab = center(btns.heroAbility);
+  g.tap(ab.x, ab.y); g.frame(2);
+  const h = g.window._getHeroState();
+  assert.ok(Math.abs(h.abCd - 38.25) < 0.05, `hero ability CD should be 38.25, got ${h.abCd}`);
+});
+
 test('R9: thick_armor reduces leak life damage to zero for 1-life enemies', async () => {
   const g = await loadGame({seed: {loadout: {unlockedCards: ['thick_armor'],
     equippedCards: ['thick_armor'], unlockedSkins: {}, equippedSkins: {}, matchCount: 0}}}).ready();

@@ -494,8 +494,11 @@ Branch feat/balance-upgrades (ff to main after). No review verdict was
 taken on faith: every change re-measured with the audit tool and the
 winnability gates re-run until green.
 
-- **R9 cards (0986dab)**: hawkeye/heavy_rounds multiply getTowerStats
-  range/damage; quick_reflexes scales orbital/chrono/repair CDs;
+- **R9 cards (0986dab + second verification pass)**: hawkeye/heavy_rounds
+  multiply getTowerStats range/damage; quick_reflexes scales
+  orbital/chrono/repair CDs AND hero ability/ultimate CDs (the card says
+  "Ability CD -15%" with no global-vs-hero carve-out, so the second
+  verification pass extended it — verified Vex 45 -> 38.25 via real taps);
   thick_armor cuts leak life damage; drone_support = first Drone Bay
   free; rapid_deploy powers a REAL build-time system (1.5s mid-wave
   spin-up, 0.75s with card, progress arc drawn, build-phase placements

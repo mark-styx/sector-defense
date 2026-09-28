@@ -45,7 +45,7 @@ Then open `http://localhost:8021` on your phone or in a mobile-sized browser win
 Two layers:
 
 ```bash
-npm test             # 62 headless VM tests (~50s, no browser needed)
+npm test             # 63 headless VM tests (~50s, no browser needed)
 npm run test:browser # real-browser smoke, Chromium + WebKit (iOS Safari core)
                      # (needs: npx playwright install chromium-headless-shell webkit)
 node tools/balance-audit.mjs  # live balance report: tower ROI, wave economies,
