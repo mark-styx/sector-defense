@@ -1250,7 +1250,7 @@ if(slows)e.slowTimer=2.0;if(disHeal)e.healDisabled=3.0;
 if(e.hp<=0&&e.alive)killEnemy(e,towerTypeId,towerIsAI);
 if(splash>0){const sp=splash*cellSize*(isNuke?2:1);for(let i=0;i<G.enemies.length;i++){const o=G.enemies[i];if(o===e||!o.alive)continue;const dx=o.px-e.px,dy=o.py-e.py;if(Math.sqrt(dx*dx+dy*dy)<sp){const sd=Math.max(1,Math.floor(dmg*(isNuke?0.8:0.5))-(o.empTimer>0?0:o.armor));o.hp-=sd;spawnDmgNum(o.px,o.py,sd,C_WRN);if(slows)o.slowTimer=2.0;if(disHeal)o.healDisabled=3.0;if(o.hp<=0&&o.alive)killEnemy(o,towerTypeId,towerIsAI);}}}}
 function applySplashDmg(px,py,dmg,splash){const sp=splash*cellSize;for(let i=0;i<G.enemies.length;i++){const e=G.enemies[i];if(!e.alive)continue;const dx=e.px-px,dy=e.py-py;if(Math.sqrt(dx*dx+dy*dy)<sp){const sd=Math.max(1,Math.floor(dmg*0.5)-(e.empTimer>0?0:e.armor));e.hp-=sd;spawnDmgNum(e.px,e.py,sd,C_WRN);if(e.hp<=0&&e.alive)killEnemy(e);}}}
-// Late-game kill rewards taper (floor 60% from wave 41) so flawless runs
+// Late-game kill rewards taper (floor 50% from wave ~40) so flawless runs
 // stop banking 15k surplus; endless mode keeps its own 1.08 economy curve.
 function killRewardTaper(w){return G.endlessMode?1:Math.max(0.5,1-Math.max(0,w-25)*0.035);}
 function killEnemy(e,towerTypeId,towerIsAI){e.alive=false;
@@ -2013,7 +2013,7 @@ if(G.endlessMode){if(!endlessNextWave){const budget=100*Math.pow(1.08,G.endlessW
 else{waveDef=WAVES[G.wave];}
 G.spawnQueue=[];let delay=0;const np=currentPaths.length;
 // Higher difficulties field denser waves (cntM) on top of tougher enemies.
-// From wave 30 density also ramps with wave number (x(1+wave/100)) so the
+// From wave 30 density also ramps with wave number (x(1+wave/120)) so the
 // closing waves of a 40-wave run pressure even flawless play.
 const cntM=(DIFFS[G.diffIdx].cntM||1)*(!G.endlessMode&&G.wave>=30?1+G.wave/120:1);
 for(const grp of waveDef.e){const gc=Math.max(1,Math.round(grp.c*cntM));for(let i=0;i<gc;i++){const pi=np>1?i%np:0;G.spawnQueue.push({type:grp.t,time:delay,pathIdx:pi});delay+=grp.d;}}
