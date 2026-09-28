@@ -3267,7 +3267,7 @@ const achievements={unlocked:new Set(),toasts:[]};
 function addToast(text,dur){achievements.toasts.push({text:text,desc:'',timer:dur||2.5});}
 function checkAchievement(id){if(achievements.unlocked.has(id))return;achievements.unlocked.add(id);const a=ACHIEVEMENTS.find(x=>x.id===id);if(a){achievements.toasts.push({text:a.icon+' '+a.name,desc:a.desc,timer:3.0});saveAllState();playSound('levelup');tryVibrate(50);}}
 function updateToasts(dt){while(achievements.toasts.length>4)achievements.toasts.shift();for(let i=achievements.toasts.length-1;i>=0;i--){achievements.toasts[i].timer-=dt;if(achievements.toasts[i].timer<=0)achievements.toasts.splice(i,1);}}
-function drawToasts(){for(let i=0;i<achievements.toasts.length;i++){const t=achievements.toasts[i];const a=Math.min(1,t.timer/0.3,1-(Math.max(0,0.3-t.timer)/0.3));const ty=44+i*55;ctx.globalAlpha=a;
+function drawToasts(){for(let i=0;i<achievements.toasts.length;i++){const t=achievements.toasts[i];const a=Math.min(1,t.timer/0.3,1-(Math.max(0,0.3-t.timer)/0.3));const ty=safeTop+44+i*55;ctx.globalAlpha=a;
 ctx.save();ctx.shadowColor='rgba(255,200,0,0.3)';ctx.shadowBlur=12;
 const toastGrad=ctx.createLinearGradient(W*0.08,ty,W*0.92,ty);
 toastGrad.addColorStop(0,'rgba(0,30,60,0.95)');toastGrad.addColorStop(0.5,'rgba(0,40,80,0.95)');toastGrad.addColorStop(1,'rgba(0,30,60,0.95)');
