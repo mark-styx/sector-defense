@@ -392,3 +392,25 @@ mechanics that did not exist anywhere in the code. Armies now have distinct,
 truthful effects (armor -> spawn shields, artillery -> free Devastators).
 
 Full critique: MODE_REVIEW.md. 48/48 headless + browser smoke green.
+
+## Round 35 — Swarm Commander fail state: finite bio reserve (v7.2.3)
+
+User decision: limited bio reserve (open item 1 from MODE_REVIEW.md).
+
+Mechanic: bio regen (3/s) now draws from a per-map finite reserve. Reserve
+spent + bio below cheapest unit + nothing alive = assault lost (offenseResult
+defeat; campaign attacks count as a lost battle). HUD shows live reserve,
+map-select cards show it, briefing states it. Campaign assaults carry
+150 + army-size*25 reserve on top of army-derived start bio.
+
+Tuning was measurement-driven (bot spend per map: Weak Point 246 total,
+Gauntlet 300, Iron Wall 729, Fortress 770; Citadel was grinding 2048 regen
+bio and still losing 1/8 — its old balance only existed because regen was
+infinite). Citadel: start 200->300, reserve 700.
+
+Soak bot upgraded to actually-strong play (uses FRENZY, not just armor/
+tunnel): 12/12 green. Naive bot still wins ~90% — right difficulty shape:
+clean finite-resource losses instead of infinite grind.
+
+New: finite-reserve regression test (plateau + reachable defeat).
+49/49 headless + dual-engine browser smoke green.

@@ -105,8 +105,14 @@ density ×1.0 because ×1.2 was proven unwinnable-by-strong-play (bot dies wave 
 
 ## Open items this review exposes (not fixed this round)
 
-1. Swarm Commander still lacks a true fail state — needs a design decision
-   (limited bio reserve? per-map par time?), not a patch.
+1. ~~Swarm Commander still lacks a true fail state~~ **RESOLVED (round 35):**
+   bio regen now draws from a finite per-map reserve (Weak Point 250,
+   Gauntlet 200, Iron Wall 600, Fortress 600, Citadel 700 + start 300).
+   Reserve spent + bio below the cheapest unit + nothing alive = assault
+   lost. The reserve is on the HUD, the map-select cards and the briefing.
+   Citadel rebalanced (200→300 start) because its old design was only
+   "winnable" by grinding ~2000 regen bio — exactly the pathology the
+   reserve kills.
 2. Five in-combat currencies across modes (nexium, bio, pulse, momentum,
    campaign nexium-bank). Momentum and campaign-bank are the same concept
    ("war resources from performance") and could merge in name.

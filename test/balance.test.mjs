@@ -247,6 +247,7 @@ test('swarm commander: every assault map is winnable', async () => {
       };
       if (alive >= 8) tapAb('armor');
       tapAb('tunnel');
+      if (alive >= 5) tapAb('frenzy');
       const spawn = g.window._getBtns().offenseSpawn;
       if (spawn && spawn.length) {
         let pick = null;

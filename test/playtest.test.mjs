@@ -155,6 +155,47 @@ test('standard difficulty no longer hands out 25 lives (playtest: "too easy")', 
   assert.equal(state(g).nexium, 300);
 });
 
+test('swarm commander: finite bio reserve caps regen and enables a real loss', async () => {
+  const g = await boot();
+  tapBtn(g, 'menuOffense'); g.frame(2);
+  const maps = g.window._getBtns().offenseMaps;
+  g.tap(center(maps[0]).x, center(maps[0]).y); g.frame(2);
+  assert.equal(state(g).phase, 'offenseGame');
+  let off = g.window._getOffenseState();
+  const reserve0 = off.bioReserve;
+  assert.ok(reserve0 > 0, 'assault starts with a finite reserve');
+
+  // Regen draws the reserve down; bio grows while it does.
+  for (let i = 0; i < 60; i++) g.frame(1); // ~1s
+  off = g.window._getOffenseState();
+  assert.ok(off.bioReserve < reserve0, 'reserve depletes as bio regenerates');
+
+  // Idle until the reserve is spent: bio must plateau, not grow forever.
+  for (let i = 0; i < 60 * 200 && g.window._getOffenseState().bioReserve > 0; i++) g.frame(1);
+  off = g.window._getOffenseState();
+  assert.equal(off.bioReserve, 0, 'reserve exhausts');
+  const plateau = off.bioMass;
+  for (let i = 0; i < 120; i++) g.frame(1);
+  off = g.window._getOffenseState();
+  assert.ok(off.bioMass <= plateau + 0.01, 'no regen after reserve is spent');
+
+  // Drain remaining bio with the cheapest units until the assault is lost.
+  let guard = 0;
+  while (state(g).phase === 'offenseGame' && guard++ < 500) {
+    const spawn = g.window._getBtns().offenseSpawn;
+    if (spawn && spawn.length) {
+      const pick = spawn.find(b => b.idx === 0) || spawn[0];
+      g.tap(center(pick).x, center(pick).y);
+    }
+    g.frame(6);
+    // Let each doomed wave die out so the loss check can fire.
+    for (let i = 0; i < 90 && state(g).phase === 'offenseGame'; i++) g.frame(1);
+  }
+  assert.equal(state(g).phase, 'offenseResult', 'exhausted assault reaches a result');
+  const final = g.window._getOffenseState();
+  assert.ok(final.unitsPast < final.goalUnits, 'exhausted assault is a defeat');
+});
+
 test('difficulty ladder: enemies are stronger, faster and denser per stage', async () => {
   const g = await boot();
   const measure = async (diffIdx) => {
