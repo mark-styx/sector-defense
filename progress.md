@@ -509,13 +509,17 @@ winnability gates re-run until green.
   (attack takes mixed play; strategy bots still win). Defend budgets
   120+60i (classic midwave equivalent) — the naive x3.5 first reading
   made round-1 wave 5 endless-wave-23 hard and beat the bot outright.
-- **R2-R4 economy (d4d85a4)**: Elite 0.75/1.05, Legendary 0.65/1.1 with
-  hpM 2.2 / cntM 1.1 carrying the tier; difficulty card discloses
-  rewards/costs/density. Kill taper after w25 (60% floor, endless
-  exempt), waves 30-40 density x(1+wave/120). Measured: afford cliff
-  -43% -> -21%; **Legendary strong-bot minLives 10 -> 3** (dips w9-17,
-  recovers) — the top tier now threatens strong play while staying
-  winnable; weak 6-tower bot still dies (w32).
+- **R2-R4 economy (d4d85a4 + verification-pass deepening)**: Elite
+  0.75/1.05, Legendary 0.65/1.1 with hpM 2.2 / cntM 1.1 carrying the
+  tier; difficulty card discloses rewards/costs/density. Kill taper
+  after w25, deepened in the verification pass from 0.025/60%-floor to
+  0.035/50%-floor after an A/B against the pre-round build showed the
+  first cut only trimmed 3% of the bank (Standard strong-bot peak bank
+  15,071 → 14,602 → 13,295, -12% total; Legendary 7,681); waves 30-40
+  density x(1+wave/120). Measured: afford cliff -43% -> -21%;
+  **Legendary strong-bot minLives 10 -> 3** (dips w9-17, recovers) —
+  the top tier now threatens strong play while staying winnable; weak
+  6-tower bot still dies (w32).
 - **R5**: barrier 5 -> 12 dps; sentinel card text honest ("Best damage
   per ◆"). The Citadel (only barrier offense map) keeps its
   skitterling-flood counter in the soak test.
@@ -539,3 +543,17 @@ Tests: 49 -> 62 (new test/balance-fixes.test.mjs, 13 tests covering
 every R mechanic). Full suite green, browser smoke green (Chromium +
 WebKit + touch), audit re-run: cards 18/18 read, stall capped, ladder
 re-measured, endless w70 (bot stronger), allied unchanged shape.
+
+Verification pass (goal-completion audit) found and closed three gaps:
+- R8's stated criterion ("bot still wins ~50-70% at 1000 elo") had never
+  been measured. Measured via 3 full clash matches with _getClashState:
+  6/6 defend rounds held at mean 14.3/20 lives (round-2 budgets at
+  aiThreat 60 cost 8-12 lives) — defend is winnable by strong play and
+  now visibly costly; attack stays winnable under the 120s timer.
+- R3's first cut measured only -3% bank (A/B against a frozen
+  pre-round-37 build in /tmp: baseline 15,071 exactly reproduced).
+  Deepened the taper to 0.035/50% floor; Standard bank -12% total,
+  Legendary -49% (7,681), minLives=3 preserved, all gates green.
+- One assault soak 9/10 (map 1) investigated: flake (random spawn-path
+  assignment on multi-path maps), 3x consecutive clean after.
+New test hooks: _getClashState, _getEconomy.

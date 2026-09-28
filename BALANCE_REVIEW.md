@@ -12,10 +12,11 @@ Every number below is machine-measured on the current build (v7.2.3, main @ 93d6
 >   modes.test bot still wins it). Defend budgets recalibrated 120+60i (classic midwave).
 > - R2 ladder: afford now 1.00/0.90/0.82/0.65 — the Elite→Legendary cliff is -21% economy
 >   (was -43%) plus a visible stat jump (HP +120%, density +10%, disclosed on the card).
-> - R3+R4 late game: Standard strong-bot peak bank 15,071→14,602 (30-tower flood absorbs
->   the rest); **Legendary strong-bot is no longer flawless: minLives=3 (dips waves 9-17),
->   recovers to 10** — the top tier finally threatens strong play. Weak 6-tower bot dies
->   w32 (was w35): skill cliff preserved.
+> - R3+R4 late game: Standard strong-bot peak bank 15,071→13,295 (-12%; the
+>   30-tower flood absorbs the rest — a human bank sinks further); **Legendary
+>   strong-bot is no longer flawless: minLives=3 (dips waves 9-17), recovers
+>   to 10, peak bank 7,681** — the top tier finally threatens strong play.
+>   Weak 6-tower bot dies w32 (was w35): skill cliff preserved.
 > - R5 barrier 12 dps base (dps/100 5.0→6.0); sentinel card states its real role.
 >   The Citadel (only barrier offense map) needed its skitterling-flood counter kept.
 > - R6 skitterling 4 bio / blisterbomb 6: hp/bio spread now ironshell 13.0 > venomspine

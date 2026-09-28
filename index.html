@@ -1252,7 +1252,7 @@ if(splash>0){const sp=splash*cellSize*(isNuke?2:1);for(let i=0;i<G.enemies.lengt
 function applySplashDmg(px,py,dmg,splash){const sp=splash*cellSize;for(let i=0;i<G.enemies.length;i++){const e=G.enemies[i];if(!e.alive)continue;const dx=e.px-px,dy=e.py-py;if(Math.sqrt(dx*dx+dy*dy)<sp){const sd=Math.max(1,Math.floor(dmg*0.5)-(e.empTimer>0?0:e.armor));e.hp-=sd;spawnDmgNum(e.px,e.py,sd,C_WRN);if(e.hp<=0&&e.alive)killEnemy(e);}}}
 // Late-game kill rewards taper (floor 60% from wave 41) so flawless runs
 // stop banking 15k surplus; endless mode keeps its own 1.08 economy curve.
-function killRewardTaper(w){return G.endlessMode?1:Math.max(0.6,1-Math.max(0,w-25)*0.025);}
+function killRewardTaper(w){return G.endlessMode?1:Math.max(0.5,1-Math.max(0,w-25)*0.035);}
 function killEnemy(e,towerTypeId,towerIsAI){e.alive=false;
 // Allied mode: credit the kill to whichever side's tower landed it.
 if(allied.active){if(towerIsAI)allied.aiKills++;else allied.playerKills++;}

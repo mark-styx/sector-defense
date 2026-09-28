@@ -186,15 +186,16 @@ test('R2: tower costs scale with the disclosed difficulty costM', async () => {
   assert.equal(costs()[0], 55, 'Legendary sentinel 50*1.1');
 });
 
-test('R3: kill rewards taper 60% floor after wave 25', async () => {
+test('R3: kill rewards taper 50% floor after wave 25', async () => {
   const g = await boot();
   await startClassic(g);
   const t = g.window._killRewardTaper;
   assert.equal(t(10), 1);
   assert.equal(t(25), 1);
-  assert.ok(Math.abs(t(30) - 0.875) < 1e-9);
-  assert.ok(Math.abs(t(40) - 0.625) < 1e-9);
-  assert.equal(t(60), 0.6, 'floor');
+  assert.ok(Math.abs(t(30) - 0.825) < 1e-9);
+  assert.ok(Math.abs(t(38) - 0.545) < 1e-9);
+  assert.equal(t(40), 0.5, 'floor binds by w40');
+  assert.equal(t(60), 0.5, 'floor');
 });
 
 test('R4: waves 30-40 spawn denser than base definitions', async () => {
