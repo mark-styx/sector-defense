@@ -248,7 +248,7 @@ test('full wave loop: place tower via radial menu, run wave, collect rewards', a
   const s2 = state(g);
   assert.ok(['waveSummary', 'build'].includes(s2.phase), 'wave should complete, got ' + s2.phase);
   assert.ok(s2.totalKills > 0, 'sentinel should score kills');
-  assert.ok(s2.nexium > nexBefore - 60, 'kill rewards + wave bonus credited');
+  assert.ok(s2.nexium > nexBefore - 5, 'damage income credited during the wave');
 
   // Wave summary tap continues to next build phase.
   if (s2.phase === 'waveSummary') { g.tap(100, 400); g.frame(2); }
@@ -335,7 +335,7 @@ test('arsenal cards apply their effects (deep pockets, iron will, scavenger)', a
   assert.equal(s.phase, 'build');
   assert.equal(s.nexium, 350, 'deep_pockets: +50 starting nexium');
   assert.equal(s.lives, 21, 'iron_will: +3 starting lives (Standard base 18)');
-  // scavenger: +15% kill rewards — place a sentinel, clear wave 1, check math:
+  // scavenger: +15% income — place a sentinel, clear wave 1, check math:
   // 6 skitterlings x round(5 * 1.15) = 36 kills-nectar + 60 wave bonus, -50 tower.
   const L = g.window._getLayout();
   g.tap(L.offsetX + 3.5 * L.cellSize, L.offsetY + 2.5 * L.cellSize); g.frame(2);
@@ -353,8 +353,8 @@ test('arsenal cards apply their effects (deep pockets, iron will, scavenger)', a
   const after = state(g);
   assert.ok(after.totalKills >= 1, 'sentinel should score kills');
   if (state(g).phase === 'waveSummary') { g.tap(195, 422); g.frame(2); }
-  // 350 - 50 (tower) + 36 (6 kills x scavenger-boosted 6) + 60 (wave bonus) = 396.
-  assert.equal(state(g).nexium, 396, 'scavenger: kill rewards at +15%');
+  // 350 - 50 (tower) + 72 (damage income, scavenger-boosted) + 6 (kill kickers) = 378.
+  assert.equal(state(g).nexium, 378, 'scavenger: damage income at +15%');
 });
 
 test('tower info: ability activation and sell refund work', async () => {
@@ -469,3 +469,4 @@ test('every screen renders without throwing', async () => {
   g.window._spawnOffense('devastator');
   g.frame(30);
 });
+

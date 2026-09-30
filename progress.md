@@ -488,6 +488,76 @@ Third self-check pass (accuracy audit of the review's own claims):
 Audit tool gained `cards` section + 6c progression table; full pipeline
 (all sections) verified end-to-end in one run.
 
+## Round 39 — Damage economy, tower upgrade art, projectile impacts
+
+**Brief**: "towers that get upgraded should have a visual change to appear more
+imposing. the projectiles should also be cooler and more effectuous when landing
+on enemies. credits to buy towers should come from damage imposed to enemies,
+not time. maybe in swarm mode, then it should be a function of how far your
+units got plus time or something. essentially progress gets you cash."
+
+### Economy rework (damage-driven)
+- `awardNexiumForDamage(e,dmg)`: every effective damage event pays
+  `dmg * NEX_PER_HP(0.30) * max(rewM/hpM, 0.5) * killRewardTaper(w) *
+  (1+scavenger+campaign bonus) * nexiumDmgMult`. Hooked into ALL damage sites:
+  applyDamage (direct/reflect/splash), applySplashDmg, storm/barrier/dronebay/
+  fusion towers, orbital strike, hero reflect/barrage/shadow-strike.
+- Per-enemy lifetime credit capped at `maxHp * 1.25` (`_nexCredited`) so
+  stall-farming healers/tanks can't mint currency.
+- Kill rewards cut to a 25% kicker (`max(1, round(reward*rewM*taper*0.25))`);
+  score keeps full value.
+- Flat wave-clear bonuses (50/40+10w) removed from standard, endless, allied,
+  and clash-defend transitions — income is earned during combat only.
+- Difficulty fold floored at 0.5: Legendary (rewM/hpM = 0.295) was starved
+  without the old flat bonuses; floor restores winnability (bot: victory w40,
+  10 lives). Difficulty-select "Reward -X%" copy stays truthful.
+- Nexium Generator card → **Nexium Extractor** (+20% ◆ from damage) via new
+  `loadoutBonuses.nexiumDmgMult`; the per-second tick (`updateNexGen`) removed.
+- Nexium bank is now float; HUD floors it, `render_game_to_text` rounds it.
+
+### Swarm Commander / Clash attack: progress pays
+- Bio trickle 3/s → 1.5/s from the finite reserve (time component).
+- New progress drip: `Δprogress * unitCost * 1.5` while walking (a full lane
+  pays 1.5x the unit's cost), cost-proportional so cheap units dying mid-lane
+  can't be spammed for profit. Breakthrough refunds the unit's cost on top of
+  counting toward the goal. Clash attack round uses the same formulas.
+- Clash stall plateau: 808 bio (was 977) — stalling pays less, pushing pays more.
+
+### Tower upgrade art (imposing by level)
+- Generic all-type: Lv1 = four angled armor plates around the base; Lv2 = four
+  radiating spikes, counter-rotating dashed containment ring, white-hot pulsing
+  reactor core; whole chassis scales 1.0 → 1.13 → 1.26; glow 6+7*lvl.
+- Per-type: sentinel gains longer/thicker barrels (twin at Lv2), thunder a
+  wider barrel + muzzle brake at Lv2, hawk 3→4→5 missile pods.
+- Upgrade now fires a gold particle burst + death ring + vibration.
+- Browser-smoke visual gate: distinct-color count in the tower cell must
+  escalate lv0 < lv1 < lv2 (measured Chromium 676→1513→2095, WebKit
+  520→1276→1711).
+
+### Projectiles + impact FX
+- New `VFX.impacts` pool (capped 48): typed landings — shock (expanding ring +
+  8 radial spokes) for splash, frost (6 crystal shards + core bloom) for
+  slows, stun (bolt ring) for shockwave emitter, hit flash otherwise.
+- Trails redrawn as tapering energy streaks; sentinel fires velocity-aligned
+  tracer rounds; hawk missiles get flickering exhaust; thunder/nova layered
+  plasma orbs with halo; shockwave double pulse rings.
+
+### Verification
+- 6 new headless tests (damage-pays-before-kills, no time bonus at wave
+  completion, per-enemy cap, extractor card math 331, impact FX spawn, swarm
+  progress income > idle) + browser visual gate; 80/80 headless green,
+  Chromium/WebKit/touch smokes green.
+- Balance audit re-run with round-39 formulas: endless w70 (unchanged — death
+  point is DPS-bound, not money-bound), frost aura 0.820 (unchanged), cards
+  18/18 read, all 5 assault maps winnable, Legendary w40 win. Standard
+  opening is leaner (w1 ~61 vs old ~90 income), late game richer (w40 cum
+  ~44.7k vs old ~27.6k): progress gets you cash.
+- Tests updated to the new contract: scavenger wave-1 math (378), swarm bot
+  window 120s→180s, reserve-exhaustion sim window widened.
+
+### Version
+7.5.0 (header, footer, package.json, package-lock).
+
 ## Round 38 — Hero manual control, aimed abilities, art overhaul
 
 Branch feat/hero-control-art. User brief: keep auto mode as-is, add opt-in

@@ -238,7 +238,7 @@ test('swarm commander: every assault map is winnable', async () => {
     // Skitterling ablative floor for modest/mid budgets; only the two
     // fortress-class maps (450+) save for venomspine below 10 bio.
     const useFloor = startBio < 450;
-    const capSec = 120;
+    const capSec = 180;
     let frames = 0;
     while (frames++ < capSec * 60) {
       const off = g.window._getOffenseState();

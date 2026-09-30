@@ -95,6 +95,38 @@ let s = await state();
 assert.equal(s.towerCount, 1, 'tower placed in real browser');
 console.log(`✓ [${engineName}] tower placed via radial menu`);
 
+// --- Round 39: tower upgrades must visibly change the art on canvas ---
+const towerCellColors = () => page.evaluate(() => {
+  const L2 = window._getLayout();
+  const c = document.getElementById('gameCanvas');
+  const sc = c.width / 390;
+  const x0 = Math.max(0, Math.floor((L2.offsetX + 3 * L2.cellSize) * sc) - 8);
+  const y0 = Math.max(0, Math.floor((L2.offsetY + 2 * L2.cellSize) * sc) - 8);
+  const w = Math.floor(L2.cellSize * sc * 1.9), h = Math.floor(L2.cellSize * sc * 1.9);
+  const d = c.getContext('2d').getImageData(x0, y0, w, h).data;
+  const seen = new Set();
+  for (let i = 0; i < d.length; i += 4) seen.add((d[i] << 16) | (d[i + 1] << 8) | d[i + 2]);
+  return seen.size;
+});
+// Let the Rapid-Deploy spin-up finish so the full lv0 body renders.
+await page.waitForTimeout(1800);
+const art0 = await towerCellColors();
+await clickAt(L.offsetX + 3.5 * L.cellSize, L.offsetY + 2.5 * L.cellSize); // open info panel
+await page.waitForFunction(() => window._getBtns().upgrade != null, null, {timeout: 5000});
+await clickBtn('upgrade');
+await page.waitForTimeout(400);
+const art1 = await towerCellColors();
+await page.waitForFunction(() => window._getBtns().upgrade != null, null, {timeout: 5000});
+await clickBtn('upgrade');
+await page.waitForTimeout(400);
+const art2 = await towerCellColors();
+assert.ok(art1 > art0 + 15, `[${engineName}] lv1 art richer than lv0 (${art0} -> ${art1} colors)`);
+assert.ok(art2 > art1 + 15, `[${engineName}] lv2 art richer than lv1 (${art1} -> ${art2} colors)`);
+console.log(`✓ [${engineName}] tower upgrade art escalates: lv0=${art0} lv1=${art1} lv2=${art2} colors`);
+// Close the info panel so its hitboxes can't eat the wave-start tap.
+const closeInfo = await page.evaluate(() => window._getBtns().closeInfo);
+if (closeInfo) await clickAt(closeInfo.x + closeInfo.w / 2, closeInfo.y + closeInfo.h / 2);
+
 // --- Start wave 1 and sample the frame rate during combat ---
 await clickBtn('startWave');
 await waitForPhase('wavePreview');

@@ -171,9 +171,10 @@ test('swarm commander: finite bio reserve caps regen and enables a real loss', a
   assert.ok(off.bioReserve < reserve0, 'reserve depletes as bio regenerates');
 
   // Idle until the reserve is spent: bio must plateau, not grow forever.
-  for (let i = 0; i < 60 * 200 && g.window._getOffenseState().bioReserve > 0; i++) g.frame(1);
+  // (Round 39 trickle is 1.2/s — allow enough sim time for the full drain.)
+  for (let i = 0; i < 60 * 600 && g.window._getOffenseState().bioReserve > 0.0001; i++) g.frame(1);
   off = g.window._getOffenseState();
-  assert.equal(off.bioReserve, 0, 'reserve exhausts');
+  assert.ok(off.bioReserve <= 0.01, 'reserve exhausts');
   const plateau = off.bioMass;
   for (let i = 0; i < 120; i++) g.frame(1);
   off = g.window._getOffenseState();

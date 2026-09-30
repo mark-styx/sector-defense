@@ -97,47 +97,55 @@ function staticReport(D) {
     pad('start$', 8) + pad('rewM', 6) + pad('costM', 6) + pad('challenge*', 11) + pad('afford**', 9) + pad('stress***', 10));
   for (const d of DIFFS) {
     const challenge = d.hpM * d.cntM * d.spdM;
-    const afford = (d.rewM * d.cntM) / d.costM;
+    // Round 39: income is damage-driven — hpM pools pay out at a rate folded
+    // by max(rewM/hpM, 0.5), so affordable = paid-hp per wave / tower cost.
+    const afford = (Math.max(d.rewM, 0.5 * d.hpM) * d.cntM) / d.costM;
     console.log(pad(d.name, 10) + pad(d.hpM, 6) + pad(d.spdM, 6) + pad(d.cntM, 6) + pad(d.lives, 7) +
       pad(d.nex, 8) + pad(d.rewM, 6) + pad(d.costM, 6) +
       fmt(challenge, 9) + fmt(afford, 9) + fmt(challenge / afford, 10));
   }
   console.log('  *challenge = hpM*cntM*spdM (spdM proxy for time-in-range loss)');
-  console.log(' **afford = kill-income per wave / tower cost (rewM*cntM/costM)');
+  console.log(' **afford = damage-income per wave / tower cost (max(rewM,0.5*hpM)*cntM/costM)');
   console.log('***stress = challenge/afford, relative difficulty in stat+economy space');
 
   console.log('\n===================== 3. CLASSIC WAVE ECONOMY per difficulty =====================');
-  const swarmerBonus = 0; // hivemind mid-wave spawns are variable; excluded (small)
+  // Round 39 damage economy: income = damage dealt x NEX_PER_HP x
+  // max(rewM/hpM, 0.5) x taper + a 25% kill kicker. No flat wave bonus.
+  const NEX_PER_HP = 0.30, KICKER = 0.25;
+  const taper = w => Math.max(0.5, 1 - Math.max(0, w - 25) * 0.035);
   for (const d of DIFFS) {
     console.log('\n-- ' + d.name + ' (start $' + d.nex + ') --');
     console.log(pad('wave', 5) + pad('units', 7) + pad('waveHP', 9) + pad('lives@risk', 12) +
-      pad('kill$', 7) + pad('bonus$', 8) + pad('cumIncome', 11) + pad('cumHP', 9) + pad('HP/$', 7) + pad('armoredHP%', 11));
+      pad('dmg$', 7) + pad('kick$', 8) + pad('cumIncome', 11) + pad('cumHP', 9) + pad('HP/$', 7) + pad('armoredHP%', 11));
     let cum = d.nex, cumHp = 0;
     const rows = [];
     WAVES.forEach((w, wi) => {
-      let units = 0, hp = 0, lives = 0, inc = 0, armHp = 0;
+      let units = 0, hp = 0, lives = 0, inc = 0, armHp = 0, kick = 0;
+      const tp = taper(wi + 1);
       for (const g of w.e) {
         const c = Math.max(1, Math.round(g.c * (d.cntM || 1)));
         const et = ET[g.t];
         const ehp = Math.round(et.hp * d.hpM);
         for (let i = 0; i < c; i++) {
           units++; hp += ehp; lives += et.lives;
-          inc += Math.round(et.reward * d.rewM);
+          inc += ehp * NEX_PER_HP * Math.max(d.rewM / d.hpM, 0.5) * tp;
+          kick += Math.max(1, Math.round(et.reward * d.rewM * tp * KICKER));
           if (et.armor >= 5) armHp += ehp;
           if (et.releases) { // swarm carrier: 6 skitterlings on death
             units += 6; hp += 6 * Math.round(ET.skitterling.hp * d.hpM); lives += 6;
-            inc += 6 * Math.round(ET.skitterling.reward * d.rewM);
+            inc += 6 * Math.round(ET.skitterling.hp * d.hpM) * NEX_PER_HP * Math.max(d.rewM / d.hpM, 0.5) * tp;
+            kick += 6 * Math.max(1, Math.round(ET.skitterling.reward * d.rewM * tp * KICKER));
           }
         }
       }
-      cum += inc + (50 + (wi + 1) * 10);
+      cum += inc + kick;
       cumHp += hp;
-      rows.push({wi: wi + 1, units, hp, lives, inc, bonus: 50 + (wi + 1) * 10, cum, cumHp, armPct: hp ? armHp / hp * 100 : 0});
+      rows.push({wi: wi + 1, units, hp, lives, inc, kick, cum, cumHp, armPct: hp ? armHp / hp * 100 : 0});
     });
     // Print a sampled view (every 4th wave) plus the 3 highest-pressure waves.
     for (const r of rows) if (r.wi % 4 === 0 || r.wi === 1)
       console.log(pad(r.wi, 5) + pad(r.units, 7) + pad(r.hp, 9) + pad(r.lives, 12) +
-        pad(r.inc, 7) + pad(r.bonus, 8) + pad(Math.round(r.cum), 11) + pad(r.cumHp, 9) +
+        pad(Math.round(r.inc), 7) + pad(r.kick, 8) + pad(Math.round(r.cum), 11) + pad(r.cumHp, 9) +
         fmt(r.cumHp / r.cum, 7) + fmt(r.armPct, 11));
     const peaks = rows.slice().sort((a, b) => (b.hp / b.cum) - (a.hp / a.cum)).slice(0, 3);
     console.log('  peak pressure waves (waveHP / cumIncome): ' + peaks.map(p => 'w' + p.wi + '=' + (p.hp / p.cum).toFixed(3)).join(', '));
@@ -535,7 +543,7 @@ async function cardsReport() {
     'veterans_insight (veteranInsight)': 'veteranInsight',
     'overclocked (fireRateMultiplier)': 'fireRateMultiplier',
     'reflective_shield (reflectChance)': 'reflectChance',
-    'nexium_generator (nexiumGen)': 'nexiumGen'
+    'nexium_generator (nexiumDmgMult)': 'nexiumDmgMult'
   };
   for (const [label, sym] of Object.entries(symbols)) {
     const total = code.split(sym).length - 1;
