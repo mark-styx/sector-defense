@@ -488,6 +488,51 @@ Third self-check pass (accuracy audit of the review's own claims):
 Audit tool gained `cards` section + 6c progression table; full pipeline
 (all sections) verified end-to-end in one run.
 
+## Round 38 — Hero manual control, aimed abilities, art overhaul
+
+Branch feat/hero-control-art. User brief: keep auto mode as-is, add opt-in
+tap-to-move and aimed casting, and make heroes visually recognizable (the old
+shape-blob art was "bland and forgettable").
+
+- **Manual control (opt-in)**: tap the hero to toggle `heroState.manual`.
+  While manual: tap any non-buildable ground (path/void) to issue a move
+  order (marker FX, hero walks there and holds); tap the hero again to hand
+  control back. Auto-chase is suppressed in manual, everything else (auto
+  attack, passives, damage) unchanged. Buildable cells still open the tower
+  radial in manual mode — tower placement is never blocked.
+- **Aimed abilities (opt-in)**: while manual, tapping an aimable ability
+  button (Vex Orbital Barrage / Warden Shield Wall / Phantom Shadow Strike)
+  arms targeting instead of casting; tap the field to cast there. Auto mode
+  (or non-aimable abilities) casts instantly exactly as before. Phantom
+  snaps to the enemy within 80px of the tap; missed phantom taps refund the
+  cooldown. Cast bodies extracted to `castHeroAimAt(px,py)` so auto and
+  aimed paths share one implementation.
+- **Art overhaul**: drawHeroIcon rewritten per hero — Vex gets pauldrons,
+  cape, glowing visor slit, rifle, pulsing chest core; Lyra hovers with
+  thruster glow, round goggles, two orbiting tether-drones; Kael carries a
+  full-height tower shield with cross-brace and pulsing rune diamond, horns,
+  hammer peeking over the shoulder; Nyx is a dagger-cloak silhouette with a
+  ghost afterimage, glowing eye slit, and wavy scarf ribbons; Zara floats
+  under a rotating dashed halo with an 8-point star body, all-seeing eye
+  core, and orbiting sparks. Heroes now draw at ~1 cell tall on field
+  (visual radius max(stats.size, cellSize*0.85)) instead of a half-cell
+  blob. Skins still recolor via getHeroColor.
+- **HUD**: crosshair badge on aimable ability buttons (lit in manual),
+  TAP TARGET pulse while aiming, MANUAL badge on the nameplate, rotating
+  dashed selection ring, move-order ping, aim reticle with barrage radius.
+- **State hygiene**: `G.heroAim` cleared on deploy/reset/startGame/
+  endless+allied starts and on pause; manual/moveOrder reset per match.
+- **Tests** (test/hero-control.test.mjs, 11 new): auto default + chase
+  target tracking, toggle on/off, hold-position suppression, move order to
+  a path point, radial-not-hijacked in manual, aim arm/cancel/no-cd, aimed
+  warden wall snap + cd 40, auto-cast instant, phantom snap strike + cd 20,
+  phantom miss refunds cd, roster renders all five artworks. 74/74 green;
+  audit unchanged from round 37 (endless w70, frost 0.820) — zero balance
+  drift since bots never leave auto mode.
+- v7.3.0 → v7.4.0 (header, footer, package.json, lock file synced).
+  How-to-play gained two lines (hero control + aimable abilities), checked
+  to fit the existing layout budget on small screens.
+
 ## Round 37 — Balance upgrades: all ten review recommendations implemented
 
 Branch feat/balance-upgrades (ff to main after). No review verdict was
