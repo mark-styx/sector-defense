@@ -76,7 +76,7 @@ function towerDps(t, level, armor) {
 function staticReport(D) {
   const {TT, ET, DIFFS, WAVES} = D;
   console.log('\n===================== 1. TOWER ROI (per-level, difficulty-agnostic cost) =====================');
-  console.log(pad('tower', 12) + pad('cost', 6) + pad('max$', 6) + pad('rng', 5) +
+  console.log(pad('tower', 12) + pad('cost', 6) + pad('max$', 6) + pad('ab$', 5) + pad('rng', 5) +
     pad('dps@L0', 8) + pad('dps@L2', 8) + pad('dps/100@L0', 12) + pad('dps/100@L2', 12) +
     pad('vs arm10 L2', 12) + 'notes');
   for (const t of TT) {
@@ -88,7 +88,8 @@ function staticReport(D) {
     if (t.slows) notes.push('slow');
     if (['arctesla', 'dronebay', 'fusion', 'barrier'].includes(t.id)) notes.push('hits-air-incidentally');
     if (t.id === 'barrier' || t.id === 'neural') notes.push('control');
-    console.log(pad(t.id, 12) + pad(t.cost, 6) + pad(maxCost, 6) + pad(t.range, 5) +
+    notes.push('auto:' + t.ab.type);
+    console.log(pad(t.id, 12) + pad(t.cost, 6) + pad(maxCost, 6) + pad(t.abCost || 0, 5) + pad(t.range, 5) +
       fmt(d0) + fmt(d2) + fmt(d0 / t.cost * 100, 12) + fmt(d2 / maxCost * 100, 12) + fmt(d2a) + '  ' + notes.join(','));
   }
 
@@ -122,18 +123,20 @@ function staticReport(D) {
     WAVES.forEach((w, wi) => {
       let units = 0, hp = 0, lives = 0, inc = 0, armHp = 0, kick = 0;
       const tp = taper(wi + 1);
+      // Round 40: classic enemy HP compounds +1.8%/wave (~2x by wave 40).
+      const wm = Math.pow(1.018, wi);
       for (const g of w.e) {
         const c = Math.max(1, Math.round(g.c * (d.cntM || 1)));
         const et = ET[g.t];
-        const ehp = Math.round(et.hp * d.hpM);
+        const ehp = Math.round(et.hp * d.hpM * wm);
         for (let i = 0; i < c; i++) {
           units++; hp += ehp; lives += et.lives;
           inc += ehp * NEX_PER_HP * Math.max(d.rewM / d.hpM, 0.5) * tp;
           kick += Math.max(1, Math.round(et.reward * d.rewM * tp * KICKER));
           if (et.armor >= 5) armHp += ehp;
           if (et.releases) { // swarm carrier: 6 skitterlings on death
-            units += 6; hp += 6 * Math.round(ET.skitterling.hp * d.hpM); lives += 6;
-            inc += 6 * Math.round(ET.skitterling.hp * d.hpM) * NEX_PER_HP * Math.max(d.rewM / d.hpM, 0.5) * tp;
+            units += 6; hp += 6 * Math.round(ET.skitterling.hp * d.hpM * wm); lives += 6;
+            inc += 6 * Math.round(ET.skitterling.hp * d.hpM * wm) * NEX_PER_HP * Math.max(d.rewM / d.hpM, 0.5) * tp;
             kick += 6 * Math.max(1, Math.round(ET.skitterling.reward * d.rewM * tp * KICKER));
           }
         }

@@ -37,7 +37,7 @@ canvas{display:block;width:100%;height:100%}
 (function(){
 'use strict';
 // ============================================================
-// SECTOR DEFENSE v7.5.0 — Damage Economy + Tower/Projectile Art (round 39)
+// SECTOR DEFENSE v7.6.0 — Auto Tower Abilities + Wave Escalation (round 40)
 // ============================================================
 const FD="'JetBrains Mono',monospace",FB="'Inter',sans-serif";
 let animTime=0; // Global animation timer for polish effects
@@ -523,16 +523,16 @@ const OFFENSE_COST={};OFFENSE_ENEMIES.forEach(o=>OFFENSE_COST[o.id]=o.cost);
 
 // Tower definitions
 const TT=[
-{id:'sentinel',name:'Sentinel Turret',cost:50,color:'#4488ff',range:3,damage:8,fireRate:0.25,splash:0,slows:false,antiAir:false,upCost:[40,60],desc:'Best damage per ◆',ab:{name:'Overdrive',desc:'2x rate 5s',cd:30,dur:5,type:'stim'}},
-{id:'thunder',name:'Thunder Cannon',cost:150,color:'#ff8800',range:3.5,damage:40,fireRate:1.5,splash:1.2,slows:false,antiAir:false,upCost:[100,150],desc:'Splash damage',ab:{name:'Firestorm',desc:'3x splash',cd:45,dur:0,type:'nuke'}},
-{id:'hawk',name:'Hawk Battery',cost:100,color:'#ff3344',range:4,damage:18,fireRate:0.6,splash:0,slows:false,antiAir:true,upCost:[70,100],desc:'Anti-air',ab:{name:'Barrage',desc:'8 missiles',cd:25,dur:0,type:'flak'}},
-{id:'neural',name:'Neural Disruptor',cost:200,color:'#aa44ff',range:2.5,damage:3,fireRate:0.3,splash:0,slows:true,antiAir:false,upCost:[120,180],desc:'Slows + DOT',ab:{name:'Neural Storm',desc:'AOE 3s',cd:40,dur:3,type:'storm'}},
-{id:'nova',name:'Nova Cannon',cost:300,color:'#ffcc00',range:5,damage:120,fireRate:3.0,splash:0,slows:false,antiAir:false,upCost:[200,300],desc:'Massive hit',ab:{name:'Supercharge',desc:'5x shot',cd:60,dur:0,type:'overcharge'}},
-{id:'shockwave',name:'Shockwave Emitter',cost:175,color:'#aaddff',range:3.5,damage:15,fireRate:0.5,splash:0,slows:false,antiAir:false,upCost:[120,175],desc:'Disable heal',ab:{name:'Shockpulse',desc:'Stun 3s',cd:35,dur:0,type:'empblast'}},
-{id:'fusion',name:'Fusion Beam',cost:250,color:'#00ddcc',range:2.0,damage:50,fireRate:0.1,splash:0,slows:false,antiAir:false,upCost:[160,240],desc:'Beam weapon',ab:{name:'Core Breach',desc:'2x beam 6s',cd:30,dur:6,type:'meltdown'}},
-{id:'arctesla',name:'Arc Tesla',cost:225,color:'#88eeff',range:3,damage:12,fireRate:0.8,splash:0,slows:false,antiAir:false,upCost:[140,210],desc:'Chain 4 targets',ab:{name:'Overload',desc:'Chain 8',cd:30,dur:0,type:'overload'}},
-{id:'dronebay',name:'Drone Bay',cost:275,color:'#66ccaa',range:4,damage:10,fireRate:0.4,splash:0,slows:false,antiAir:false,upCost:[170,250],desc:'3 drones',ab:{name:'Swarm Mode',desc:'6 drones 8s',cd:40,dur:8,type:'swarm'}},
-{id:'barrier',name:'Barrier Gen',cost:200,color:'#44aaff',range:2,damage:12,fireRate:0.5,splash:0,slows:true,antiAir:false,upCost:[130,190],desc:'Slow+dmg area',ab:{name:'Fortify',desc:'2x eff 6s',cd:25,dur:6,type:'fortify'}}
+{id:'sentinel',name:'Sentinel Turret',cost:50,color:'#4488ff',range:3,damage:8,fireRate:0.25,splash:0,slows:false,antiAir:false,upCost:[40,60],abCost:30,desc:'Best damage per ◆',ab:{name:'Overdrive',desc:'2x rate 5s',cd:30,dur:5,type:'stim'}},
+{id:'thunder',name:'Thunder Cannon',cost:150,color:'#ff8800',range:3.5,damage:40,fireRate:1.5,splash:1.2,slows:false,antiAir:false,upCost:[100,150],abCost:90,desc:'Splash damage',ab:{name:'Firestorm',desc:'3x splash',cd:45,dur:0,type:'nuke'}},
+{id:'hawk',name:'Hawk Battery',cost:100,color:'#ff3344',range:4,damage:18,fireRate:0.6,splash:0,slows:false,antiAir:true,upCost:[70,100],abCost:60,desc:'Anti-air',ab:{name:'Barrage',desc:'8 missiles',cd:25,dur:0,type:'flak'}},
+{id:'neural',name:'Neural Disruptor',cost:200,color:'#aa44ff',range:2.5,damage:3,fireRate:0.3,splash:0,slows:true,antiAir:false,upCost:[120,180],abCost:120,desc:'Slows + DOT',ab:{name:'Neural Storm',desc:'AOE 3s',cd:40,dur:3,type:'storm'}},
+{id:'nova',name:'Nova Cannon',cost:300,color:'#ffcc00',range:5,damage:120,fireRate:3.0,splash:0,slows:false,antiAir:false,upCost:[200,300],abCost:180,desc:'Massive hit',ab:{name:'Supercharge',desc:'5x shot',cd:60,dur:0,type:'overcharge'}},
+{id:'shockwave',name:'Shockwave Emitter',cost:175,color:'#aaddff',range:3.5,damage:15,fireRate:0.5,splash:0,slows:false,antiAir:false,upCost:[120,175],abCost:105,desc:'Disable heal',ab:{name:'Shockpulse',desc:'Stun 3s',cd:35,dur:0,type:'empblast'}},
+{id:'fusion',name:'Fusion Beam',cost:250,color:'#00ddcc',range:2.0,damage:50,fireRate:0.1,splash:0,slows:false,antiAir:false,upCost:[160,240],abCost:150,desc:'Beam weapon',ab:{name:'Core Breach',desc:'2x beam 6s',cd:30,dur:6,type:'meltdown'}},
+{id:'arctesla',name:'Arc Tesla',cost:225,color:'#88eeff',range:3,damage:12,fireRate:0.8,splash:0,slows:false,antiAir:false,upCost:[140,210],abCost:135,desc:'Chain 4 targets',ab:{name:'Overload',desc:'Chain 8',cd:30,dur:0,type:'overload'}},
+{id:'dronebay',name:'Drone Bay',cost:275,color:'#66ccaa',range:4,damage:10,fireRate:0.4,splash:0,slows:false,antiAir:false,upCost:[170,250],abCost:165,desc:'3 drones',ab:{name:'Swarm Mode',desc:'6 drones 8s',cd:40,dur:8,type:'swarm'}},
+{id:'barrier',name:'Barrier Gen',cost:200,color:'#44aaff',range:2,damage:12,fireRate:0.5,splash:0,slows:true,antiAir:false,upCost:[130,190],abCost:120,desc:'Slow+dmg area',ab:{name:'Fortify',desc:'2x eff 6s',cd:25,dur:6,type:'fortify'}}
 ];
 // Tower mastery kills (in-memory)
 const towerMasteryKills={};
@@ -1309,8 +1309,13 @@ if(e.type==='devastator'||e.type==='hivemind'){G.shakeTimer=0.3;G.shakeIntensity
 playSound('explosion');}
 
 // Enemies
-function spawnEnemy(typeName,pathIdx,startProg){const type=ET[typeName];if(!type)return;const d=DIFFS[G.diffIdx];
-const e={id:nextEnemyId++,type:typeName,hp:Math.round(type.hp*d.hpM),maxHp:Math.round(type.hp*d.hpM),speed:type.speed*d.spdM,reward:type.reward,livesCost:type.lives,color:type.color,shape:type.shape,size:type.size,armor:type.armor,flying:type.flying,explodes:!!type.explodes,spawns:!!type.spawns,heals:!!type.heals,burrows:!!type.burrows,releases:!!type.releases,phases:!!type.phases,disables:!!type.disables,
+// ROUND 40: classic waves escalate with progress — enemy HP compounds +1.8%
+// per wave (~2x by wave 40) so the damage-driven economy (more HP destroyed =
+// more income) buys its way into harder fights instead of snowballing.
+function isClassicWave(){return !G.endlessMode&&!allied.active&&!offense.active&&!clash.active&&!campaign.active;}
+function waveHpMult(w){return isClassicWave()?Math.pow(1.018,w):1;}
+function spawnEnemy(typeName,pathIdx,startProg){const type=ET[typeName];if(!type)return;const d=DIFFS[G.diffIdx];const wm=waveHpMult(G.wave);
+const e={id:nextEnemyId++,type:typeName,hp:Math.round(type.hp*d.hpM*wm),maxHp:Math.round(type.hp*d.hpM*wm),speed:type.speed*d.spdM,reward:type.reward,livesCost:type.lives,color:type.color,shape:type.shape,size:type.size,armor:type.armor,flying:type.flying,explodes:!!type.explodes,spawns:!!type.spawns,heals:!!type.heals,burrows:!!type.burrows,releases:!!type.releases,phases:!!type.phases,disables:!!type.disables,
 progress:startProg||0,pathIdx:pathIdx||0,px:0,py:0,alive:true,slowTimer:0,empTimer:0,stunTimer:0,healDisabled:0,spawnCD:3,fadeIn:0.5,
 burrowTimer:0,burrowCooldown:5,burrowed:false,phaseTimer:0,phaseCooldown:4,phased:false,disableTimer:0};
 const pos=getPosOnPath(e.progress,e.pathIdx);e.px=pos.x;e.py=pos.y;G.enemies.push(e);G.enemiesAlive++;}
@@ -1398,7 +1403,7 @@ function placeTower(col,row,typeIdx){const type=TT[typeIdx];const d=DIFFS[G.diff
 if(type.id==='dronebay'&&loadout.equippedCards.has('drone_support')&&!loadoutBonuses.droneSupportUsed)cost=0;
 if(G.nexium<cost)return false;if(!isValidPlacement(col,row))return false;if(isTowerRestricted(typeIdx))return false;for(const t of G.towers)if(t.col===col&&t.row===row)return false;
 if(cost===0)loadoutBonuses.droneSupportUsed=true;
-G.nexium-=cost;G.totalNexSpent+=cost;G.towersPlaced++;G.towers.push({col,row,typeIdx,level:0,cooldown:0,totalSpent:cost,abilityCooldown:0,abilityActive:0,overcharged:false,beamTarget:null,disabled:0,chainTargets:null,overloadNext:false,droneCount:3,buildTimer:G.phase==='wave'?loadoutBonuses.buildTime:0});G.placementAnims.push({x:offsetX+col*cellSize+cellSize/2,y:offsetY+row*cellSize+cellSize/2,timer:0.4});playSound('place');tryVibrate(10);return true;}
+G.nexium-=cost;G.totalNexSpent+=cost;G.towersPlaced++;G.towers.push({col,row,typeIdx,level:0,cooldown:0,totalSpent:cost,abilityCooldown:0,abilityActive:0,abilityUnlocked:false,overcharged:false,beamTarget:null,disabled:0,chainTargets:null,overloadNext:false,droneCount:3,buildTimer:G.phase==='wave'?loadoutBonuses.buildTime:0});G.placementAnims.push({x:offsetX+col*cellSize+cellSize/2,y:offsetY+row*cellSize+cellSize/2,timer:0.4});playSound('place');tryVibrate(10);return true;}
 function upgradeTower(idx){const t=G.towers[idx];const type=TT[t.typeIdx];if(t.level>=2)return false;const d=DIFFS[G.diffIdx];const cost=Math.round(type.upCost[t.level]*d.costM);if(G.nexium<cost)return false;G.nexium-=cost;G.totalNexSpent+=cost;t.totalSpent+=cost;t.level++;const ux=offsetX+t.col*cellSize+cellSize/2,uy=offsetY+t.row*cellSize+cellSize/2;emitP(ux,uy,16,'#ffcc00',140,0.6,4);VFX.addDeathRing(ux,uy,'#ffcc00',cellSize*1.6);playSound('place');tryVibrate(15);return true;}
 function sellTower(idx){const t=G.towers[idx];const ref=Math.floor(t.totalSpent*loadoutBonuses.sellMultiplier);G.nexium+=ref;G.towers.splice(idx,1);playSound('sell');}
 function getTowerStats(t){const type=TT[t.typeIdx];const m=1+t.level*0.4,rm=1+t.level*0.15;let frm=(1-t.level*0.1)*(loadoutBonuses.fireRateMultiplier||1.0);if(t.abilityActive>0&&type.ab.type==='stim')frm*=0.5;if(G.chronoActive>0)frm*=0.67;let dm=m;if(t.abilityActive>0&&type.ab.type==='meltdown')dm*=2;if(t.abilityActive>0&&type.ab.type==='fortify')dm*=2;return{damage:Math.round(type.damage*dm*(loadoutBonuses.damageMultiplier||1)),range:type.range*rm*(loadoutBonuses.rangeMultiplier||1),fireRate:type.fireRate*frm,splash:type.splash*(1+t.level*0.2),slows:type.slows||(t.abilityActive>0&&type.ab.type==='fortify'),antiAir:type.antiAir,disableHeal:type.id==='shockwave'};}
@@ -1418,6 +1423,28 @@ case'swarm':t.abilityActive=ab.dur;t.droneCount=6;break;
 case'fortify':t.abilityActive=ab.dur;break;
 }playSound('ability');return true;}
 
+// ============================================================
+// ROUND 40: AUTO-FIRING TOWER ABILITIES
+// Abilities are unlocked per tower with ◆ (strategic purchase); once
+// unlocked they fire themselves when their tactical trigger hits — no
+// tapping through 50 towers. The info-panel button can still force-fire
+// a ready ability instantly.
+function getAbilityUnlockCost(t){const type=TT[t.typeIdx];return Math.round((type.abCost||Math.round(type.cost*0.6))*DIFFS[G.diffIdx].costM);}
+function unlockTowerAbility(idx){const t=G.towers[idx];if(!t||t.abilityUnlocked)return false;const cost=getAbilityUnlockCost(t);if(G.nexium<cost)return false;G.nexium-=cost;G.totalNexSpent+=cost;t.totalSpent+=cost;t.abilityUnlocked=true;const tx=offsetX+t.col*cellSize+cellSize/2,ty=offsetY+t.row*cellSize+cellSize/2;emitP(tx,ty,14,'#44aaff',130,0.6,3);VFX.addDeathRing(tx,ty,'#44aaff',cellSize*1.4);playSound('place');tryVibrate(10);return true;}
+// Tactical triggers: AOE/cluster abilities wait for 2+ targets, overcharge
+// waits for a target worth a 5x shot, everything else fires on first contact.
+function shouldAutoFire(t,type){
+if(t.abilityActive>0)return false;
+const stats=getTowerStats(t);const rp=stats.range*cellSize;
+const tx=offsetX+t.col*cellSize+cellSize/2,ty=offsetY+t.row*cellSize+cellSize/2;
+let inR=0,peakHp=0;
+for(const e of G.enemies){if(!e.alive||e.burrowed||e.phased)continue;const dx=e.px-tx,dy=e.py-ty;if(Math.sqrt(dx*dx+dy*dy)<=rp){inR++;if(e.hp>peakHp)peakHp=e.hp;}}
+if(inR===0)return false;
+const abt=type.ab.type;
+if(abt==='storm'||abt==='nuke'||abt==='empblast'||abt==='fortify'||abt==='swarm'||abt==='overload')return inR>=2;
+if(abt==='overcharge')return peakHp>=stats.damage*4;
+return true;}
+
 function updateTowers(dt){
 for(const t of G.towers){const type=TT[t.typeIdx];
 if(t.disabled>0){t.disabled-=dt;continue;}
@@ -1425,6 +1452,8 @@ if(t.abilityCooldown>0)t.abilityCooldown-=dt;
 if(t.abilityActive>0){t.abilityActive-=dt;if(t.abilityActive<=0&&type.ab.type==='swarm')t.droneCount=3;}
 // Rapid Deploy build time — towers power up shortly after placement.
 if(t.buildTimer>0){t.buildTimer-=dt;continue;}
+// Round 40: unlocked abilities auto-fire on their tactical trigger.
+if(t.abilityUnlocked&&!t.isAI&&t.abilityCooldown<=0&&G.phase==='wave'&&shouldAutoFire(t,type)){activateAbility(G.towers.indexOf(t));}
 // Storm AOE
 if(t.abilityActive>0&&type.ab.type==='storm'){const stats=getTowerStats(t);const rp=stats.range*cellSize;const tx=offsetX+t.col*cellSize+cellSize/2,ty=offsetY+t.row*cellSize+cellSize/2;for(const e of G.enemies){if(!e.alive||e.burrowed||e.phased)continue;const dx=e.px-tx,dy=e.py-ty;if(Math.sqrt(dx*dx+dy*dy)<=rp){e.hp-=stats.damage*3*dt;awardNexiumForDamage(e,stats.damage*3*dt);spawnDmgNum(e.px,e.py,stats.damage*3*dt,'#aa44ff');if(e.hp<=0&&e.alive)killEnemy(e,type.id,t.isAI);}}}
 // Barrier AOE
@@ -2300,8 +2329,8 @@ for(let k=0;k<4;k++){const ba=Math.PI/4+k*Math.PI/2;ctx.save();ctx.translate(x,y
 ctx.strokeStyle=skinColor;ctx.lineWidth=1;ctx.globalAlpha=0.5;ctx.setLineDash([4,4]);ctx.lineDashOffset=-animTime*14;ctx.beginPath();ctx.arc(x,y,s*1.22,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.lineDashOffset=0;ctx.globalAlpha=1;}
 ctx.fillStyle=skinColor;ctx.shadowColor=skinColor;ctx.shadowBlur=6+lv*7;
 if(t.abilityActive>0){ctx.shadowBlur=14;ctx.shadowColor='#ffffff';}
-// Ability ready glow
-if(t.abilityCooldown<=0&&G.phase==='wave'){const pulse=0.3+0.2*Math.sin(performance.now()*0.005);ctx.shadowBlur=10+pulse*10;ctx.shadowColor=type.color;}
+// Ability ready glow — only once the ability is unlocked
+if(t.abilityUnlocked&&t.abilityCooldown<=0&&G.phase==='wave'){const pulse=0.3+0.2*Math.sin(performance.now()*0.005);ctx.shadowBlur=10+pulse*10;ctx.shadowColor=type.color;}
 const id=type.id;
 // Chassis scale — upgrades grow the whole weapon assembly
 ctx.save();ctx.translate(x,y);ctx.scale(gs,gs);ctx.translate(-x,-y);
@@ -2339,6 +2368,8 @@ if(id==='neural'&&t.abilityActive>0){const stats=getTowerStats(t);const ap=stats
 if(id==='barrier'){const stats=getTowerStats(t);const ap=stats.range*cellSize;const ba=t.abilityActive>0?0.12:0.05;ctx.fillStyle='rgba(68,170,255,'+ba+')';ctx.beginPath();ctx.arc(x,y,ap,0,Math.PI*2);ctx.fill();}
 // Level stars
 if(t.level>0){ctx.fillStyle='#ffcc00';ctx.shadowColor='#ffcc00';ctx.shadowBlur=3;ctx.font=Math.max(8,cellSize*0.2)+'px '+FB;ctx.textAlign='center';ctx.fillText(t.level===1?'★':'★★',x,y+s+Math.max(8,cellSize*0.2)+2);ctx.shadowBlur=0;}
+// Round 40: ⚡ rune marks an unlocked auto-ability
+if(t.abilityUnlocked){ctx.font=Math.max(8,cellSize*0.2)+'px '+FB;ctx.textAlign='center';ctx.fillStyle='#44ffaa';ctx.shadowColor='#44ffaa';ctx.shadowBlur=3;ctx.fillText('⚡',x+s*0.9,y-s*0.75);ctx.shadowBlur=0;}
 if(t.overcharged){ctx.strokeStyle='#ffcc00';ctx.lineWidth=2;const p=1+0.15*Math.sin(performance.now()*0.01);ctx.beginPath();ctx.arc(x,y,s*1.2*p,0,Math.PI*2);ctx.stroke();}
 if(t.disabled>0){ctx.font='600 '+Math.max(8,s*0.6)+'px '+FB;ctx.textAlign='center';ctx.fillStyle='#ff3333';ctx.fillText('✕',x,y+4);}}
 
@@ -2393,7 +2424,9 @@ ctx.font='700 '+(fs+1)+'px '+FD;ctx.textAlign='left';ctx.fillStyle=type.color;ct
 ctx.font='500 '+(fs-1)+'px '+FB;ctx.fillStyle=C_TXT;ctx.fillText('DMG:'+stats.damage+' RNG:'+stats.range.toFixed(1)+' SPD:'+stats.fireRate.toFixed(2)+'s',pad,py+28);
 const by=py+36,bh=26,bg=4;
 if(t.level<2){const cost=Math.round(type.upCost[t.level]*d.costM);const ca=G.nexium>=cost;const uw=(W-pad*2-bg*3)*0.32,ux=pad;ctx.fillStyle=ca?'#003344':'#222';ctx.strokeStyle=ca?C_ACC:'#444';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(ux,by,uw,bh,3);ctx.fill();ctx.stroke();ctx.font='600 '+(fs-2)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=ca?C_ACC:'#666';ctx.fillText('UP ◆'+cost,ux+uw/2,by+bh/2+1);G._btns.upgrade={x:ux,y:by,w:uw,h:bh};}else G._btns.upgrade=null;
-const ab=type.ab,ar=t.abilityCooldown<=0;const aw=(W-pad*2-bg*3)*0.36,ax=pad+(W-pad*2-bg*3)*0.32+bg;ctx.fillStyle=ar?'#002244':'#1a1a2a';ctx.strokeStyle=ar?'#44aaff':'#444';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(ax,by,aw,bh,3);ctx.fill();ctx.stroke();ctx.font='600 '+(fs-2)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=ar?'#44aaff':'#555';ctx.fillText(ar?ab.name:ab.name+' '+Math.ceil(t.abilityCooldown)+'s',ax+aw/2,by+bh/2+1);G._btns.ability={x:ax,y:by,w:aw,h:bh};
+const ab=type.ab,aw=(W-pad*2-bg*3)*0.36,ax=pad+(W-pad*2-bg*3)*0.32+bg;ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(ax,by,aw,bh,3);
+if(!t.abilityUnlocked){const uc=getAbilityUnlockCost(t),ca=G.nexium>=uc;ctx.fillStyle=ca?'#0a2a1a':'#1a1a2a';ctx.strokeStyle=ca?'#44ffaa':'#444';ctx.fill();ctx.stroke();ctx.font='600 '+(fs-2)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=ca?'#44ffaa':'#666';ctx.fillText('UNLOCK ◆'+uc,ax+aw/2,by+bh/2+1);G._btns.ability={x:ax,y:by,w:aw,h:bh};}
+else{const ar=t.abilityCooldown<=0;ctx.fillStyle=ar?'#002244':'#1a1a2a';ctx.strokeStyle=ar?'#44aaff':'#444';ctx.fill();ctx.stroke();ctx.font='600 '+(fs-2)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=ar?'#44aaff':'#555';ctx.fillText(ar?'⚡ '+ab.name:ab.name+' '+Math.ceil(t.abilityCooldown)+'s',ax+aw/2,by+bh/2+1);G._btns.ability=ar?{x:ax,y:by,w:aw,h:bh}:null;}
 const ref=Math.floor(t.totalSpent*loadoutBonuses.sellMultiplier);const sw=(W-pad*2-bg*3)*0.28,sxx=W-pad-sw;ctx.fillStyle='#331111';ctx.strokeStyle=C_DNG;ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(sxx,by,sw,bh,3);ctx.fill();ctx.stroke();ctx.font='600 '+(fs-2)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=C_DNG;ctx.fillText('SELL ◆'+ref,sxx+sw/2,by+bh/2+1);G._btns.sell={x:sxx,y:by,w:sw,h:bh};
 const cs=22,cx=W-pad-cs/2,cy=py+12;ctx.font='700 '+(fs+2)+'px '+FB;ctx.textAlign='center';ctx.fillStyle=C_MUT;ctx.fillText('✕',cx,cy+2);G._btns.closeInfo={x:cx-cs/2,y:cy-cs/2,w:cs,h:cs};}
 
@@ -2464,7 +2497,7 @@ ctx.fillStyle='rgba(0,200,255,0.5)';ctx.fillText('Privacy Policy',W/2-60,legalY+
 ctx.fillText('Terms of Service',W/2+60,legalY+10);G._btns.termsLink={x:W/2,y:legalY-2,w:120,h:22};
 ctx.fillStyle='rgba(0,200,255,0.15)';ctx.fillRect(W/2-110,legalY+14,100,0.5);ctx.fillRect(W/2+10,legalY+14,100,0.5);
 const by=H*0.85,bw=120,bh=36;ctx.fillStyle='rgba(20,30,50,0.8)';ctx.strokeStyle=C_MUT;ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(W/2-bw/2,by,bw,bh,6);ctx.fill();ctx.stroke();ctx.font='600 '+Math.min(13,W*0.033)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=C_MUT;ctx.fillText('BACK',W/2,by+bh/2+1);G._btns.settingsBack={x:W/2-bw/2,y:by,w:bw,h:bh};
-ctx.font='500 9px '+FB;ctx.fillStyle=storageAvailable?'#44ff88':'#ff8844';ctx.textAlign='center';ctx.fillText('v7.4.0 · '+(storageAvailable?'● Progress saves locally':'● Progress saves this session only'),W/2,H-14);}
+ctx.font='500 9px '+FB;ctx.fillStyle=storageAvailable?'#44ff88':'#ff8844';ctx.textAlign='center';ctx.fillText('v7.6.0 · '+(storageAvailable?'● Progress saves locally':'● Progress saves this session only'),W/2,H-14);}
 
 function drawHowToPlay(){drawStarfield();
 ctx.save();ctx.shadowColor='rgba(0,200,255,0.3)';ctx.shadowBlur=15;
@@ -2475,7 +2508,7 @@ sepHG.addColorStop(0,'transparent');sepHG.addColorStop(0.5,C_ACC);sepHG.addColor
 ctx.strokeStyle=sepHG;ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(W/2-sepHW/2,H*0.085);ctx.lineTo(W/2+sepHW/2,H*0.085);ctx.stroke();
 const sections=[
 {title:'BASICS',color:C_ACC,items:['Tap cells near paths to place towers','Towers auto-attack passing enemies','Stop enemies before they reach your base','Heroes fight beside you — tap yours for control','Survive all '+TOTAL_WAVES+' waves to claim victory']},
-{title:'TOWERS',color:'#44ff88',items:['Tap placed towers to upgrade or sell','Each tower has a unique special ability','Placed mid-wave, towers power up briefly first','Upgrades visibly armor up and grow towers','Mix tower types for combo effects']},
+{title:'TOWERS',color:'#44ff88',items:['Tap placed towers to upgrade or sell','Each tower has a unique special ability','Unlock abilities with ◆ — they then auto-fire','Placed mid-wave, towers power up briefly first','Upgrades visibly armor up and grow towers','Mix tower types for combo effects']},
 {title:'ABILITIES',color:'#ffaa22',items:['💥 Vanguard Strike — Massive area blast','⚡ Temporal Surge — Speed all towers','🔧 Field Repair — Restore 5 lives','Hero abilities: auto by default, aimable in manual']},
 {title:'CURRENCY',color:'#aa66ff',items:['◆ Nexium — match-only build resource','Earned from DAMAGE dealt to enemies','Killers pay a small bonus on top','◇ Helix Credits — permanent currency','Spend ◇ in the Store: heroes, skins, bundles']}
 ];
@@ -5485,7 +5518,7 @@ if(G._btns.heroAbility&&hitTest(px,py,G._btns.heroAbility)){
 if(G._btns.heroUltimate&&hitTest(px,py,G._btns.heroUltimate)){useHeroUltimate();return;}
 if(G.showTowerInfo){if(hitTest(px,py,G._btns.closeInfo)){G.showTowerInfo=false;G.towerInfoIdx=-1;playSound('click');return;}
 if(G._btns.upgrade&&hitTest(px,py,G._btns.upgrade)){if(!upgradeTower(G.towerInfoIdx))playSound('error');return;}
-if(G._btns.ability&&hitTest(px,py,G._btns.ability)){if(!activateAbility(G.towerInfoIdx))playSound('error');return;}
+if(G._btns.ability&&hitTest(px,py,G._btns.ability)){const _at=G.towers[G.towerInfoIdx];if(_at&&!_at.abilityUnlocked){if(!unlockTowerAbility(G.towerInfoIdx))playSound('error');}else if(!activateAbility(G.towerInfoIdx))playSound('error');return;}
 if(hitTest(px,py,G._btns.sell)){sellTower(G.towerInfoIdx);G.showTowerInfo=false;G.towerInfoIdx=-1;return;}}
 if(G.phase==='build'&&G._btns.startWave&&hitTest(px,py,G._btns.startWave)){
   if(TUTORIAL.active&&TUTORIAL.waitingFor==='start_wave'){TUTORIAL.advance();}
@@ -5540,7 +5573,7 @@ if(heroState.selectedHeroIdx>=0){deployHero(0);computeHeroLevelBonuses();}else r
 G.phase='build';playSound('transition');startAmbient(G.endlessBiome);}
 
 // Testing hooks
-window.render_game_to_text=function(){return JSON.stringify({phase:G.phase,wave:G.endlessMode?G.endlessWave:G.wave,nexium:Math.round(G.nexium),lives:G.lives,score:G.score,mapIdx:G.mapIdx,diffIdx:G.diffIdx,towerCount:G.towers.length,towers:G.towers.map(t=>({col:t.col,row:t.row,type:TT[t.typeIdx].id,level:t.level})),enemyCount:G.enemies.filter(e=>e.alive).length,spawnQueueLength:G.spawnQueue.length,showRadialMenu:G.showRadialMenu,showTowerInfo:G.showTowerInfo,gameSpeed:G.gameSpeed,totalKills:G.totalKills,endless:G.endlessMode,fps:_fps,storageAvailable:storageAvailable,level:prog.level,totalMatches:prog.totalMatches,achievementsCount:achievements.unlocked.size,clashElo:clash.elo,alliedActive:allied.active,clashActive:clash.active,offenseActive:offense.active,waveGoal:getMatchWaveGoal()});};
+window.render_game_to_text=function(){return JSON.stringify({phase:G.phase,wave:G.endlessMode?G.endlessWave:G.wave,nexium:Math.round(G.nexium),lives:G.lives,score:G.score,mapIdx:G.mapIdx,diffIdx:G.diffIdx,towerCount:G.towers.length,towers:G.towers.map(t=>({col:t.col,row:t.row,type:TT[t.typeIdx].id,level:t.level,ab:!!t.abilityUnlocked})),enemyCount:G.enemies.filter(e=>e.alive).length,spawnQueueLength:G.spawnQueue.length,showRadialMenu:G.showRadialMenu,showTowerInfo:G.showTowerInfo,gameSpeed:G.gameSpeed,totalKills:G.totalKills,endless:G.endlessMode,fps:_fps,storageAvailable:storageAvailable,level:prog.level,totalMatches:prog.totalMatches,achievementsCount:achievements.unlocked.size,clashElo:clash.elo,alliedActive:allied.active,clashActive:clash.active,offenseActive:offense.active,waveGoal:getMatchWaveGoal()});};
 window.advanceTime=function(ms){const steps=Math.max(1,Math.round(ms/(1000/60)));for(let i=0;i<steps;i++)update(1/60);render();};
 window._setGamePhase=function(phase){G.phase=phase;render();};
 window._getBtns=function(){return JSON.parse(JSON.stringify(G._btns));};
@@ -5563,7 +5596,7 @@ window._getClashActive=function(){return clash.active;};
 window._getProg=function(){return JSON.parse(JSON.stringify(prog));};
 window._getLayout=function(){return {offsetX,offsetY,cellSize,cols:currentCols,rows:currentRows};};
 window._getPathCells=function(){const s=new Set();for(const p of currentPaths)for(const[c,r]of p)s.add(c+','+r);return[...s].map(k=>k.split(',').map(Number));};
-window._getTowersRaw=function(){return G.towers.map(t=>({col:t.col,row:t.row,type:t.typeIdx,level:t.level,cd:t.cooldown,dis:t.disabled,abCd:t.abilityCooldown,bt:t.buildTimer||0}));};
+window._getTowersRaw=function(){return G.towers.map(t=>({col:t.col,row:t.row,type:t.typeIdx,level:t.level,cd:t.cooldown,dis:t.disabled,abCd:t.abilityCooldown,abOn:t.abilityActive>0,abUnlocked:!!t.abilityUnlocked,bt:t.buildTimer||0}));};
 window._getHeroStateExt=function(){return {aim:G.heroAim||null};};
 window._getPathPts=function(i){return getPathPts(i||0).map(p=>({x:p.x,y:p.y}));};
 window._castHeroAimAt=function(x,y){return castHeroAimAt(x,y);};
@@ -5575,6 +5608,8 @@ window._getEconomy=function(){return {earned:G.totalNexEarned,spent:G.totalNexSp
 // Round 39 test hooks: damage-income state + impact FX counters
 window._getDamageEconomy=function(){return {perHp:NEX_PER_HP,capMult:NEX_DMG_CAP,credited:G.enemies.map(function(e){return {id:e.id,alive:e.alive,maxHp:e.maxHp,hp:e.hp,credited:e._nexCredited||0};})};};
 window._getVfxCounts=function(){return {impacts:VFX.impacts.length,deathRings:VFX.deathRings.length};};
+window._getAbilityCosts=function(){return TT.map(t=>getAbilityUnlockCost({typeIdx:TT.indexOf(t)}));};
+window._getWaveHpMult=function(w){return waveHpMult(w);};
 window._awardNexiumForDamage=function(id,dmg){const e=G.enemies.find(function(x){return x.id===id;});if(!e)return -1;awardNexiumForDamage(e,dmg);return e._nexCredited||0;};
 window._killRewardTaper=function(w){return killRewardTaper(w);};
 window._getTutorial=function(){return {active:TUTORIAL.active,step:TUTORIAL.step,wait:TUTORIAL.waitingFor,done:prog.tutorialDone};};

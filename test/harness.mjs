@@ -181,6 +181,26 @@ export function tryUpgrade(g, towerIdx) {
   return ok;
 }
 
+// Round 40: unlock a tower's auto-ability via the info panel (UNLOCK ◆x).
+export function tryUnlock(g, towerIdx) {
+  const s = botState(g);
+  const t = s.towers[towerIdx];
+  if (!t || t.ab) return false;
+  const c = cellCenter(g, t.col, t.row);
+  g.tap(c.x, c.y); g.frame(2);
+  let btns = g.window._getBtns();
+  if (!btns.ability) {
+    if (btns.closeInfo) { const cc = center(btns.closeInfo); g.tap(cc.x, cc.y); g.frame(1); }
+    return false;
+  }
+  const ac = center(btns.ability);
+  g.tap(ac.x, ac.y); g.frame(2);
+  const ok = botState(g).towers[towerIdx].ab === true;
+  btns = g.window._getBtns();
+  if (btns.closeInfo) { const cc = center(btns.closeInfo); g.tap(cc.x, cc.y); g.frame(1); }
+  return ok;
+}
+
 // Bot with a fixed [col,row,typeIdx] plan (map-specific). After the plan and
 // upgrades are exhausted, spends late-game surplus on extra towers.
 const LATE_MIX = [4, 5, 1, 7, 2];
@@ -209,6 +229,12 @@ export function makePlanBot(g, PLAN) {
         }
         const l1 = s.towers.findIndex(t => t.level === 1);
         if (l1 >= 0 && s.nexium >= 70 && tryUpgrade(g, l1)) { acted = true; continue; }
+        // Round 40: convert surplus into auto-abilities on the biggest towers.
+        if (s.nexium > 450) {
+          const locked = s.towers.map((t, i) => ({t, i})).filter(x => !x.t.ab && x.t.level >= 1)
+            .sort((a, b) => b.t.level - a.t.level)[0];
+          if (locked && tryUnlock(g, locked.i)) { acted = true; continue; }
+        }
         // Late game: flood surplus into extra big-ticket towers.
         if (ptr >= PLAN.length && s.nexium > 600 && s.towerCount < 30) {
           const cells = g.window._getValidCells();
@@ -283,6 +309,12 @@ export function makeGenericBot(g, maxTowers = 14) {
         }
         const l1 = s.towers.findIndex(t => t.level === 1);
         if (l1 >= 0 && s.nexium >= 70 && tryUpgrade(g, l1)) { acted = true; continue; }
+        // Round 40: convert surplus into auto-abilities on the biggest towers.
+        if (s.nexium > 450) {
+          const locked = s.towers.map((t, i) => ({t, i})).filter(x => !x.t.ab && x.t.level >= 1)
+            .sort((a, b) => b.t.level - a.t.level)[0];
+          if (locked && tryUnlock(g, locked.i)) { acted = true; continue; }
+        }
         // Late-game surplus flood.
         if (placed >= GENERIC_MIX.length && s.nexium > 600 && s.towerCount < 30) {
           const cells = g.window._getValidCells();

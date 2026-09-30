@@ -20,6 +20,8 @@ Built as a single-file HTML5 Canvas game, optimized for iPhone (390×844 portrai
 - 18 Arsenal Cards — equip 3 as a loadout for passive bonuses
 - 4 difficulty levels (Standard → Veteran → Elite → Legendary; all stat and economy axes disclosed on the select card)
 - Damage-driven economy: Nexium flows from damage dealt to enemies (capped per enemy), kills pay a bonus kicker, and Swarm Commander bio income scales with lane progress
+- Classic waves escalate with progress (+1.8% enemy HP per wave, ~2x by wave 40) so rising income buys harder fights
+- Tower special abilities unlock per tower with ◆ and then auto-fire on tactical triggers — no tower-by-tower micro
 - 5 playable heroes with distinct animated art, auto-pilot or tap-to-control movement, aimable abilities, and persistent XP/leveling
 - Helix Store with cosmetic skins, bundles, and simulated IAP (daily first-win and win-streak credit bonuses)
 - 10 achievements, tower mastery, commander levels, and ELO-ranked Sector Clash
@@ -46,7 +48,7 @@ Then open `http://localhost:8021` on your phone or in a mobile-sized browser win
 Two layers:
 
 ```bash
-npm test             # 80 headless VM tests (~60s, no browser needed)
+npm test             # 85 headless VM tests (~70s, no browser needed)
 npm run test:browser # real-browser smoke, Chromium + WebKit (iOS Safari core)
                      # (needs: npx playwright install chromium-headless-shell webkit)
 node tools/balance-audit.mjs  # live balance report: tower ROI, wave economies,

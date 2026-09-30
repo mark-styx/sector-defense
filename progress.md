@@ -488,6 +488,50 @@ Third self-check pass (accuracy audit of the review's own claims):
 Audit tool gained `cards` section + 6c progression table; full pipeline
 (all sections) verified end-to-end in one run.
 
+## Round 40 — Auto tower abilities, wave escalation
+
+**Brief**: "since more damage gets more cash, the progressing waves should become
+more difficult as well... i dont think people are going to click into 50 towers
+to use their abilities. maybe the tower abilities should be a passive or auto
+usage thing and an ability you can pay for to unlock on the tower."
+
+### Escalating waves (classic)
+- `waveHpMult(w) = 1.018^w` compounds enemy HP per classic wave — ~1.4x by
+  wave 20, ~2.0x by wave 40. Damage income scales with the HP pools, so the
+  richer late-game economy buys harder fights instead of snowballing.
+- Gated to classic mode only (`isClassicWave()`): endless keeps its 1.08
+  budget curve, allied/clash/campaign/offense untouched.
+- Mid-wave spawns (swarm carriers' skitterlings) inherit the ramp.
+
+### Auto-firing tower abilities (pay-to-unlock)
+- Abilities start LOCKED per tower. Info panel shows `UNLOCK ◆abCost`
+  (abCost ≈ 60% of tower cost, new per-type field, scales with costM,
+  adds to totalSpent so sell refunds cover it).
+- Unlocked abilities AUTO-FIRE from `updateTowers` on tactical triggers:
+  storm/nuke/empblast/fortify/swarm/overload wait for 2+ enemies in range;
+  overcharge waits for a target with hp ≥ 4x tower damage (won't waste a 5x
+  shot on fodder); stim/flak/meltdown fire on first contact.
+- The info button doubles as a manual force-fire while unlocked+ready (player
+  agency preserved); cooling shows a status chip. Unlocked towers wear a ⚡
+  rune; the ready-glow only pulses for unlocked towers.
+- AI towers (allied partner, offense defenders) stay non-auto — zero balance
+  drift for bots that never clicked abilities anyway.
+- Harness bots now convert surplus (>◆450) into unlocks on upgraded towers.
+
+### Verification
+- 5 new headless tests: locked-never-fires, auto-fires-on-trigger,
+  overcharge trigger discipline, live wave-37 HP ramp check, endless
+  exclusion. Tower-info test rewritten for unlock→force-fire→sell-with-refund.
+- 85/85 headless green including all winnability gates (Standard/Veteran/
+  Elite/Legendary 40 waves, hard maps, Inferno-Elite, endless 25, allied 30,
+  all 5 assaults) — the 2x wave-40 ramp held with the unlock-powered bots.
+- Audit re-run: tower table gains ab$ + auto-type columns; economy model
+  carries the ramp; endless still dies at w70; frost 0.820; cards 18/18.
+
+### Version
+7.6.0 (header, footer — including recovering the lost v7.5.0 footer bump,
+package.json, package-lock).
+
 ## Round 39 — Damage economy, tower upgrade art, projectile impacts
 
 **Brief**: "towers that get upgraded should have a visual change to appear more

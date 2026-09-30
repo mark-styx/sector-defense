@@ -370,21 +370,27 @@ test('tower info: ability activation and sell refund work', async () => {
   assert.equal(s.towerCount, 1);
   const afterPlace = s.nexium;
 
-  // Open info and fire the tower ability.
+  // Open info: the ability starts LOCKED — the button offers UNLOCK ◆90.
   g.tap(L.offsetX + 3.5 * L.cellSize, L.offsetY + 2.5 * L.cellSize); g.frame(2);
   assert.equal(s2(g).showTowerInfo, true);
   const ab = g.window._getBtns().ability;
   assert.ok(ab, 'ability button present');
   const abc = center(ab); g.tap(abc.x, abc.y); g.frame(2);
+  assert.equal(state(g).towers[0].ab, true, 'ability unlocked');
+  assert.equal(state(g).nexium, afterPlace - 90, 'unlock costs ◆90 (60% of 150)');
+
+  // Unlocked + ready: the same button force-fires the ability now.
+  const ab2 = g.window._getBtns().ability;
+  const ab2c = center(ab2); g.tap(ab2c.x, ab2c.y); g.frame(2);
   const raw = g.window._getTowersRaw();
   assert.ok(raw[0].abCd > 0, 'tower ability cooldown should be running after activation');
 
-  // Sell: refund is 60% of spent (150 cost, no upgrades).
+  // Sell: refund is 60% of spent (150 tower + 90 unlock).
   const sell = g.window._getBtns().sell;
   const sc = center(sell); g.tap(sc.x, sc.y); g.frame(2);
   s = state(g);
   assert.equal(s.towerCount, 0, 'tower should be gone');
-  assert.equal(s.nexium, afterPlace + Math.floor(150 * 0.6), 'sell refunds 60%');
+  assert.equal(s.nexium, afterPlace - 90 + Math.floor(240 * 0.6), 'sell refunds 60% incl. unlock');
   assert.equal(s2(g).showTowerInfo, false, 'panel closes after sell');
 
   // The cell is free again: rebuild works.
