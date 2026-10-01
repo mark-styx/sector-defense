@@ -525,9 +525,12 @@ async function cardsReport() {
   // init/reset/equip lines (baseline 3 occurrences). Fewer = dead card.
   const html = readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   const code = html.match(/<script>([\s\S]*)<\/script>/)[1];
-  // Occurrences before applyDamage are all setup (literal init, reset, equip);
-  // any occurrence after that is an actual combat/economy read.
-  const setupEnd = code.indexOf('function applyDamage');
+  // Occurrences before scaleDealtDamage (the combat chokepoint, just above
+  // applyDamage) are all setup (literal init, reset, equip); any occurrence
+  // after that is an actual combat/economy read.
+  const setupEnd = code.indexOf('function scaleDealtDamage') >= 0
+    ? code.indexOf('function scaleDealtDamage')
+    : code.indexOf('function applyDamage');
   const symbols = {
     'rapid_deploy (buildTime)': 'buildTime',
     'deep_pockets (extraNexium)': 'extraNexium',

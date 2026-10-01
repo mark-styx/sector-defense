@@ -1,10 +1,9 @@
 // First-run experience: the guided tutorial walked end-to-end via real taps.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {boot, tapBtn, center} from './harness.mjs';
+import {boot, tapBtn, center, state} from './harness.mjs';
 
 const W = 390, H = 844;
-function state(g) { return JSON.parse(g.window.render_game_to_text()); }
 function cellCenter(g, col, row) {
   const L = g.window._getLayout();
   return {x: L.offsetX + (col + 0.5) * L.cellSize, y: L.offsetY + (row + 0.5) * L.cellSize};

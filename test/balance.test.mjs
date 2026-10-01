@@ -4,7 +4,7 @@
 // start), and a second bot assaults a Swarm Commander fortress.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {boot, startClassic, tapBtn, center, makePlanBot, makeGenericBot, runBotWave} from './harness.mjs';
+import {boot, startClassic, tapBtn, center, state, makePlanBot, makeGenericBot, runBotWave} from './harness.mjs';
 
 // [col, row, towerTypeIdx] — hand-picked cells on Outpost Alpha that sit
 // adjacent to path chokepoints (verified by the radial probe at runtime).
@@ -21,8 +21,6 @@ const PLAN = [
   [2, 3, 4],                                     // nova over upper S-curve
   [4, 3, 7]                                      // arc tesla over upper S-curve
 ];
-
-function state(g) { return JSON.parse(g.window.render_game_to_text()); }
 
 async function startTier(g, diffIdx) {
   tapBtn(g, 'menuPlay');

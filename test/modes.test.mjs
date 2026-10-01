@@ -2,9 +2,8 @@
 // and Allied Defense 30-wave co-op — all played by scripted bots via real taps.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {boot, tapBtn, center, makeGenericBot, runBotWave} from './harness.mjs';
+import {boot, tapBtn, center, state, makeGenericBot, runBotWave} from './harness.mjs';
 
-function state(g) { return JSON.parse(g.window.render_game_to_text()); }
 function tapHex(g, id) {
   const hex = g.window._getBtns().campaignHexes.find(h => h.id === id);
   const c = center(hex); g.tap(c.x, c.y); g.frame(2);

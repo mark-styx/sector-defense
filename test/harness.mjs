@@ -26,11 +26,27 @@ function makeCtxStub() {
   });
 }
 
-export function loadGame({width = 390, height = 844, storage = null, seed = {}} = {}) {
+export function loadGame({width = 390, height = 844, storage = null, seed = {}, rngSeed = 20260942} = {}) {
   const html = readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   const m = html.match(/<script>([\s\S]*)<\/script>/);
   if (!m) throw new Error('game script not found in index.html');
   const code = m[1];
+
+  // Deterministic randomness: the game rolls Math.random for wave composition
+  // (clash/allied AI builds), map gen, and VFX. Unseeded, a bot test can draw
+  // an unwinnable defend wave and flake. mulberry32 locks every run to the
+  // same draws; pass a different rngSeed to sample another draw.
+  function mulberry32(a) {
+    return function() {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  const rng = mulberry32(rngSeed);
+  const DetMath = Object.create(Math);
+  DetMath.random = rng;
 
   const store = storage || new Map();
   // Bots and most tests drive menus directly: treat all mode briefings as
@@ -57,7 +73,7 @@ export function loadGame({width = 390, height = 844, storage = null, seed = {}} 
 
   let nowMs = 0;
   const sandbox = {
-    console, Math, JSON, Date, Set, Map, Object, Array, Promise, Number, String,
+    console, Math: DetMath, JSON, Date, Set, Map, Object, Array, Promise, Number, String,
     parseFloat, parseInt, Boolean, RegExp, Error, TypeError, Symbol, isFinite, isNaN,
     window: {
       innerWidth: width, innerHeight: height, devicePixelRatio: 2,
@@ -105,6 +121,9 @@ export function loadGame({width = 390, height = 844, storage = null, seed = {}} 
 }
 
 export function center(b) { return {x: b.x + b.w / 2, y: b.y + b.h / 2}; }
+
+// Shared game-state snapshot (single source; previously re-defined in 13 test files).
+export function state(g) { return JSON.parse(g.window.render_game_to_text()); }
 
 export async function boot(opts) {
   const g = await loadGame(opts).ready();

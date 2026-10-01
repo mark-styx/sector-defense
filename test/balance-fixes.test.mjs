@@ -4,9 +4,8 @@
 // attribution (R7), campaign building cost scaling (R10).
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {boot, loadGame, tapBtn, center, startClassic, tryPlace, makeGenericBot, runBotWave} from './harness.mjs';
+import {boot, loadGame, tapBtn, center, state, startClassic, tryPlace, makeGenericBot, runBotWave} from './harness.mjs';
 
-function state(g) { return JSON.parse(g.window.render_game_to_text()); }
 function seedCards(g, ids) {
   g.window._setLoadout && g.window._setLoadout(ids);
 }

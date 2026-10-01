@@ -1,7 +1,6 @@
 // One-off evidence sweep: remaining 6 maps at Standard (results go in progress.md).
-import {boot, tapBtn, center, makeGenericBot, runBotWave} from './harness.mjs';
+import {boot, tapBtn, center, state, makeGenericBot, runBotWave} from './harness.mjs';
 
-function state(g) { return JSON.parse(g.window.render_game_to_text()); }
 
 async function runMap(mapIdx, label) {
   const g = await boot();

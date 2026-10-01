@@ -4,9 +4,7 @@
 // warden aimed wall placement, phantom snap strike + no-target guard.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {boot, tapBtn, center} from './harness.mjs';
-
-function state(g) { return JSON.parse(g.window.render_game_to_text()); }
+import {boot, tapBtn, center, state} from './harness.mjs';
 
 // Boot → Outpost Alpha → Standard → hero[idx] deployed → build phase.
 async function bootWithHero(idx) {

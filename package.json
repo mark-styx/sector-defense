@@ -1,6 +1,6 @@
 {
   "name": "sector-defense",
-  "version": "7.6.2",
+  "version": "7.6.3",
   "private": true,
   "type": "module",
   "description": "Single-file HTML5 tower defense game for mobile",

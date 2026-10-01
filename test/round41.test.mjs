@@ -1,9 +1,8 @@
 // ROUND 41 quality pass regressions: damage-economy consistency.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {boot, startClassic, tapBtn, center} from './harness.mjs';
+import {boot, startClassic, tapBtn, center, state} from './harness.mjs';
 
-function state(g) { return JSON.parse(g.window.render_game_to_text()); }
 const cell = (g, col, row) => {
   const L = g.window._getLayout();
   return {x: L.offsetX + (col + 0.5) * L.cellSize, y: L.offsetY + (row + 0.5) * L.cellSize};

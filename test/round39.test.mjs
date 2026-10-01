@@ -1,9 +1,7 @@
 // ROUND 39: damage-driven economy + impact FX + swarm progress income.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {boot, loadGame, startClassic, tapBtn, center} from './harness.mjs';
-
-function state(g) { return JSON.parse(g.window.render_game_to_text()); }
+import {boot, loadGame, startClassic, tapBtn, center, state} from './harness.mjs';
 
 async function placeSentinelAndStart(g) {
   const L = g.window._getLayout();

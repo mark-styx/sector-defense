@@ -7,9 +7,7 @@
 //  - mode briefings shown once per mode and persisted
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {loadGame, boot, startClassic, tapBtn, center} from './harness.mjs';
-
-function state(g) { return JSON.parse(g.window.render_game_to_text()); }
+import {loadGame, boot, startClassic, tapBtn, center, state} from './harness.mjs';
 
 test('toasts expire on menu and result screens (playtest: "stuck to the top")', async () => {
   const g = await boot();

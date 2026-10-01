@@ -1,7 +1,6 @@
 // Final evidence edges: Elite on Absolute Zero; endless on volcanic/arctic.
-import {boot, tapBtn, center, makeGenericBot, runBotWave} from './harness.mjs';
+import {boot, tapBtn, center, state, makeGenericBot, runBotWave} from './harness.mjs';
 
-function state(g) { return JSON.parse(g.window.render_game_to_text()); }
 
 async function runClassic(mapIdx, diffIdx, label) {
   const g = await boot();

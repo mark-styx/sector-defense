@@ -3,9 +3,7 @@
 // clash movement, mode-flag leaks, endless restart, and the store.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {loadGame, boot, startClassic, tapBtn, center} from './harness.mjs';
-
-function state(g) { return JSON.parse(g.window.render_game_to_text()); }
+import {loadGame, boot, startClassic, tapBtn, center, state} from './harness.mjs';
 
 test('boots to menu after splash', async () => {
   const g = await boot();

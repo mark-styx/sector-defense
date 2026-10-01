@@ -2,10 +2,9 @@
 // and save/purchase persistence across an app "restart".
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {loadGame, boot, tapBtn, center, makeGenericBot, makePlanBot, runBotWave} from './harness.mjs';
+import {loadGame, boot, tapBtn, center, state, makeGenericBot, makePlanBot, runBotWave} from './harness.mjs';
 
 const W = 390, H = 844;
-function state(g) { return JSON.parse(g.window.render_game_to_text()); }
 
 test('legendary difficulty is winnable by strong play (level-20 save)', async () => {
   // Pre-seed a Commander level 20 save so Legendary is unlocked.

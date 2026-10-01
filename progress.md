@@ -793,3 +793,68 @@ lottery, the gate is deterministic (5/5 clean since, across barrier 10
 and 12 and reserve 700 and 800), and barrier returns to the full spec
 value 12 with The Citadel at its original 700 reserve. Soak tempo for
 rich maps tightened 40 -> 25 (faster, more robust clears).
+
+## Round 42 (v7.6.3): deep code-quality review pass
+
+Goal: "check completeness, verbosity, readability, conventions,
+performance." Reviewed all 5,673 lines of index.html plus tests/tools.
+Headline metrics: 225 top-level functions, median length 10 lines, 0
+dead functions, 0 unused constants, 0 TODO/FIXME markers, 0 console.log
+leftovers, 0 `var`, 0 loose `==`, 100% single-quote JS strings, 11.2%
+comment density. Architecture (single-file, dense one-liner style,
+pooled VFX/projectiles) kept as-is — deliberate and measured.
+
+**Defects found and fixed**:
+- **Inconsistent damage paths**: applyDamage (projectiles, tesla
+  chains) applied enemy-shield halving, Lucky Strike, hero per-enemy
+  marks (Phantom/Oracle), and Reflect, but the inline paths (neural
+  storm ticks, barrier AOE, drone bay volleys, fusion beam) applied
+  NONE of them. Consequences: Bio-Plating shields didn't protect
+  against 4 tower types in offense; Lucky Strike + hero marks didn't
+  boost 4 tower types in defense. New scaleDealtDamage(e,base,isAI)
+  is now the single pre-armor chokepoint for every path (armor stays
+  per-path: subtracted on discrete hits, skipped on continuous ticks
+  where a floor-of-1 would backfire). AI towers can no longer proc
+  the PLAYER's Lucky Strike/Reflect cards (they could, in offense).
+- **applySplashDmg dropped kill attribution**: kills from a splash
+  landing after its target died credited nobody (allied-mode kill
+  counts, tower mastery). Now passes towerTypeId/towerIsAI through.
+- **Kill-stat pollution**: attacker units (reward 0) dying to AI
+  defenders inflated G.totalKills/waveKills/score. Gated on
+  e.reward>0.
+- **Flaky test root cause**: clash/allied wave composition rolls
+  Math.random, so the R1 clash bot could draw an unwinnable defend
+  set and fail ~1 run in N. Harness now boots the game with a
+  seeded mulberry32 PRNG (rngSeed param) — every run samples the
+  identical draw; suite is deterministic (94/94 twice in a row).
+
+**Performance**: render() rebuilt a 15-entry menuPhases array and
+update() a 29-entry paused-phase array every frame, and the vignette
+radial gradient was recreated per frame. All three hoisted (Sets +
+resize-invalidated gradient cache). Measured headroom unchanged
+(0.49ms/frame worst case from round 41; smokes still 60.5fps).
+
+**Readability/conventions**: section banners were development-history
+labels ("PHASE 2" x4 appearing AFTER "PHASE 6", "PHASE 3+4" x2) in
+non-linear order. Renamed all 23 banners to content-descriptive names
+in one consistent format, added a FILE MAP header. DRY: state(g)
+helper was re-defined in 13 test files, now exported from harness.
+balance-audit card-read heuristic updated for the new chokepoint
+(18/18 cards read, lucky_strike was misreported DEAD).
+
+**Noted, deliberately not changed**: mixed drawing style (dense core
+vs airy hero/store code — consistent within each region, unification
+would be pure churn); drawHeroIcon 212 lines (inherent to 5 procedural
+portraits, well-commented); targetable-check repeated 8x in
+updateTowers (inline is the file's idiom); isWaveComplete's per-frame
+filter allocation (bounded, measured fine); enemiesAlive never
+incremented for offense units (clamped, display-only); sweep-maps/
+capture-shots one-off scripts live in test/ but node --test's
+directory glob excludes them (only explicit file invocation runs
+them, 36s of side effects — documented footgun).
+
+New tests: test/round42.test.mjs (kill-stat gate, shield-halves-ticks
+end-to-end via barrier A/B, scaleDealtDamage unit math). Suite 91 ->
+94, all green x2; browser smoke Chromium+WebKit+touch+small-screen
+green; balance audit stable (endless w70, frost 0.820, ladder
+unchanged).
