@@ -1054,6 +1054,7 @@ function getCampaignAP(){const pc=getCampaignPlayerTerritories().length;return M
 function getCampaignIncome(){let inc=0;if(!campaign.territories)return 0;for(const t of campaign.territories){if(t.owner==='player'){inc+=t.income;for(const b of t.buildings)if(b==='outpost')inc+=15;}}return inc;}
 function getTerritoryArmyStr(t){return t.army.infantry+t.army.armor+t.army.artillery;}
 function hasArmy(t){return getTerritoryArmyStr(t)>0;}
+function isCampaignTerritoryUncontested(t){return !!t&&t.owner==='neutral'&&!(t.garrison>0)&&!(t.buildings||[]).includes('garrison')&&!Object.values(t.army||{}).some(n=>n>0);}
 
 // === PERSISTENCE LAYER ===
 const STORAGE_PREFIX = 'sd_';
@@ -1190,7 +1191,7 @@ function loadAllState() {
 
 // Offense mode state
 const offense={active:false,mapIdx:0,bioMass:150,unitsPast:0,goalUnits:10,waveCurrent:1,
-spawnCooldown:0,selectedEnemy:-1,enemies:[],aiTowers:[],totalWaves:5,campaignAttacking:false};
+spawnCooldown:0,selectedEnemy:-1,enemies:[],aiTowers:[],totalWaves:5,campaignAttacking:false,defender:null};
 
 // Active loadout bonuses (calculated at game start)
 const loadoutBonuses={extraNexium:0,extraLives:0,damageMultiplier:1.0,rangeMultiplier:1.0,
@@ -1293,7 +1294,7 @@ function getAvailableTowers(){const m=MAPS[G.mapIdx];if(!m.restricted||!m.restri
 // floor of 1 would INCREASE damage against armored units).
 function scaleDealtDamage(e,base,isAI){let d=base;if(e.shieldTimer>0)d*=0.5;if(!isAI){if(loadoutBonuses.luckyStrike&&Math.random()<0.1)d*=2;const m=getEnemyDamageMultiplier(e.id);if(m!==1)d=Math.round(d*m);}return d;}
 function applyDamage(e,dmg,splash,slows,disHeal,isNuke,towerTypeId,towerIsAI){dmg=scaleDealtDamage(e,dmg,!!towerIsAI);
-if(!towerIsAI&&loadoutBonuses.reflectChance&&Math.random()<loadoutBonuses.reflectChance){const rd=Math.floor(dmg*0.2);e.hp-=rd;awardNexiumForDamage(e,rd);spawnDmgNum(e.px,e.py-5,rd,'#88ddff');}splash*=loadoutBonuses.splatMultiplier;
+if(!towerIsAI&&loadoutBonuses.reflectChance&&Math.random()<loadoutBonuses.reflectChance){const rd=Math.floor(dmg*0.2);e.hp-=rd;awardNexiumForDamage(e,rd);spawnDmgNum(e.px,e.py-5,rd,'#88ddff');}if(!(towerIsAI&&offense.campaignAttacking))splash*=loadoutBonuses.splatMultiplier;
 const eff=Math.max(1,dmg-(e.empTimer>0?0:e.armor));e.hp-=eff;awardNexiumForDamage(e,eff);VFX.addHitFlash(e.id);
 spawnDmgNum(e.px,e.py,eff,C_DNG);
 if(slows)e.slowTimer=2.0;if(disHeal)e.healDisabled=3.0;
@@ -1311,7 +1312,8 @@ function killRewardTaper(w){return G.endlessMode?1:Math.max(0.5,1-Math.max(0,w-2
 const NEX_PER_HP=0.30;      // base ◆ per point of effective damage
 const NEX_DMG_CAP=1.25;     // per-enemy credit cap (× maxHp)
 function awardNexiumForDamage(e,dmg){
-if(offense.active||dmg<=0||!e||!e.alive)return;
+if(offense.active){awardCampaignDefenderDamage(e,dmg);return;}
+if(dmg<=0||!e||!e.alive)return;
 const cap=e.maxHp*NEX_DMG_CAP;
 if(e._nexCredited===undefined)e._nexCredited=0;
 if(e._nexCredited>=cap)return;
@@ -1517,13 +1519,13 @@ if(cost===0)loadoutBonuses.droneSupportUsed=true;
 G.nexium-=cost;G.totalNexSpent+=cost;G.towersPlaced++;G.towers.push({col,row,typeIdx,level:0,cooldown:0,totalSpent:cost,abilityCooldown:0,abilityActive:0,abilityUnlocked:false,overcharged:false,beamTarget:null,disabled:0,chainTargets:null,overloadNext:false,droneCount:3,buildTimer:G.phase==='wave'?loadoutBonuses.buildTime:0});ensureTowerDurability(G.towers.at(-1));G.placementAnims.push({x:offsetX+col*cellSize+cellSize/2,y:offsetY+row*cellSize+cellSize/2,timer:0.4});playSound('place');tryVibrate(10);return true;}
 function upgradeTower(idx){const t=G.towers[idx];const type=TT[t.typeIdx];if(t.level>=2)return false;const d=DIFFS[G.diffIdx];const cost=Math.round(type.upCost[t.level]*d.costM);if(G.nexium<cost)return false;G.nexium-=cost;G.totalNexSpent+=cost;t.totalSpent+=cost;ensureTowerDurability(t);t.level++;ensureTowerDurability(t);const ux=offsetX+t.col*cellSize+cellSize/2,uy=offsetY+t.row*cellSize+cellSize/2;emitP(ux,uy,16,'#ffcc00',140,0.6,4);VFX.addDeathRing(ux,uy,'#ffcc00',cellSize*1.6);playSound('place');tryVibrate(15);return true;}
 function sellTower(idx){const t=G.towers[idx];const ref=Math.floor(t.totalSpent*loadoutBonuses.sellMultiplier);G.nexium+=ref;G.towers.splice(idx,1);playSound('sell');}
-function getTowerStats(t){const type=TT[t.typeIdx];const m=1+t.level*0.4,rm=1+t.level*0.15;let frm=(1-t.level*0.1)*(loadoutBonuses.fireRateMultiplier||1.0);if(t.abilityActive>0&&type.ab.type==='stim')frm*=0.5;if(G.chronoActive>0)frm*=0.67;let dm=m;if(t.abilityActive>0&&type.ab.type==='meltdown')dm*=2;if(t.abilityActive>0&&type.ab.type==='fortify')dm*=2;
+function getTowerStats(t){const type=TT[t.typeIdx];const m=1+t.level*0.4,rm=1+t.level*0.15;let frm=(1-t.level*0.1)*(t.isCampaignDefender?1:(loadoutBonuses.fireRateMultiplier||1.0));if(t.abilityActive>0&&type.ab.type==='stim')frm*=0.5;if(G.chronoActive>0)frm*=0.67;let dm=m;if(t.abilityActive>0&&type.ab.type==='meltdown')dm*=2;if(t.abilityActive>0&&type.ab.type==='fortify')dm*=2;
 // Round 41 fix: hero auras (Vanguard Battle Cry + Total War, Technomancer
 // Overclock) were computed by helpers nothing called — the hero system
 // shipped with these advertised bonuses dead. Folded into live tower stats;
 // AI towers are excluded.
 if(!t.isAI&&heroState.deployed){const hx=offsetX+t.col*cellSize+cellSize/2,hy=offsetY+t.row*cellSize+cellSize/2;dm*=getHeroDamageBonus(hx,hy);frm*=getHeroFireRateBonus(hx,hy);}
-return{damage:Math.round(type.damage*dm*(loadoutBonuses.damageMultiplier||1)),range:type.range*rm*(loadoutBonuses.rangeMultiplier||1),fireRate:type.fireRate*frm,splash:type.splash*(1+t.level*0.2),slows:type.slows||(t.abilityActive>0&&type.ab.type==='fortify'),antiAir:type.antiAir,disableHeal:type.id==='shockwave'};}
+return{damage:Math.round(type.damage*dm*(t.isCampaignDefender?1:(loadoutBonuses.damageMultiplier||1))),range:type.range*rm*(t.isCampaignDefender?1:(loadoutBonuses.rangeMultiplier||1)),fireRate:type.fireRate*frm,splash:type.splash*(1+t.level*0.2),slows:type.slows||(t.abilityActive>0&&type.ab.type==='fortify'),antiAir:type.antiAir,disableHeal:type.id==='shockwave'};}
 function getTowerCost(idx){return Math.round(TT[idx].cost*DIFFS[G.diffIdx].costM);}
 
 function activateAbility(idx){const t=G.towers[idx];const type=TT[t.typeIdx];if(t.abilityCooldown>0||t.offline||t.disabled>0||t.buildTimer>0)return false;const ab=type.ab;t.abilityCooldown=ab.cd;const tx=offsetX+t.col*cellSize+cellSize/2,ty=offsetY+t.row*cellSize+cellSize/2;const stats=getTowerStats(t);const rp=stats.range*cellSize;
@@ -2422,7 +2424,7 @@ if(t.disabled>0){ctx.globalAlpha=0.4+0.2*Math.sin(performance.now()*0.01);}
 ctx.fillStyle='rgba(25,35,55,0.95)';ctx.beginPath();for(let i=0;i<6;i++){const ba=Math.PI/3*i;if(i===0)ctx.moveTo(x+(s+4)*Math.cos(ba),y+(s+4)*Math.sin(ba));else ctx.lineTo(x+(s+4)*Math.cos(ba),y+(s+4)*Math.sin(ba));}ctx.closePath();ctx.fill();
 if(t.offline){ctx.globalAlpha=1;ctx.strokeStyle='#884444';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x-s*0.6,y-s*0.6);ctx.lineTo(x+s*0.6,y+s*0.6);ctx.moveTo(x+s*0.6,y-s*0.6);ctx.lineTo(x-s*0.6,y+s*0.6);ctx.stroke();ctx.font='600 7px '+FD;ctx.textAlign='center';ctx.fillStyle='#ff8877';ctx.fillText('OFFLINE',x,y+s+9);drawTowerHealth(t,x,y,s);return;}
 // Building (Rapid Deploy system): scaffolding + progress arc until ready
-if(t.buildTimer>0){ctx.strokeStyle=skinColor;ctx.lineWidth=2;const bt0=loadoutBonuses.buildTime||1.5;const bp=Math.max(0,1-t.buildTimer/bt0);ctx.beginPath();ctx.arc(x,y,s+3,-Math.PI/2,-Math.PI/2+bp*Math.PI*2);ctx.stroke();ctx.globalAlpha=0.55;ctx.fillStyle=skinColor;ctx.beginPath();ctx.arc(x,y,s*0.4,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;ctx.font='600 9px '+FD;ctx.textAlign='center';ctx.fillStyle=C_TXT;ctx.fillText('⚙',x,y+3);return;}
+if(t.buildTimer>0){ctx.strokeStyle=skinColor;ctx.lineWidth=2;const bt0=t.isCampaignDefender?1.5:(loadoutBonuses.buildTime||1.5);const bp=Math.max(0,1-t.buildTimer/bt0);ctx.beginPath();ctx.arc(x,y,s+3,-Math.PI/2,-Math.PI/2+bp*Math.PI*2);ctx.stroke();ctx.globalAlpha=0.55;ctx.fillStyle=skinColor;ctx.beginPath();ctx.arc(x,y,s*0.4,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;ctx.font='600 9px '+FD;ctx.textAlign='center';ctx.fillStyle=C_TXT;ctx.fillText('⚙',x,y+3);return;}
 // Base ring glow
 ctx.strokeStyle=skinColor;ctx.globalAlpha=0.3+t.level*0.15;ctx.lineWidth=1;ctx.beginPath();ctx.arc(x,y,s+3,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;
 // HUD + BUILD PANELS + TOWER ART (round 39: upgrades visibly transform towers)
@@ -2974,7 +2976,7 @@ if(campaign.message&&campaign.messageTimer>0){ctx.font='600 11px '+FD;ctx.textAl
 // Selected territory info
 const sel=campaign.selectedTerritory>=0?campaign.territories[campaign.selectedTerritory]:null;
 if(sel&&campaign.subAction===''){
-const infoY=panelY+22;
+const infoY=panelY+(campaign.message&&campaign.messageTimer>0?40:22);
 ctx.font='700 14px '+FD;ctx.textAlign='left';ctx.fillStyle=sel.owner==='player'?'#44aaff':sel.owner==='swarm'?'#ff4444':C_TXT;
 ctx.fillText(sel.name,12,infoY);
 ctx.font='500 10px '+FB;ctx.fillStyle=C_MUT;
@@ -2991,7 +2993,7 @@ if(sel.army&&(sel.army.infantry||sel.army.armor||sel.army.artillery)){
 aStr+='Inf:'+sel.army.infantry+' Arm:'+sel.army.armor+' Art:'+sel.army.artillery;}
 else aStr+='None';
 ctx.fillText(aStr,12,infoY+44);
-ctx.fillText('Garrison: '+sel.garrison,W*0.6,infoY+44);
+ctx.fillText(isCampaignTerritoryUncontested(sel)?'UNCONTESTED':'Garrison: '+sel.garrison,W*0.6,infoY+44);
 // Action buttons
 const btnY=infoY+58,btnH=36,btnGap=6;
 const btnW2=Math.min(88,(W-16-3*btnGap)/4);
@@ -3088,8 +3090,8 @@ ctx.font='500 11px '+FB;ctx.fillStyle=C_MUT;
 ctx.fillText('Tap an adjacent neutral or swarm territory',W/2,infoY+18);
 if(campaign.attackSource>=0){const src=campaign.territories[campaign.attackSource];
 ctx.fillText('Attacking from: '+src.name,W/2,infoY+34);
-ctx.fillText('Your army deploys as bio-mass + heavy strains',W/2,infoY+50);}
-const cbx=W/2-50,cby=infoY+46;
+ctx.fillText('Empty territory captures immediately',W/2,infoY+50);}
+const cbx=W/2-50,cby=infoY+64;
 ctx.fillStyle='rgba(20,20,30,0.8)';ctx.strokeStyle=C_MUT;ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(cbx,cby,100,30,6);ctx.fill();ctx.stroke();
 ctx.font='600 11px '+FD;ctx.textAlign='center';ctx.fillStyle=C_MUT;ctx.fillText('CANCEL',W/2,cby+18);
 G._btns.campaignSubCancel={x:cbx,y:cby,w:100,h:30};
@@ -3185,7 +3187,7 @@ ctx.fillStyle='rgba(20,30,50,0.8)';ctx.strokeStyle=C_MUT;ctx.lineWidth=1;ctx.beg
 ctx.font='600 '+Math.min(12,W*0.03)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=C_MUT;ctx.fillText('BACK',W/2,by+bh/2+1);
 G._btns.offenseBack={x:W/2-bw/2,y:by,w:bw,h:bh};}
 
-function startOffenseGame(mapIdx){clearEnemyAttacks();
+function startOffenseGame(mapIdx){clearEnemyAttacks();offense.defender=null;
 offense.active=true;offense.mapIdx=mapIdx;offense.bioMass=OFFENSE_MAPS[mapIdx].bio||150;offense.bioReserve=OFFENSE_MAPS[mapIdx].reserve||200;offense.unitsPast=0;offense.goalUnits=10;offense.waveCurrent=1;offense.spawnCooldown=0;offense.enemies=[];offense._escT=0;offense._escLevel=0;offense._freeHeavies=0;
 const om=OFFENSE_MAPS[mapIdx];const mi=MAPS.findIndex(m=>m.id===om.mapId);
 G.mapIdx=mi;setupMap(mi);
@@ -3198,10 +3200,13 @@ G.showRadialMenu=false;G.showTowerInfo=false;G.towerInfoIdx=-1;G._btns={};G.endl
 nextEnemyId=0;particlePool.pool.forEach(p=>p.active=false);projectilePool.pool.forEach(p=>p.active=false);dmgNumPool.pool.forEach(d2=>d2.active=false);chainPool.pool.forEach(c=>c.active=false);
 G.phase='offenseGame';offense.campaignAttacking=false;offense._rewarded=false;resetCreditLog();startAmbient(MAPS[mi].biome);}
 
-function startCampaignOffense(tid,source){
+function startCampaignOffense(tid,source){resetHeroState();clearEnemyAttacks();resetCreditLog();
 const mi=getCampaignMapIdx(tid);const di=getCampaignDiffIdx(tid);
+const territory=campaign.territories[tid];
+const reserve=100+di*25+(territory.garrison||0)*25+(territory.buildings||[]).filter(b=>b==='outpost').length*50;
+offense.defender={nexium:reserve,startingNexium:reserve,earned:0,spent:0,actionTimer:3,actions:0,built:0,upgraded:0};
 offense.active=true;offense.campaignAttacking=true;offense.mapIdx=0;
-offense.unitsPast=0;offense.spawnCooldown=0;offense._escT=0;offense._escLevel=0;
+offense.unitsPast=0;offense.spawnCooldown=0;offense.spawnCount=0;offense._escT=0;offense._escLevel=0;
 // Scale difficulty based on territory distance (di)
 const bioBase=220+source.army.infantry*35+source.army.armor*25+source.army.artillery*50;
 offense.bioMass=bioBase;
@@ -3218,16 +3223,17 @@ offense.waveCurrent=1;
 // Setup map
 G.mapIdx=mi;setupMap(mi);
 // Place AI defender towers based on territory difficulty & garrison
-G.towers=[];G.enemies=[];G.spawnQueue=[];G.spawnTimer=0;
+G.towers=[];G.enemies=[];G.spawnQueue=[];G.spawnTimer=0;G.placementAnims=[];
 const towerBudget=2+di*2+(campaign.territories[tid].garrison||0);
 const availableCells=[];
 for(let r=0;r<currentRows;r++)for(let c=0;c<currentCols;c++){if(isValidPlacement(c,r))availableCells.push({col:c,row:r});}
 // Shuffle and pick tower positions
 for(let i=availableCells.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[availableCells[i],availableCells[j]]=[availableCells[j],availableCells[i]];}
-const maxTowers=Math.min(towerBudget,availableCells.length,TT.length);
+const allowedTypes=TT.map((t,i)=>i).filter(i=>!isTowerRestricted(i));
+const maxTowers=Math.min(towerBudget,availableCells.length,allowedTypes.length);
 for(let i=0;i<maxTowers;i++){
-const cell=availableCells[i];const typeIdx=Math.min(i%TT.length,TT.length-1);
-G.towers.push({col:cell.col,row:cell.row,typeIdx:typeIdx,level:Math.min(di,2),cooldown:0,totalSpent:0,abilityCooldown:0,abilityActive:0,overcharged:false,beamTarget:null,disabled:0,chainTargets:null,overloadNext:false,droneCount:3,kills:0});}
+const cell=availableCells[i];const t=makeCampaignDefenderTower(cell.col,cell.row,allowedTypes[i],Math.min(di,2),0);
+G.towers.push(t);offense.defender.spent+=t.totalSpent;offense.defender.startingNexium+=t.totalSpent;}
 G.nexium=0;G.lives=999;G.maxLives=999;G.wave=0;G.score=0;G.totalKills=0;G.totalNexEarned=0;G.totalNexSpent=0;G.towersPlaced=0;G.gameSpeed=1;
 G.orbitalCD=999;G.chronoCD=999;G.repairCD=999;G.chronoActive=0;G.orbitalTargeting=false;
 G.showRadialMenu=false;G.showTowerInfo=false;G.towerInfoIdx=-1;G._btns={};G.endlessMode=false;
@@ -3237,6 +3243,55 @@ dmgNumPool.pool.forEach(d2=>d2.active=false);chainPool.pool.forEach(c=>c.active=
 for(let i=0;i<(offense._freeHeavies||0);i++)spawnOffenseEnemy('devastator');
 G.phase='offenseGame';
 startAmbient(MAPS[mi].biome);}
+
+function makeCampaignDefenderTower(col,row,typeIdx,level,buildTimer){
+const type=TT[typeIdx];const totalSpent=type.cost+type.upCost.slice(0,level).reduce((sum,cost)=>sum+cost,0);
+const t={col,row,typeIdx,level,buildTimer,totalSpent,cooldown:0,abilityCooldown:0,abilityActive:0,overcharged:false,beamTarget:null,disabled:0,chainTargets:null,overloadNext:false,droneCount:3,kills:0,isAI:true,isCampaignDefender:true};
+ensureTowerDurability(t);return t;}
+
+function awardCampaignDefenderDamage(e,dmg){
+const defender=offense.defender;
+if(!defender||!offense.campaignAttacking||!campaign.active||G.phase!=='offenseGame'||!e||!e.alive||!Number.isFinite(dmg)||dmg<=0)return;
+// Credit actual HP removed, including the killing hit, with the same lifetime cap as defense play.
+const credited=Math.max(0,Math.min(dmg,e.hp+dmg,e.maxHp*NEX_DMG_CAP-(e._defenderNexCredited||0)));
+e._defenderNexCredited=(e._defenderNexCredited||0)+credited;
+const gained=credited*NEX_PER_HP;defender.nexium+=gained;defender.earned+=gained;}
+
+function updateCampaignDefender(dt){
+const defender=offense.defender;
+if(!offense.active||!offense.campaignAttacking||!campaign.active||!defender||G.phase!=='offenseGame')return;
+defender.actionTimer-=dt;if(defender.actionTimer>0)return;defender.actionTimer+=3;
+const upgradable=G.towers.filter(t=>t.isCampaignDefender&&!t.offline&&!(t.buildTimer>0)&&t.level<2&&TT[t.typeIdx].upCost[t.level]<=defender.nexium);
+upgradable.sort((a,b)=>a.level-b.level||TT[a.typeIdx].upCost[a.level]-TT[b.typeIdx].upCost[b.level]);
+// Mix weapons while keeping map restrictions and ordinary tower prices.
+const plan=[0,2,1,3,7,5];
+let typeIdx=plan[defender.built%plan.length];
+if(isTowerRestricted(typeIdx)||TT[typeIdx].cost>defender.nexium){typeIdx=TT.findIndex((t,i)=>!isTowerRestricted(i)&&t.cost<=defender.nexium);}
+let cell=null,bestScore=-Infinity;
+if(typeIdx>=0){
+const range=TT[typeIdx].range*cellSize,alive=G.enemies.filter(e=>e.alive);
+const occupied=new Set(G.towers.map(t=>t.col+','+t.row));
+const points=currentPaths.flatMap((p,i)=>getPathPts(i));
+for(let row=0;row<currentRows;row++)for(let col=0;col<currentCols;col++){
+if(!isValidPlacement(col,row)||occupied.has(col+','+row))continue;
+const x=offsetX+(col+0.5)*cellSize,y=offsetY+(row+0.5)*cellSize;
+let score=points.filter(p=>Math.hypot(p.x-x,p.y-y)<=range).length;
+for(const e of alive)if(Math.hypot(e.px-x,e.py-y)<=range)score+=6;
+// Spread defenses instead of piling every purchase into one choke point.
+for(const t of G.towers)if(Math.hypot(t.col-col,t.row-row)<2)score-=8;
+if(score>bestScore){bestScore=score;cell={col,row,x,y};}}}
+if(upgradable.length&&(defender.actions%2===1||!cell)){
+const t=upgradable[0],cost=TT[t.typeIdx].upCost[t.level];
+defender.nexium-=cost;defender.spent+=cost;defender.upgraded++;defender.actions++;
+t.totalSpent+=cost;t.level++;ensureTowerDurability(t);
+const x=offsetX+(t.col+0.5)*cellSize,y=offsetY+(t.row+0.5)*cellSize;
+emitP(x,y,16,'#ffcc00',140,0.6,4);VFX.addDeathRing(x,y,'#ffcc00',cellSize*1.6);
+}else if(cell){
+const cost=TT[typeIdx].cost;defender.nexium-=cost;defender.spent+=cost;defender.built++;defender.actions++;
+G.towers.push(makeCampaignDefenderTower(cell.col,cell.row,typeIdx,0,1.5));
+G.placementAnims.push({x:cell.x,y:cell.y,timer:0.4});
+}else return;
+playSound('place');}
 
 function drawOffenseHUD(){
 ctx.fillStyle=C_SUR;ctx.fillRect(0,0,W,topBarH);ctx.strokeStyle=C_BOR;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,topBarH);ctx.lineTo(W,topBarH);ctx.stroke();
@@ -3294,13 +3349,15 @@ ctx.font='600 '+Math.max(8,bs*0.22)+'px '+FB;ctx.fillStyle=ca?C_WRN:'#555';
 ctx.fillText('◆'+oe.cost,bx+bs/2,by+bs+4);
 G._btns.offenseSpawn.push({x:bx,y:by,w:bs,h:bs+10,idx:i});}
 ctx.font='500 '+Math.max(8,10)+'px '+FB;ctx.textAlign='center';ctx.fillStyle=C_MUT;
-ctx.fillText('Tap unit to spawn',W/2,py+bs+26);}
+ctx.fillText('Tap unit to spawn',W/2,py+bs+26);
+if(offense.campaignAttacking&&offense.defender){ctx.fillStyle=C_ACC;ctx.font='600 10px '+FD;
+ctx.fillText('DEFENDER  ◆'+Math.floor(offense.defender.nexium)+'  ·  '+G.towers.length+' towers',W/2,py+bs+42);}}
 
 function drawOffenseGame(){
 drawMap();if(!settings.reduceMotion)VFX.drawTrails(ctx);
 for(const t of G.towers)drawTower(t);
 for(const e of G.enemies)if(e.alive)drawEnemy(e);
-drawProjectiles();drawChains();if(!settings.reduceMotion)VFX.drawImpacts(ctx);if(!settings.reduceMotion)VFX.drawDeathRings(ctx);drawParticles();drawDmgNums();
+drawProjectiles();drawChains();if(!settings.reduceMotion)VFX.drawImpacts(ctx);if(!settings.reduceMotion)VFX.drawDeathRings(ctx);drawParticles();drawDmgNums();drawPlacementAnims();
 drawOffenseHUD();drawOffenseSpawnPanel();drawMinimap();}
 
 function drawOffenseResult(){
@@ -3361,6 +3418,7 @@ const aliveCount=G.enemies.filter(e2=>e2.alive).length;
 const cheapest=Math.min(...OFFENSE_ENEMIES.map(o=>o.cost));
 if(offense.bioReserve<=0&&offense.bioMass<cheapest&&aliveCount===0&&G.spawnQueue.length===0){G.phase='offenseResult';return;}
 // AI towers attack
+updatePlacementAnims(sdt);updateCampaignDefender(sdt);
 updateEnemyAttacks(sdt);updateTowers(sdt);updateProjectiles(sdt);updateParticles(sdt);updateDmgNums(sdt);updateChains(sdt);}
 
 function spawnOffenseEnemy(typeId){
@@ -3469,12 +3527,18 @@ if(campaign.subAction==='attackSelect'){
 if(G._btns.campaignHexes)for(const h of G._btns.campaignHexes){if(hitTest(px,py,h)){
 const target=campaign.territories[h.id];
 const source=campaign.territories[campaign.attackSource];
-if(target.owner!=='player'&&source.adj.includes(h.id)){
+if(target&&source&&source.owner==='player'&&hasArmy(source)&&campaign.actionPoints>=2&&target.owner!=='player'&&source.adj.includes(h.id)){
 campaign.attackTarget=h.id;campaign.selectedTerritory=h.id;
 // Launch offense battle!
 const tid=h.id;
 campaign.defending=false;
 campaign.actionPoints-=2;
+campaign.subAction='';
+if(isCampaignTerritoryUncontested(target)){
+target.owner='player';target.army={...source.army};source.army={infantry:0,armor:0,artillery:0};
+campaign.message='Captured '+target.name+' without resistance';campaign.messageTimer=3;
+if(!checkCampaignVictory())finishCampaignAttackTurn();
+saveAllState();playSound('place');return;}
 // Start offense mode — player sends units to overwhelm AI defenses
 startCampaignOffense(tid,source);
 // Consume army units (bonuses already factored into bio-mass)
@@ -3533,6 +3597,7 @@ return false;}
 
 function processCampaignAfterBattle(won){
 if(!campaign.active)return;
+offense.defender=null;
 if(campaign.defending){
 if(won){campaign.battlesWon++;
 if(checkCampaignVictory())return;
@@ -3546,11 +3611,12 @@ const tid=campaign.attackTarget>=0?campaign.attackTarget:campaign.selectedTerrit
 campaign.territories[tid].owner='player';campaign.battlesWon++;
 if(checkCampaignVictory())return;
 // After attack, check if player still has AP
+finishCampaignAttackTurn();}
+else finishCampaignAttackTurn();}
+
+function finishCampaignAttackTurn(){
 if(campaign.actionPoints>0){saveAllState();G.phase='campaignMap';}
 else{campaign.nexiumBank+=getCampaignIncome();doSwarmTurn();}}
-else{
-if(campaign.actionPoints>0){saveAllState();G.phase='campaignMap';}
-else{campaign.nexiumBank+=getCampaignIncome();doSwarmTurn();}}}
 
 function doSwarmTurn(){
 campaign.swarmThreat+=0.35;
@@ -5681,7 +5747,7 @@ canvas.addEventListener('click',e=>handleTap(e.clientX,e.clientY));
 canvas.addEventListener('mousemove',e=>{if(G.showRadialMenu&&G._btns.radial){G.hoveredRadialIdx=-1;for(const btn of G._btns.radial)if(hitCircle(e.clientX,e.clientY,btn)){G.hoveredRadialIdx=btn.idx;break;}}});
 
 // Start game
-function startGame(){allied.active=false;clash.active=false;offense.active=false;offense.campaignAttacking=false;_matchFinalized=false;calculateLoadoutBonuses();setupMap(G.mapIdx);if(heroState.selectedHeroIdx>=0){deployHero(0);computeHeroLevelBonuses();}else resetHeroState();const d=DIFFS[G.diffIdx];G.nexium=d.nex+loadoutBonuses.extraNexium;G.maxLives=d.lives+loadoutBonuses.extraLives;G.lives=d.lives+loadoutBonuses.extraLives;G.wave=0;G.score=0;G.towers=[];G.enemies=[];G.spawnQueue=[];G.spawnTimer=0;G.showRadialMenu=false;G.showTowerInfo=false;G.towerInfoIdx=-1;G.hoveredRadialIdx=-1;G.totalKills=0;G.totalNexEarned=0;G.totalNexSpent=0;G.towersPlaced=0;G.enemiesAlive=0;G.gameSpeed=settings.defaultSpeed;G.orbitalCD=0;G.chronoCD=0;G.repairCD=0;G.chronoActive=0;G.orbitalTargeting=false;G.heroAim=null;G.waveKills=0;G.waveNex=0;G.shakeTimer=0;G.placementAnims=[];G._btns={};G.endlessMode=false;nextEnemyId=0;particlePool.pool.forEach(p=>p.active=false);projectilePool.pool.forEach(p=>p.active=false);dmgNumPool.pool.forEach(d=>d.active=false);chainPool.pool.forEach(c=>c.active=false);// Deploy hero if selected
+function startGame(){allied.active=false;clash.active=false;offense.active=false;offense.campaignAttacking=false;offense.defender=null;_matchFinalized=false;calculateLoadoutBonuses();setupMap(G.mapIdx);if(heroState.selectedHeroIdx>=0){deployHero(0);computeHeroLevelBonuses();}else resetHeroState();const d=DIFFS[G.diffIdx];G.nexium=d.nex+loadoutBonuses.extraNexium;G.maxLives=d.lives+loadoutBonuses.extraLives;G.lives=d.lives+loadoutBonuses.extraLives;G.wave=0;G.score=0;G.towers=[];G.enemies=[];G.spawnQueue=[];G.spawnTimer=0;G.showRadialMenu=false;G.showTowerInfo=false;G.towerInfoIdx=-1;G.hoveredRadialIdx=-1;G.totalKills=0;G.totalNexEarned=0;G.totalNexSpent=0;G.towersPlaced=0;G.enemiesAlive=0;G.gameSpeed=settings.defaultSpeed;G.orbitalCD=0;G.chronoCD=0;G.repairCD=0;G.chronoActive=0;G.orbitalTargeting=false;G.heroAim=null;G.waveKills=0;G.waveNex=0;G.shakeTimer=0;G.placementAnims=[];G._btns={};G.endlessMode=false;nextEnemyId=0;particlePool.pool.forEach(p=>p.active=false);projectilePool.pool.forEach(p=>p.active=false);dmgNumPool.pool.forEach(d=>d.active=false);chainPool.pool.forEach(c=>c.active=false);// Deploy hero if selected
 if(heroState.selectedHeroIdx>=0&&heroState.deployed){computeHeroLevelBonuses();}
 G.phase='build';playSound('transition');startAmbient(MAPS[G.mapIdx].biome);}
 
@@ -5712,7 +5778,7 @@ window._getEnemies=function(){return G.enemies.map(e=>({id:e.id,type:e.type,aliv
 window._spawnOffense=function(t){spawnOffenseEnemy(t);};
 window._startClashAttack=function(){startClashAttackRound();};
 window._finalizeMatch=function(v){finalizeMatch(v);};
-window._getOffenseState=function(){return JSON.parse(JSON.stringify({unitsPast:offense.unitsPast,goalUnits:offense.goalUnits,bioMass:offense.bioMass,bioReserve:offense.bioReserve,active:offense.active,campaign:offense.campaignAttacking}));};
+window._getOffenseState=function(){return JSON.parse(JSON.stringify({unitsPast:offense.unitsPast,goalUnits:offense.goalUnits,bioMass:offense.bioMass,bioReserve:offense.bioReserve,active:offense.active,campaign:offense.campaignAttacking,defender:offense.defender}));};
 window._getAlliedActive=function(){return allied.active;};
 window._getClashActive=function(){return clash.active;};
 window._getProg=function(){return JSON.parse(JSON.stringify(prog));};

@@ -51,12 +51,13 @@ test('helix war: attack captures a territory, defense holds it, flow survives', 
   assert.equal(state(g).phase, 'campaignMap');
   g.window._setGameState('gameSpeed', 3);
 
-  // --- Attack: give Vanguard HQ a built-up army and assault neutral Foundry District.
+  // --- Attack: give Vanguard HQ a built-up army and assault occupied Foundry District.
   // (A real campaign army: several turns of recruiting -> ~500 assault bio-mass.)
   g.window._setCampaignArmy(0, {infantry: 6, armor: 3, artillery: 2});
+  g.window._setCampaignTerritory(3, 'owner', 'swarm');
   tapHex(g, 0);
   tapBtn(g, 'campaignAttackBtn');
-  tapHex(g, 3); // adjacent neutral
+  tapHex(g, 3); // adjacent occupied territory
   assert.equal(state(g).phase, 'offenseGame');
   playOffense(g, 240);
   const off = g.window._getOffenseState();
@@ -132,7 +133,7 @@ test('helix war: campaign victory triggers when the Swarm Hive falls', async () 
   for (let i = 0; i < 20; i++) {
     if (i !== 18) g.window._setCampaignTerritory(i, 'owner', 'player');
   }
-  g.window._setCampaignArmy(18 - 1 >= 0 ? 17 : 17, {infantry: 6, armor: 3, artillery: 2}); // 17 adj to 18
+  g.window._setCampaignArmy(17, {infantry: 0, armor: 0, artillery: 3}); // recruitable army, 17 adjacent to Hive
   // Attack the Hive from territory 17 (adjacent).
   const hexes = () => g.window._getBtns().campaignHexes;
   let h = hexes().find(x => x.id === 17);
@@ -141,7 +142,7 @@ test('helix war: campaign victory triggers when the Swarm Hive falls', async () 
   h = hexes().find(x => x.id === 18);
   c = center(h); g.tap(c.x, c.y); g.frame(2);
   assert.equal(JSON.parse(g.window.render_game_to_text()).phase, 'offenseGame');
-  // Hive is deep (di 2) with garrison: bring a decisive assault.
+  // Artillery provides a heavy opening push against the live defender.
   g.window._setGameState('gameSpeed', 3);
   const capSec = 240;
   let frames = 0;
