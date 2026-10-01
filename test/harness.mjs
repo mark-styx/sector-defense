@@ -30,7 +30,8 @@ export function loadGame({width = 390, height = 844, storage = null, seed = {}, 
   const html = readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   const m = html.match(/<script>([\s\S]*)<\/script>/);
   if (!m) throw new Error('game script not found in index.html');
-  const code = m[1];
+  // Inject fixture access inside the game's closure only in the VM harness.
+  const code = m[1].replace(/\}\)\(\);\s*$/, 'window.__testEvaluate = code => eval(code);\n})();');
 
   // Deterministic randomness: the game rolls Math.random for wave composition
   // (clash/allied AI builds), map gen, and VFX. Unseeded, a bot test can draw
@@ -100,6 +101,7 @@ export function loadGame({width = 390, height = 844, storage = null, seed = {}, 
   const api = {
     window: sandbox.window,
     listeners,
+    evaluate(code) { return sandbox.window.__testEvaluate(code); },
     // Advance simulated time in 60fps steps, running update+render via the game's own hook.
     frame(n = 1) {
       for (let i = 0; i < n; i++) {

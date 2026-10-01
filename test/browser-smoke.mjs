@@ -7,6 +7,7 @@ import {chromium, webkit, devices} from 'playwright';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {runEnemyAttackBrowserTests} from './browser-enemy-attacks.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -189,6 +190,8 @@ console.log(`✓ [${engineName}] SMOKE PASSED — zero console/page errors`);
 
 await runSession('chromium', () => chromium.launch());
 await runSession('webkit', () => webkit.launch()); // iOS Safari engine core
+await runEnemyAttackBrowserTests('chromium', chromium);
+await runEnemyAttackBrowserTests('webkit', webkit);
 
 // --- Touch-input session (the real iPhone modality: touchstart events) ---
 // Runs in WebKit: iOS engine + iOS input = the shipping pairing.
