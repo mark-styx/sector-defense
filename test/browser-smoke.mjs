@@ -9,6 +9,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {runEnemyAttackBrowserTests} from './browser-enemy-attacks.mjs';
 import {runCampaignAssaultBrowserTests} from './browser-campaign-assault.mjs';
+import {runBossVisualBrowserTests} from './browser-boss-visuals.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -195,6 +196,8 @@ await runEnemyAttackBrowserTests('chromium', chromium);
 await runEnemyAttackBrowserTests('webkit', webkit);
 await runCampaignAssaultBrowserTests('chromium', chromium);
 await runCampaignAssaultBrowserTests('webkit', webkit);
+await runBossVisualBrowserTests('chromium', chromium);
+await runBossVisualBrowserTests('webkit', webkit);
 
 // --- Touch-input session (the real iPhone modality: touchstart events) ---
 // Runs in WebKit: iOS engine + iOS input = the shipping pairing.
