@@ -935,3 +935,25 @@ end-to-end via barrier A/B, scaleDealtDamage unit math). Suite 91 ->
 94, all green x2; browser smoke Chromium+WebKit+touch+small-screen
 green; balance audit stable (endless w70, frost 0.820, ladder
 unchanged).
+
+## Helix War active assaults and uncontested capture (2026-10-01)
+
+- Occupied territories now field a live defender with separate Nexium. It buys
+  towers and upgrades during the assault using starting resources and damage
+  income, with the same per-unit lifetime cap as defense play. No passive
+  income or player-currency credit is granted to the defender.
+- Purchases honor map restrictions, valid unoccupied cells, normal prices,
+  construction time and the two-level upgrade cap. Construction rings,
+  scaffolding and upgrade effects appear during combat; the spawn panel shows
+  the defender's Nexium and tower count.
+- Uncontested neutral territory auto-captures for the usual 2 AP. The army moves
+  in intact; capture persists, respects turn flow and can trigger victory,
+  without granting battle rewards or increasing battles won. Garrisoned,
+  manned and Swarm-held territories still require combat.
+- Campaign defenders exclude attacker loadout and hero bonuses. Their state
+  clears on battle return and new games, and pauses with combat or retreat
+  confirmation. Capture feedback has room above the territory name.
+- Added 12 campaign regression tests and Chromium/WebKit touch coverage for
+  auto-capture, construction pixels, upgrades, pause and small-phone layout.
+  Existing campaign bots cover occupied assaults and a Hive assault with a
+  recruitable three-unit artillery army. Full VM suite: 119 passing tests.

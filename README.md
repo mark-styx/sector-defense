@@ -8,7 +8,7 @@ Built as a single-file HTML5 Canvas game, optimized for iPhone (390×844 portrai
 
 - **Classic Defense** — Traditional tower defense across 10 maps and 40 waves. Place towers, upgrade them, and survive increasingly difficult enemy waves.
 - **Endless Mode** — No wave limit. Survive as long as you can with scaling difficulty.
-- **The Helix War** — A strategic campaign inspired by BFME2's War of the Ring. Control territories on a 20-hex map, manage resources and Action Points, recruit armies, and conquer the sector turn by turn.
+- **The Helix War** - Control territories on a 20-hex map, manage resources and Action Points, and recruit armies. Occupied territories have an active defender that builds and upgrades towers during your assault. Uncontested neutral land captures immediately.
 - **Swarm Commander** — Play offense. Spawn waves of units to overwhelm enemy defenses. Choose your composition and timing wisely.
 - **Allied Defense** — Co-op tower defense with an AI ally. Coordinate tower placement and share resources.
 - **Sector Clash** — PvP simulation. Build defenses and send attacks against an AI opponent simultaneously.
@@ -31,6 +31,10 @@ Built as a single-file HTML5 Canvas game, optimized for iPhone (390×844 portrai
 - Deployment fast-forward: tap **DEPLOY »** during a defense wave to toggle 1×/3× enemy deployment without changing movement or combat speed. Resets each wave and stops when the queue is empty.
 - Progress, purchases, and settings persist via localStorage
 
+In Helix War, neutral territories without a garrison or stationed army are marked **UNCONTESTED**. Attacking them costs the usual 2 AP, moves your army into the territory intact, and skips combat and battle rewards. Swarm territory and defended neutral territory require an assault.
+
+Assault defenders spend a finite starting Nexium budget plus income earned by damaging your units. New towers use normal prices, map placement rules, and 1.5 seconds of visible construction; upgrades follow the normal two-level limit. The assault HUD shows the defender's current Nexium and tower count. Pausing or opening the retreat confirmation freezes the battle.
+
 ## Running Locally
 
 Just serve `index.html` with any static file server:
@@ -51,7 +55,7 @@ Then open `http://localhost:8021` on your phone or in a mobile-sized browser win
 Two layers:
 
 ```bash
-npm test             # 107 headless VM tests (~75s, no browser needed; deterministic seeded RNG)
+npm test             # 119 headless VM tests (~75s, no browser needed; deterministic seeded RNG)
 npm run test:browser # real-browser smoke, Chromium + WebKit (iOS Safari core)
                      # (needs: npx playwright install chromium-headless-shell webkit)
 node tools/balance-audit.mjs  # live balance report: tower ROI, wave economies,
@@ -65,6 +69,8 @@ Covers: match economy (one-time finalization, damage-driven income with per-enem
 Combat regressions also cover damage only on projectile contact, point-blank attack visibility, Warden reflection, armor, hero death, stun/burrow/phase gating, pause/restart cleanup, tower durability/upgrades, free wave-end repairs, and shots targeting sold towers. Browser tests verify incoming bolts draw real canvas pixels in Chromium and WebKit, and capture flight, impact, and offline-tower screenshots in `test-artifacts/`.
 
 Deployment tests verify faster spawning with unchanged enemy movement, pause behavior, queue completion, per-wave reset across all defense modes, and phone-sized touch targets. Chromium and WebKit also exercise the deployment control through touch events.
+
+Campaign assault tests cover automatic capture, army preservation and persistence, AP/turn flow, victory, defended territory, live tower purchases/upgrades, construction delays, restricted maps, separate capped defender income, pause, and cleanup. Chromium and WebKit exercise these flows through touch input, check construction pixels, and capture campaign screenshots in `test-artifacts/`.
 
 ## License
 

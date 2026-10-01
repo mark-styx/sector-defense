@@ -46,6 +46,20 @@ What was broken was the *communication*:
 5. The army→bio-mass connection was never stated where you spend it.
    **[FIXED: stated in attack-select + recruit UI]**
 
+### Campaign assault follow-up (2026-10-01)
+
+Occupied territory now has a live defender that buys towers and upgrades during
+the assault, funded by starting Nexium and capped damage income. Purchases obey
+map restrictions, placement rules, ordinary prices and construction time.
+Attacker cards and hero bonuses do not strengthen the defending towers.
+
+Neutral land without a garrison or stationed army now auto-captures for 2 AP.
+The army moves into the captured territory intact, and no battle rewards or
+battle-win count are granted. Swarm occupation always requires combat.
+Capture feedback and the assault HUD explain these outcomes. Regression tests
+cover capture, defender spending, pause/cleanup and a recruitable Hive assault;
+Chromium and WebKit verify the touch flow and visible construction.
+
 ## Swarm Commander — two currencies named "bio", no pressure
 
 - Premise was "reverse roles," a mechanic, not a reason. **[FIXED: captured
