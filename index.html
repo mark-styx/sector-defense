@@ -5177,7 +5177,6 @@ ctx.fillText(sub.substring(0,chars),W/2,H*0.55);}
 if(t>2.0){ctx.globalAlpha=(t-2.0)/0.5;ctx.fillStyle='#030508';ctx.fillRect(0,0,W,H);ctx.globalAlpha=1;}}
 
 // Main render
-let _lastMusicPhase='';
 // Phase sets are hoisted: render()/update() used to rebuild these arrays
 // every frame (~60/s). Set.has is O(1) and the lists never change at runtime.
 // MENU_PHASES drives ambient-music routing; SIM_PAUSED_PHASES is the set of

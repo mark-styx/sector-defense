@@ -917,6 +917,19 @@ statically-unreferenced functions, bot tests that drive all six
 modes end-to-end, and the mutation results above — rather than
 measured as a line-coverage percentage.
 
+**Dead-variable sweep (final static gap)**: the dead-code passes
+covered functions and SCREAMING_CASE consts but not camelCase
+top-level/leading-column let/const. Sweeping that class found four
+dead declarations, all deleted: `_lastMusicPhase` (music-phase
+cache superseded by Music.currentTrack), `xpForLevel` (XP loop uses
+xpNeeded only), `totalH` (menu layout computed, never read), and
+`menuParticles` (40-object array filled once at boot, never read —
+the live starfield is getStars()/stars2). Same-line-use suspects
+(bossWaves et al.) verified alive. No linter config exists in the
+repo by design (zero-dependency single-file game); eslint run
+attempted for the record and fails on absent config. 94/94 + both
+engine smokes green after deletions.
+
 New tests: test/round42.test.mjs (kill-stat gate, shield-halves-ticks
 end-to-end via barrier A/B, scaleDealtDamage unit math). Suite 91 ->
 94, all green x2; browser smoke Chromium+WebKit+touch+small-screen
