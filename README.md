@@ -25,6 +25,7 @@ Built as a single-file HTML5 Canvas game, optimized for iPhone (390×844 portrai
 - 5 playable heroes with distinct animated art, auto-pilot or tap-to-control movement, aimable abilities, and persistent XP/leveling
 - Enemy attacks visibly travel to heroes; health loss, hit flashes, and damage numbers occur on contact. Stunned, burrowed, and phased enemies cannot launch attacks.
 - Siege Crawlers fire damaging EMP bolts at nearby towers. Towers have 200 HP (+100 per upgrade), shut down at zero HP, and repair for free after each wave.
+- Bosses have detailed animated portraits at hero scale: Devastator's furnace heart and taloned armor, Hivemind's brain crown and brood pods, and Siege Crawler's articulated legs and tracking cannon. Nameplates, health bars, attack reactions, armor cracks, and hit/status effects make their combat state visible.
 - Helix Store with cosmetic skins, bundles, and simulated IAP (daily first-win and win-streak credit bonuses)
 - 10 achievements, tower mastery, commander levels, and ELO-ranked Sector Clash
 - Touch-optimized controls for mobile play
@@ -55,7 +56,7 @@ Then open `http://localhost:8021` on your phone or in a mobile-sized browser win
 Two layers:
 
 ```bash
-npm test             # 119 headless VM tests (~75s, no browser needed; deterministic seeded RNG)
+npm test             # 127 headless VM tests (~75s, no browser needed; deterministic seeded RNG)
 npm run test:browser # real-browser smoke, Chromium + WebKit (iOS Safari core)
                      # (needs: npx playwright install chromium-headless-shell webkit)
 node tools/balance-audit.mjs  # live balance report: tower ROI, wave economies,
@@ -71,6 +72,8 @@ Combat regressions also cover damage only on projectile contact, point-blank att
 Deployment tests verify faster spawning with unchanged enemy movement, pause behavior, queue completion, per-wave reset across all defense modes, and phone-sized touch targets. Chromium and WebKit also exercise the deployment control through touch events.
 
 Campaign assault tests cover automatic capture, army preservation and persistence, AP/turn flow, victory, defended territory, live tower purchases/upgrades, construction delays, restricted maps, separate capped defender income, pause, and cleanup. Chromium and WebKit exercise these flows through touch input, check construction pixels, and capture campaign screenshots in `test-artifacts/`.
+
+Boss visual tests cover path facing, movement and game-time animation across defense/offense/Clash, attack aim and recoil, brood charge, damage wear, pause, Reduce Motion, and rendering without changing combat state. Browser tests check detailed silhouettes and animation pixels in Chromium and WebKit, verify both color-blind palettes, and capture battlefield and portrait previews in `test-artifacts/bosses-*.png`.
 
 ## License
 

@@ -957,3 +957,26 @@ unchanged).
   auto-capture, construction pixels, upgrades, pause and small-phone layout.
   Existing campaign bots cover occupied assaults and a Hive assault with a
   recruitable three-unit artillery army. Full VM suite: 119 passing tests.
+
+## Boss character artwork (2026-10-01)
+
+- Replaced the three geometric boss sprites with layered vector portraits at
+  hero scale. Devastator has heavy taloned arms, chitin plates, horns and a
+  furnace heart. Hivemind has a brain crown, membranous fins, feeding tendrils,
+  a central eye and brood pods. Siege Crawler has six armored legs, a vented
+  chassis and a cannon that tracks its actual attack target.
+- Bosses face their lane direction; walking follows distance traveled and idle
+  animation uses combat time across defense, fortress/campaign offense and
+  Clash. Attacks show recoil or core/muzzle light, brood pods charge with the
+  spawn timer, and low health reveals armor cracks. Nameplates and full-health
+  bars identify bosses before the first hit.
+- Decorative motion freezes with pause/modals and respects Reduce Motion.
+  Artwork preserves spawn fade and color-blind palettes, with distinct slow,
+  stun and hit cues. Essential hit light now expires with Reduce Motion;
+  previously its timer stopped while the white flash remained visible.
+  Rendering does not change combat statistics or balance.
+- Added eight boss regression tests and Chromium/WebKit pixel checks for
+  shaded materials, extended silhouettes, walking/attack/damage, reduced
+  motion, touch pause and accessibility palettes. Real battlefield and large
+  portrait previews are captured in the ignored test-artifacts directory.
+  Full VM suite: 127 passing tests.
