@@ -37,7 +37,7 @@ canvas{display:block;width:100%;height:100%}
 (function(){
 'use strict';
 // ============================================================
-// SECTOR DEFENSE v7.6.1 — Quality Pass: economy consistency (round 41)
+// SECTOR DEFENSE v7.6.2 — Quality Pass II: dead hero mechanics revived (round 41)
 // ============================================================
 const FD="'JetBrains Mono',monospace",FB="'Inter',sans-serif";
 let animTime=0; // Global animation timer for polish effects
@@ -1025,7 +1025,6 @@ campaign.actionPoints=2;campaign.maxAP=2;campaign.subAction='';campaign.attackSo
 campaign.territories=TERRITORIES.map((t,i)=>({...t,buildings:[],garrison:0,army:{infantry:0,armor:0,artillery:0},income:TERRITORY_INCOME[i]||15}));}
 function getCampaignPlayerTerritories(){return campaign.territories?campaign.territories.filter(t=>t.owner==='player'):[];}
 function getCampaignSwarmTerritories(){return campaign.territories?campaign.territories.filter(t=>t.owner==='swarm'):[];}
-function isTerritoryAdjacentToPlayer(tid){if(!campaign.territories)return false;const t=campaign.territories[tid];return t.adj.some(a=>campaign.territories[a].owner==='player');}
 function isTerritoryAdjacentToSwarm(tid){if(!campaign.territories)return false;const t=campaign.territories[tid];return t.adj.some(a=>campaign.territories[a].owner==='swarm');}
 function getCampaignDiffIdx(tid){const cx=2,cy=2;const t=campaign.territories[tid];const dist=Math.abs(t.x-cx)+Math.abs(t.y-cy);if(dist<=2)return 0;if(dist<=4)return 1;return 2;}
 function getCampaignMapIdx(tid){const t=campaign.territories[tid];return MAPS.findIndex(m=>m.id===t.mapId)||0;}
@@ -1340,7 +1339,7 @@ if(e.phases){e.phaseCooldown-=dt;if(!e.phased&&e.phaseCooldown<=0){e.phased=true
 if(e.phased){e.phaseTimer-=dt;if(e.phaseTimer<=0)e.phased=false;}}
 // Siege Crawler disable
 if(e.disables){e.disableTimer-=dt;if(e.disableTimer<=0){e.disableTimer=2;for(const t of G.towers){const tx=offsetX+t.col*cellSize+cellSize/2,ty=offsetY+t.row*cellSize+cellSize/2;const dx=tx-e.px,dy=ty-e.py;if(Math.sqrt(dx*dx+dy*dy)<cellSize*2){t.disabled=3;playSound('disable');emitP(tx,ty,8,'#ff3333',60,0.3,3);}}}}
-let spd=e.speed;if(e.slowTimer>0)spd*=0.4;
+let spd=e.speed*getEnemySpeedMultiplier(e);if(e.slowTimer>0)spd*=0.4;
 // Frost Field card: a real, permanent 18% aura (card says "slightly").
 if(loadoutBonuses.frostField)spd*=1-(loadoutBonuses.frostSlowPct||0);
 if(!e.burrowed){const pathLen=getPathLen(e.pathIdx);e.progress+=(spd*cellSize*dt)/pathLen;}
@@ -1411,7 +1410,13 @@ if(cost===0)loadoutBonuses.droneSupportUsed=true;
 G.nexium-=cost;G.totalNexSpent+=cost;G.towersPlaced++;G.towers.push({col,row,typeIdx,level:0,cooldown:0,totalSpent:cost,abilityCooldown:0,abilityActive:0,abilityUnlocked:false,overcharged:false,beamTarget:null,disabled:0,chainTargets:null,overloadNext:false,droneCount:3,buildTimer:G.phase==='wave'?loadoutBonuses.buildTime:0});G.placementAnims.push({x:offsetX+col*cellSize+cellSize/2,y:offsetY+row*cellSize+cellSize/2,timer:0.4});playSound('place');tryVibrate(10);return true;}
 function upgradeTower(idx){const t=G.towers[idx];const type=TT[t.typeIdx];if(t.level>=2)return false;const d=DIFFS[G.diffIdx];const cost=Math.round(type.upCost[t.level]*d.costM);if(G.nexium<cost)return false;G.nexium-=cost;G.totalNexSpent+=cost;t.totalSpent+=cost;t.level++;const ux=offsetX+t.col*cellSize+cellSize/2,uy=offsetY+t.row*cellSize+cellSize/2;emitP(ux,uy,16,'#ffcc00',140,0.6,4);VFX.addDeathRing(ux,uy,'#ffcc00',cellSize*1.6);playSound('place');tryVibrate(15);return true;}
 function sellTower(idx){const t=G.towers[idx];const ref=Math.floor(t.totalSpent*loadoutBonuses.sellMultiplier);G.nexium+=ref;G.towers.splice(idx,1);playSound('sell');}
-function getTowerStats(t){const type=TT[t.typeIdx];const m=1+t.level*0.4,rm=1+t.level*0.15;let frm=(1-t.level*0.1)*(loadoutBonuses.fireRateMultiplier||1.0);if(t.abilityActive>0&&type.ab.type==='stim')frm*=0.5;if(G.chronoActive>0)frm*=0.67;let dm=m;if(t.abilityActive>0&&type.ab.type==='meltdown')dm*=2;if(t.abilityActive>0&&type.ab.type==='fortify')dm*=2;return{damage:Math.round(type.damage*dm*(loadoutBonuses.damageMultiplier||1)),range:type.range*rm*(loadoutBonuses.rangeMultiplier||1),fireRate:type.fireRate*frm,splash:type.splash*(1+t.level*0.2),slows:type.slows||(t.abilityActive>0&&type.ab.type==='fortify'),antiAir:type.antiAir,disableHeal:type.id==='shockwave'};}
+function getTowerStats(t){const type=TT[t.typeIdx];const m=1+t.level*0.4,rm=1+t.level*0.15;let frm=(1-t.level*0.1)*(loadoutBonuses.fireRateMultiplier||1.0);if(t.abilityActive>0&&type.ab.type==='stim')frm*=0.5;if(G.chronoActive>0)frm*=0.67;let dm=m;if(t.abilityActive>0&&type.ab.type==='meltdown')dm*=2;if(t.abilityActive>0&&type.ab.type==='fortify')dm*=2;
+// Round 41 fix: hero auras (Vanguard Battle Cry + Total War, Technomancer
+// Overclock) were computed by helpers nothing called — the hero system
+// shipped with these advertised bonuses dead. Folded into live tower stats;
+// AI towers are excluded.
+if(!t.isAI&&heroState.deployed){const hx=offsetX+t.col*cellSize+cellSize/2,hy=offsetY+t.row*cellSize+cellSize/2;dm*=getHeroDamageBonus(hx,hy);frm*=getHeroFireRateBonus(hx,hy);}
+return{damage:Math.round(type.damage*dm*(loadoutBonuses.damageMultiplier||1)),range:type.range*rm*(loadoutBonuses.rangeMultiplier||1),fireRate:type.fireRate*frm,splash:type.splash*(1+t.level*0.2),slows:type.slows||(t.abilityActive>0&&type.ab.type==='fortify'),antiAir:type.antiAir,disableHeal:type.id==='shockwave'};}
 function getTowerCost(idx){return Math.round(TT[idx].cost*DIFFS[G.diffIdx].costM);}
 
 function activateAbility(idx){const t=G.towers[idx];const type=TT[t.typeIdx];if(t.abilityCooldown>0)return false;const ab=type.ab;t.abilityCooldown=ab.cd;const tx=offsetX+t.col*cellSize+cellSize/2,ty=offsetY+t.row*cellSize+cellSize/2;const stats=getTowerStats(t);const rp=stats.range*cellSize;
@@ -2124,20 +2129,15 @@ function getHeroDamageBonus(towerX, towerY) {
   let mult = 1;
 
   // Vanguard passive: towers in range deal more damage
+  // (Round 41: now actually called — via getTowerStats.)
   if (hero.id === 'vanguard') {
     const bonuses = computeHeroLevelBonuses();
     const pRange = (hero.passive.range + (bonuses?.rangeBonus || 0)) * cellSize;
     const d = Math.sqrt((towerX - heroState.heroX) ** 2 + (towerY - heroState.heroY) ** 2);
     if (d < pRange) mult *= 1.15 + heroState.passiveStr;
   }
-
-  // Vanguard ultimate: all towers fire 2x
-  if (hero.id === 'vanguard' && heroState.ultimateActive > 0) mult *= 2;
-
-  // Phantom mark: target enemy takes extra damage
-  // (handled via enemy-side check)
-
-  // Oracle ultimate: all enemies take 50% more damage (handled via enemy check)
+  // Total War's "fire 2x" is a fire-rate effect — handled in
+  // getHeroFireRateBonus so it can't double-dip on damage.
   return mult;
 }
 
@@ -2180,6 +2180,7 @@ function getEnemySpeedMultiplier(enemy) {
   if (heroState.selectedHeroIdx < 0 || !heroState.deployed || heroState.deathTimer > 0) return 1;
   const hero = HEROES[heroState.selectedHeroIdx];
   // Oracle ultimate slows all enemies
+  // (Round 41: now actually called — wired into enemy movement.)
   if (hero.id === 'oracle' && heroState.ultimateActive > 0) return 0.7;
   return 1;
 }
@@ -2501,7 +2502,7 @@ ctx.fillStyle='rgba(0,200,255,0.5)';ctx.fillText('Privacy Policy',W/2-60,legalY+
 ctx.fillText('Terms of Service',W/2+60,legalY+10);G._btns.termsLink={x:W/2,y:legalY-2,w:120,h:22};
 ctx.fillStyle='rgba(0,200,255,0.15)';ctx.fillRect(W/2-110,legalY+14,100,0.5);ctx.fillRect(W/2+10,legalY+14,100,0.5);
 const by=H*0.85,bw=120,bh=36;ctx.fillStyle='rgba(20,30,50,0.8)';ctx.strokeStyle=C_MUT;ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(W/2-bw/2,by,bw,bh,6);ctx.fill();ctx.stroke();ctx.font='600 '+Math.min(13,W*0.033)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=C_MUT;ctx.fillText('BACK',W/2,by+bh/2+1);G._btns.settingsBack={x:W/2-bw/2,y:by,w:bw,h:bh};
-ctx.font='500 9px '+FB;ctx.fillStyle=storageAvailable?'#44ff88':'#ff8844';ctx.textAlign='center';ctx.fillText('v7.6.1 · '+(storageAvailable?'● Progress saves locally':'● Progress saves this session only'),W/2,H-14);}
+ctx.font='500 9px '+FB;ctx.fillStyle=storageAvailable?'#44ff88':'#ff8844';ctx.textAlign='center';ctx.fillText('v7.6.2 · '+(storageAvailable?'● Progress saves locally':'● Progress saves this session only'),W/2,H-14);}
 
 function drawHowToPlay(){drawStarfield();
 ctx.save();ctx.shadowColor='rgba(0,200,255,0.3)';ctx.shadowBlur=15;
@@ -3590,7 +3591,6 @@ for(let i=0;i<3;i++){_osc('square',800,800,v*0.8,0.08,i*0.25);_osc('sine',1200,1
 // PHASE 4: SCREEN TRANSITIONS
 // ============================================================
 let screenFade={active:false,alpha:0,direction:1,callback:null};
-function startScreenFade(callback){screenFade.active=true;screenFade.alpha=0;screenFade.direction=1;screenFade.callback=callback;}
 function updateScreenFade(dt){if(!screenFade.active)return;screenFade.alpha+=screenFade.direction*dt*5;if(screenFade.direction===1&&screenFade.alpha>=1){screenFade.alpha=1;screenFade.direction=-1;if(screenFade.callback)screenFade.callback();}if(screenFade.direction===-1&&screenFade.alpha<=0){screenFade.alpha=0;screenFade.active=false;}}
 function drawScreenFade(){if(!screenFade.active)return;ctx.globalAlpha=screenFade.alpha;ctx.fillStyle=C_BG;ctx.fillRect(0,0,W,H);ctx.globalAlpha=1;}
 
@@ -5616,6 +5616,10 @@ window._getDamageEconomy=function(){return {perHp:NEX_PER_HP,capMult:NEX_DMG_CAP
 window._getVfxCounts=function(){return {impacts:VFX.impacts.length,deathRings:VFX.deathRings.length};};
 window._getAbilityCosts=function(){return TT.map(t=>getAbilityUnlockCost({typeIdx:TT.indexOf(t)}));};
 window._getWaveHpMult=function(w){return waveHpMult(w);};
+// Round 41: hero-aura regression hooks
+window._getHeroAuraMults=function(x,y){return {dmg:getHeroDamageBonus(x,y),fr:getHeroFireRateBonus(x,y)};};
+window._setHeroUltActive=function(v){heroState.ultimateActive=v;};
+window._getTowerStatsFor=function(i){const t=G.towers[i];if(!t)return null;const s=getTowerStats(t);return {damage:s.damage,fireRate:s.fireRate};};
 window._awardNexiumForDamage=function(id,dmg){const e=G.enemies.find(function(x){return x.id===id;});if(!e)return -1;awardNexiumForDamage(e,dmg);return e._nexCredited||0;};
 window._killRewardTaper=function(w){return killRewardTaper(w);};
 window._getTutorial=function(){return {active:TUTORIAL.active,step:TUTORIAL.step,wait:TUTORIAL.waitingFor,done:prog.tutorialDone};};

@@ -77,3 +77,69 @@ test('hivemind swarmers inherit the classic wave ramp', async () => {
   const wm = g.window._getWaveHpMult(15);
   assert.equal(sw.hp, Math.round(15 * 1.15 * wm), 'swarmer HP carries the wave ramp');
 });
+
+test('vanguard aura and ultimate actually modify tower stats (dead-wiring fix)', async () => {
+  const g = await boot();
+  tapBtn(g, 'menuPlay');
+  const maps = g.window._getBtns().maps;
+  g.tap(center(maps[0]).x, center(maps[0]).y); g.frame(2);
+  const diffs = g.window._getBtns().diffs;
+  g.tap(center(diffs[0]).x, center(diffs[0]).y); g.frame(2);
+  const cards = g.window._getBtns().heroCards;
+  g.tap(center(cards[0]).x, center(cards[0]).y); g.frame(2); // Commander Vex
+  tapBtn(g, 'heroDeploy');
+  // Pin the hero in manual mode so its position is deterministic.
+  const hs = g.window._getHeroState();
+  g.tap(hs.x, hs.y); g.frame(2);
+  assert.equal(g.window._getHeroState().manual, true, 'hero pinned');
+  // Place a sentinel on the buildable cell nearest the hero.
+  const L = g.window._getLayout();
+  const cells = g.window._getValidCells().map(c => ({c, d: Math.hypot(
+    (L.offsetX + (c.col + 0.5) * L.cellSize) - hs.x,
+    (L.offsetY + (c.row + 0.5) * L.cellSize) - hs.y)})).sort((a, b) => a.d - b.d);
+  assert.ok(cells.length && cells[0].d < 3.5 * L.cellSize, 'a buildable cell near the hero');
+  const pick = cells[0].c;
+  g.tap(L.offsetX + (pick.col + 0.5) * L.cellSize, L.offsetY + (pick.row + 0.5) * L.cellSize); g.frame(2);
+  const radial = g.window._getBtns().radial;
+  const sentinel = radial.find(r => r.idx === 0);
+  g.tap(sentinel.x, sentinel.y); g.frame(2);
+  const s = g.window._getTowerStatsFor(0);
+  // Base lv0 sentinel: damage 8, fireRate 0.25. Battle Cry (1.15x) applies.
+  assert.equal(s.damage, 9, 'aura-boosted damage round(8*1.15)');
+  assert.ok(Math.abs(s.fireRate - 0.25) < 1e-9, 'fire rate untouched without ult');
+  // Total War: fire 2x while the ult runs.
+  g.window._setHeroUltActive(10);
+  const s2 = g.window._getTowerStatsFor(0);
+  assert.equal(s2.damage, 9, 'ult is fire-rate only (no damage double-dip)');
+  assert.ok(Math.abs(s2.fireRate - 0.125) < 1e-9, 'Total War halves cooldowns (fire 2x)');
+  g.window._setHeroUltActive(0);
+});
+
+test('oracle Prophecy ult slows enemies (dead-wiring fix)', async () => {
+  const g = await boot();
+  tapBtn(g, 'menuPlay');
+  const maps = g.window._getBtns().maps;
+  g.tap(center(maps[0]).x, center(maps[0]).y); g.frame(2);
+  const diffs = g.window._getBtns().diffs;
+  g.tap(center(diffs[0]).x, center(diffs[0]).y); g.frame(2);
+  const cards = g.window._getBtns().heroCards;
+  g.tap(center(cards[4]).x, center(cards[4]).y); g.frame(2); // Zara Prime
+  tapBtn(g, 'heroDeploy');
+  tapBtn(g, 'startWave'); g.frame(2);
+  g.tap(195, 422); g.frame(2);
+  let e0 = null;
+  for (let i = 0; i < 120 && !e0; i++) { g.frame(1); e0 = g.window._getEnemies().find(x => x.alive); }
+  assert.ok(e0, 'enemy spawned');
+  const prog0 = e0.progress;
+  for (let i = 0; i < 60; i++) g.frame(1);
+  const e1 = g.window._getEnemies().find(x => x.id === e0.id && x.alive);
+  const normalRate = e1.progress - prog0;
+  g.window._setHeroUltActive(10);
+  const prog1 = e1.progress;
+  for (let i = 0; i < 60; i++) g.frame(1);
+  const e2 = g.window._getEnemies().find(x => x.id === e0.id && x.alive);
+  const slowedRate = e2.progress - prog1;
+  assert.ok(normalRate > 0, 'enemy moves in normal state');
+  assert.ok(slowedRate < normalRate * 0.8,
+    `Prophecy slow must bite: ${slowedRate.toFixed(4)} vs ${normalRate.toFixed(4)}`);
+});

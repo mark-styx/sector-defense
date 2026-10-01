@@ -492,8 +492,7 @@ Audit tool gained `cards` section + 6c progression table; full pipeline
 
 **Brief**: deep quality pass after the rounds 38-40 feature streak.
 
-### Found and fixed (6 defects)
-1. **Oracle time-drip survived the economy rework**: Zara Prime's "Nexium
+### Found and fixed (6 defects)1. **Oracle time-drip survived the economy rework**: Zara Prime's "Nexium
    Resonance" still generated +2◆/sec — the last time-based income stream,
    contradicting round 39's damage-only design. Reworked into a damage-income
    amplifier: +12% (+4% per passiveStr level) while deployed and alive.
@@ -514,16 +513,42 @@ Audit tool gained `cards` section + 6c progression table; full pipeline
    ramp ("⚠ Enemy strength +X%") so the round-40 difficulty curve is
    player-facing instead of hidden.
 
+### Quality pass II: dead-code sweep found three advertised hero mechanics unwired
+A whole-file call-site sweep (228 defined functions, single-use analysis) found
+five never-called functions. Two were harmless leftovers (deleted:
+`isTerritoryAdjacentToPlayer`, `startScreenFade`). Three were real gameplay
+lies — defined, described in the hero roster, and doing nothing:
+
+7. **Vanguard "Battle Cry" (+15% tower damage within 3.5 cells)** —
+   `getHeroDamageBonus` existed but no caller. Now folded into
+   `getTowerStats` (single site covers projectiles, beams, chains, drones,
+   AOE ticks, AND the info panel's displayed stats). AI towers excluded.
+8. **Vanguard ultimate "Total War" (all towers fire 2x)** —
+   `getHeroFireRateBonus` never called; wired the same way. The dead helper
+   also carried a duplicate damage-x2 line that would have double-dipped —
+   removed (the ult is fire-rate only, per its description).
+9. **Oracle ultimate "Prophecy ... move 30% slower"** —
+   `getEnemySpeedMultiplier` never called; wired into classic enemy movement
+   (`updateEnemies`). The +50% damage half always worked; the slow half did
+   nothing until now.
+
+New test hooks: `_getHeroAuraMults`, `_setHeroUltActive`, `_getTowerStatsFor`.
+Two new regression tests: vanguard aura boosts a nearby sentinel's live
+stats (8 → 9 damage, fireRate 0.25 → 0.125 under the ult, no damage
+double-dip) and Prophecy measurably slows enemy progress (~0.7x).
+
 ### Verified
 - Damage-hook coverage audit: all 11 live damage sites award income; no
   stale `updateNexGen`/bonus references; achievements have no nexium-earn
   conditions; spawnProjectile is live (technomancer turrets), not dead code.
-- 3 new regression tests (oracle damage-amplification + no-drip, offense
-  zero-mint, swarmer ramp); 88/88 headless green; both browser engines
+- 5 new regression tests total (oracle damage-amplification + no-drip, offense
+  zero-mint, swarmer ramp, vanguard aura/ult live stats, Prophecy slow);
+  90/90 headless green; both browser engines
   clean; audit re-run identical (endless w70, frost 0.820, cards 18/18).
 
 ### Version
-7.6.1 (header, footer, package.json, package-lock).
+7.6.1 → 7.6.2 (quality pass II adds working hero mechanics; header, footer,
+package.json, package-lock).
 
 ## Round 40 — Auto tower abilities, wave escalation
 
