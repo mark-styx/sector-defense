@@ -882,6 +882,24 @@ reality). Fixes: removed a dead empty `<!-- -->` header comment from
 both legal pages, and added a `<noscript>` fallback to index.html
 (JS-off visitors previously got a silent black screen).
 
+**Final quantitative close-out**: secret-pattern sweep across all
+tracked files — zero hits (matches were "Plaguebearer" vs the
+`bearer ` regex and upstream playwright docs inside node_modules).
+Cyclomatic-style complexity distribution (decision points per
+function, 226 scored): median 4, mean 8.1; 134 functions in the 1-5
+bucket, 31 in 6-10, 45 in 11-25, 16 over 25. The 16 outliers
+(updateTowers 90, drawCampaignMap 62, drawEnemy 52, drawTower 51,
+loadAllState 47, updateEnemies 40, updateHero 38, startEndlessGame
+38, update 36, confirmStorePurchase 32, playSound 31, drawMap 31,
+drawWavePreview 30, activateAbility 28, finalizeMatch 28,
+updateProjectiles 26) were each manually reviewed during this pass
+and are accepted: updateTowers is a per-tower-type dispatch loop
+(splitting it into 10 per-type functions would scatter the shared
+cooldown/stats/range/targeting logic), the draw functions branch
+over visual states without mutating game state, and loadAllState's
+density is its corruption defense. Splitting them would be
+large-diff churn with regression risk and no user-visible gain.
+
 New tests: test/round42.test.mjs (kill-stat gate, shield-halves-ticks
 end-to-end via barrier A/B, scaleDealtDamage unit math). Suite 91 ->
 94, all green x2; browser smoke Chromium+WebKit+touch+small-screen
