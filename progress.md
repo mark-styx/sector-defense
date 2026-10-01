@@ -853,6 +853,23 @@ capture-shots one-off scripts live in test/ but node --test's
 directory glob excludes them (only explicit file invocation runs
 them, 36s of side effects — documented footgun).
 
+**Post-pass verification round**: worst-case perf re-run on v7.6.3
+(30 L2 towers + 30 abilities, waves 36+39, 6,817 frames: p50
+0.328ms / p99 0.463ms / worst 1.695ms = 10.1% of the 16.7ms budget);
+banner uniformity grep (23/23 content-named, zero PHASE remnants);
+flaky-test isolation (R1 clash 5/5); whole-file unresolved-call scan
+(380 called identifiers, 0 undefined after comment/string strip —
+the 7 "hits" were indented TUTORIAL methods); five-way match-start
+reset diff (startGame/startEndless/startAllied/startClash/tutorial)
+— field-by-field in sync; the two flagged gaps (diffIdx in allied,
+heroAim in endless) were extraction-window artifacts (allied resets
+at line 3662; endless clears heroAim via deployHero/resetHeroState).
+The ~40 lines of hand-copied reset state across the five starters
+stay as-is: values differ per mode (classic uses the user's
+difficulty pick, endless/allied/clash pin 0 or fixed lives), so a
+parameterized reset adds indirection to save lines in a file whose
+idiom is explicit resets.
+
 New tests: test/round42.test.mjs (kill-stat gate, shield-halves-ticks
 end-to-end via barrier A/B, scaleDealtDamage unit math). Suite 91 ->
 94, all green x2; browser smoke Chromium+WebKit+touch+small-screen
