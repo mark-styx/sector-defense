@@ -909,6 +909,14 @@ fails), kill-stat gate e.reward>0->true (round42 stats test fails).
 4/4 mutations killed; baseline restored to 94/94 green. The
 regression net is real, not vacuous.
 
+Known limitation, recorded rather than left unknown: Node's built-in
+coverage reporter cannot see the game script (it runs via
+vm.runInContext under a synthetic filename, so the report comes back
+empty). Execution coverage is therefore bounded indirectly — zero
+statically-unreferenced functions, bot tests that drive all six
+modes end-to-end, and the mutation results above — rather than
+measured as a line-coverage percentage.
+
 New tests: test/round42.test.mjs (kill-stat gate, shield-halves-ticks
 end-to-end via barrier A/B, scaleDealtDamage unit math). Suite 91 ->
 94, all green x2; browser smoke Chromium+WebKit+touch+small-screen
