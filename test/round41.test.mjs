@@ -1,0 +1,79 @@
+// ROUND 41 quality pass regressions: damage-economy consistency.
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {boot, startClassic, tapBtn, center} from './harness.mjs';
+
+function state(g) { return JSON.parse(g.window.render_game_to_text()); }
+const cell = (g, col, row) => {
+  const L = g.window._getLayout();
+  return {x: L.offsetX + (col + 0.5) * L.cellSize, y: L.offsetY + (row + 0.5) * L.cellSize};
+};
+
+async function startWave1(g) {
+  tapBtn(g, 'startWave');
+  g.tap(195, 422); g.frame(2);
+}
+
+test('oracle passive amplifies damage income, no time drip', async () => {
+  const g = await boot();
+  // Deploy Zara Prime (oracle, heroCards[4]) and enter wave 1.
+  tapBtn(g, 'menuPlay');
+  const maps = g.window._getBtns().maps;
+  g.tap(center(maps[0]).x, center(maps[0]).y); g.frame(2);
+  const diffs = g.window._getBtns().diffs;
+  g.tap(center(diffs[0]).x, center(diffs[0]).y); g.frame(2);
+  const cards = g.window._getBtns().heroCards;
+  g.tap(center(cards[4]).x, center(cards[4]).y); g.frame(2);
+  tapBtn(g, 'heroDeploy');
+  await startWave1(g);
+  // Wait for the first enemy.
+  let id = -1;
+  for (let i = 0; i < 120 && id < 0; i++) { g.frame(1); const e = g.window._getEnemies()[0]; if (e) id = e.id; }
+  assert.ok(id >= 0, 'enemy spawned');
+  const eco0 = g.window._getEconomy().earned;
+  // With no combat yet, a pure 60-frame idle must NOT accrue time income.
+  for (let i = 0; i < 60; i++) g.frame(1);
+  assert.ok(g.window._getEconomy().earned - eco0 < 0.01, 'oracle must not drip nexium over time');
+  // Damage income is amplified by +12% (level-1 passiveStr 0).
+  const bank0 = g.window._getEconomy().earned;
+  const credited = g.window._awardNexiumForDamage(id, 10);
+  const gained = g.window._getEconomy().earned - bank0;
+  const expected = 10 * 0.30 * (1.0 / 1.15) * 1.12;
+  assert.ok(Math.abs(gained - expected) < 0.02,
+    `oracle amplifies damage income: got ${gained.toFixed(3)}, expected ${expected.toFixed(3)}`);
+});
+
+test('offense-mode kills mint zero nexium (reward-0 kicker fix)', async () => {
+  const g = await boot();
+  tapBtn(g, 'menuOffense');
+  const maps = g.window._getBtns().offenseMaps;
+  g.tap(center(maps[0]).x, center(maps[0]).y); g.frame(2);
+  assert.equal(state(g).phase, 'offenseGame');
+  g.window._spawnOffense('skitterling');
+  // Map-0 towers shred skitterlings quickly; once everything is dead the
+  // economy must show zero income for the whole exchange.
+  for (let i = 0; i < 60 * 20; i++) {
+    g.frame(1);
+    if (i > 30 && g.window._getEnemies().every(e => !e.alive)) break;
+  }
+  assert.ok(g.window._getEnemies().every(e => !e.alive), 'unit should die to defense');
+  assert.equal(g.window._getEconomy().earned, 0, 'offense kills must not credit nexium');
+});
+
+test('hivemind swarmers inherit the classic wave ramp', async () => {
+  const g = await boot();
+  await startClassic(g);
+  // Wave 16 (index 15) leads with hiveminds; their spawnCD is ~4s.
+  g.window._setGameState('wave', 15);
+  tapBtn(g, 'startWave'); g.frame(2);
+  g.tap(195, 422); g.frame(2);
+  let sw = null;
+  for (let i = 0; i < 60 * 30 && state(g).phase === 'wave'; i++) {
+    g.frame(1);
+    sw = g.window._getEnemies().find(e => e.type === 'swarmer' && e.alive);
+    if (sw) break;
+  }
+  assert.ok(sw, 'hivemind should spit swarmers');
+  const wm = g.window._getWaveHpMult(15);
+  assert.equal(sw.hp, Math.round(15 * 1.15 * wm), 'swarmer HP carries the wave ramp');
+});

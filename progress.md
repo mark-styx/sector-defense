@@ -488,6 +488,43 @@ Third self-check pass (accuracy audit of the review's own claims):
 Audit tool gained `cards` section + 6c progression table; full pipeline
 (all sections) verified end-to-end in one run.
 
+## Round 41 — Quality pass: economy consistency
+
+**Brief**: deep quality pass after the rounds 38-40 feature streak.
+
+### Found and fixed (6 defects)
+1. **Oracle time-drip survived the economy rework**: Zara Prime's "Nexium
+   Resonance" still generated +2◆/sec — the last time-based income stream,
+   contradicting round 39's damage-only design. Reworked into a damage-income
+   amplifier: +12% (+4% per passiveStr level) while deployed and alive.
+   Hero desc, passive desc, and level-bonus copy updated.
+2. **Offense kills minted nexium**: the round-39 kill kicker's `max(1,...)`
+   floor paid +1◆ for every reward-0 attacker unit the AI defenders killed,
+   polluting `totalNexEarned` in a mode with no nexium economy. Reward-0
+   enemies now pay exactly 0.
+3. **Float ◆ displays**: wave summary ("Nexium earned: ◆78.00000000000001")
+   and match-end stats printed raw floats from the damage stream. Both
+   rounded (HUD and render_game_to_text were already floored).
+4. **Hivemind swarmers skipped the round-40 ramp**: `spawnSwarmer` built HP
+   from `15*hpM` while every `spawnEnemy` path compounds `waveHpMult(w)`.
+   Swarmers now inherit the ramp like all other mid-wave spawns.
+5. **Dead field**: `loadoutBonuses.nexiumGen` still defined/reset but unread
+   since the Nexium Extractor rework — removed.
+6. **Invisible escalation**: the wave preview now discloses the classic HP
+   ramp ("⚠ Enemy strength +X%") so the round-40 difficulty curve is
+   player-facing instead of hidden.
+
+### Verified
+- Damage-hook coverage audit: all 11 live damage sites award income; no
+  stale `updateNexGen`/bonus references; achievements have no nexium-earn
+  conditions; spawnProjectile is live (technomancer turrets), not dead code.
+- 3 new regression tests (oracle damage-amplification + no-drip, offense
+  zero-mint, swarmer ramp); 88/88 headless green; both browser engines
+  clean; audit re-run identical (endless w70, frost 0.820, cards 18/18).
+
+### Version
+7.6.1 (header, footer, package.json, package-lock).
+
 ## Round 40 — Auto tower abilities, wave escalation
 
 **Brief**: "since more damage gets more cash, the progressing waves should become
