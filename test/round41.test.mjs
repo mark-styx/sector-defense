@@ -115,6 +115,42 @@ test('vanguard aura and ultimate actually modify tower stats (dead-wiring fix)',
   g.window._setHeroUltActive(0);
 });
 
+test('technomancer overclock fires end-to-end through the ability button', async () => {
+  const g = await boot();
+  tapBtn(g, 'menuPlay');
+  const maps = g.window._getBtns().maps;
+  g.tap(center(maps[0]).x, center(maps[0]).y); g.frame(2);
+  const diffs = g.window._getBtns().diffs;
+  g.tap(center(diffs[0]).x, center(diffs[0]).y); g.frame(2);
+  const cards = g.window._getBtns().heroCards;
+  g.tap(center(cards[1]).x, center(cards[1]).y); g.frame(2); // Dr. Lyra Sol
+  tapBtn(g, 'heroDeploy');
+  // Pin the hero, place a sentinel on the nearest buildable cell.
+  const hs = g.window._getHeroState();
+  g.tap(hs.x, hs.y); g.frame(2);
+  assert.equal(g.window._getHeroState().manual, true, 'hero pinned');
+  const L = g.window._getLayout();
+  const cells = g.window._getValidCells().map(c => ({c, d: Math.hypot(
+    (L.offsetX + (c.col + 0.5) * L.cellSize) - hs.x,
+    (L.offsetY + (c.row + 0.5) * L.cellSize) - hs.y)})).sort((a, b) => a.d - b.d);
+  assert.ok(cells.length && cells[0].d < 3.5 * L.cellSize, 'buildable cell near hero');
+  const pick = cells[0].c;
+  g.tap(L.offsetX + (pick.col + 0.5) * L.cellSize, L.offsetY + (pick.row + 0.5) * L.cellSize); g.frame(2);
+  const radial = g.window._getBtns().radial;
+  const sentinel = radial.find(r => r.idx === 0);
+  g.tap(sentinel.x, sentinel.y); g.frame(2);
+  const s0 = g.window._getTowerStatsFor(0);
+  assert.ok(Math.abs(s0.fireRate - 0.25) < 1e-9, 'base fire rate');
+  // Overclock is not aimable — the hero ability button casts it instantly.
+  const hb = g.window._getBtns().heroAbility;
+  assert.ok(hb, 'hero ability button present');
+  g.tap(center(hb).x, center(hb).y); g.frame(3);
+  const s1 = g.window._getTowerStatsFor(0);
+  assert.ok(Math.abs(s1.fireRate - 0.125) < 1e-9,
+    `overclock halves nearby cooldowns via the live button (got ${s1.fireRate})`);
+  assert.equal(s1.damage, s0.damage, 'overclock is fire-rate only');
+});
+
 test('oracle Prophecy ult slows enemies (dead-wiring fix)', async () => {
   const g = await boot();
   tapBtn(g, 'menuPlay');
