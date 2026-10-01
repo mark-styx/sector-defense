@@ -870,6 +870,18 @@ difficulty pick, endless/allied/clash pin 0 or fixed lives), so a
 parameterized reset adds indirection to save lines in a file whose
 idiom is explicit resets.
 
+**Non-game file sweep** (final coverage gap): privacy.html (481
+lines) and terms.html (522) reviewed — claims verified accurate
+against the actual game (localStorage-only persistence, Google
+Fonts as the sole third-party request and disclosed as such, no
+analytics/network calls, consistent contact email and cross-links,
+dates sane); tools/make-icon.mjs verified to regenerate icon.png
+byte-identical (sha fba1ea90); APP_STORE_COMPLIANCE.md spot-checked
+(9+ rating rationale and HTTPS-only encryption answers match
+reality). Fixes: removed a dead empty `<!-- -->` header comment from
+both legal pages, and added a `<noscript>` fallback to index.html
+(JS-off visitors previously got a silent black screen).
+
 New tests: test/round42.test.mjs (kill-stat gate, shield-halves-ticks
 end-to-end via barrier A/B, scaleDealtDamage unit math). Suite 91 ->
 94, all green x2; browser smoke Chromium+WebKit+touch+small-screen
