@@ -900,6 +900,15 @@ over visual states without mutating game state, and loadAllState's
 density is its corruption defense. Splitting them would be
 large-diff churn with regression risk and no user-visible gain.
 
+**Mutation testing (test-suite efficacy)**: four targeted mutations
+against this pass's fixes, expecting the matching regressions to
+fail — NEX_PER_HP 0.30->0.35 (3 failures in round39/game economy
+tests), waveHpMult exponent 1.018->1.05 (round40 ramp test fails),
+shield halving 0.5->1.0 in scaleDealtDamage (round42 shield test
+fails), kill-stat gate e.reward>0->true (round42 stats test fails).
+4/4 mutations killed; baseline restored to 94/94 green. The
+regression net is real, not vacuous.
+
 New tests: test/round42.test.mjs (kill-stat gate, shield-halves-ticks
 end-to-end via barrier A/B, scaleDealtDamage unit math). Suite 91 ->
 94, all green x2; browser smoke Chromium+WebKit+touch+small-screen
