@@ -2767,13 +2767,14 @@ function drawBottomPanelContents(){const py=H-bottomBarH;ctx.fillStyle=C_SUR;ctx
 if(G.showTowerInfo&&G.towerInfoIdx>=0&&G.towerInfoIdx<G.towers.length)drawTowerInfoPanel(py);
 else if(G.phase==='build')drawBuildPanel(py);
 else if(G.phase==='wave')drawWavePanel(py);
-if(G.phase==='build'||G.phase==='wave')drawGlobalAbilities(py);
-// Hero buttons share the panel row with the tower info buttons (close ✕,
-// upgrade, sell) — hide them while inspecting a tower so their hitboxes
-// can't overlap and hijack taps meant for the info panel. Same for the
-// global-ability row, which overlaps the info buttons' lower edge.
-if(!G.showTowerInfo)drawHeroHUD();
-if(G.showTowerInfo)G._btns.globals=null;}
+// While a tower is selected its info panel owns the bottom bar: the
+// global-ability row and hero buttons are not drawn at all (not just
+// hitbox-nulled) so nothing can paint over the upgrade/ability/sell
+// buttons. Hitboxes are cleared too, so no stale row hijacks taps.
+const inspecting=G.showTowerInfo;
+if((G.phase==='build'||G.phase==='wave')&&!inspecting)drawGlobalAbilities(py);
+if(!inspecting)drawHeroHUD();
+if(inspecting)G._btns.globals=null;}
 
 function drawGlobalAbilities(py){const bs=44,gap=6,sx=battlePanel.side?(W-3*bs-2*gap)/2:8,by=H-safeBottom-58;
 const abs=[{n:'💥',l:'Strike',cd:G.orbitalCD,mcd:60,ac:G.orbitalTargeting},{n:'⚡',l:'Surge',cd:G.chronoCD,mcd:90,ac:G.chronoActive>0},{n:'🔧',l:'Repair',cd:G.repairCD,mcd:120,ac:false}];
