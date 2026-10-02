@@ -1030,3 +1030,28 @@ asserted. Completed it:
   shrink the baseline to zero later.
 - Fixed the campaign assault browser assertion to match the retuned
   "DEFENDER ◆" label spacing.
+
+## Next steps (post-round-43, documented 2026-10-02)
+
+**User-gated**
+1. Native playtest: `npm run ios:sim` — silent-switch audio, notch/safe-area
+   feel, haptics, long-wave fps.
+2. Web playtest (v7.6.4 on :8021 / LAN / tunnel): offense Bio-Plating shield
+   feel, Lucky Strike + Phantom/Oracle marks on all 10 tower types, wave 15-25 ramp.
+3. First device build: `open ios/App/App.xcodeproj`, one USB connection,
+   enable Developer Mode on the phone, pick a signing team (free = 7-day
+   provisioning; paid unlocks TestFlight/App Store). Enable "Connect via
+   network" afterwards for wireless builds.
+4. LICENSE file still missing (README says MIT) — needs copyright holder name.
+
+**Pre-App-Store (after paid account)**
+5. Replace placeholder bundle id `io.github.markstyx.sectordefense`
+   (PRODUCT_BUNDLE_IDENTIFIER) with an account-owned id.
+6. Branded launch screen (current one is the Capacitor default blank).
+7. App Store Connect metadata: hosted privacy-policy URL, screenshots.
+
+**Autonomous**
+8. Campaign UI text-overlap pass (map labels under overlays), then shrink
+   `test/ui-layout-baseline.json` to zero via `--update-baseline`.
+9. Optional: backfill progress.md rounds 38-41 from git history; explicit git
+   identity (currently auto mark@marks-Mac-Studio-5076.local).
