@@ -46,9 +46,26 @@ npx serve . -l 8021
 
 Then open `http://localhost:8021` on your phone or in a mobile-sized browser window.
 
+## iOS (Native Shell)
+
+The game is packaged for iOS with [Capacitor](https://capacitorjs.com) (Xcode 27, iOS 27 SDK):
+
+```bash
+npm run cap:prepare  # stage web assets into www/ + ios/App/App/public (gitignored)
+npm run ios:sim      # build + install + launch on the iPhone 18 Pro simulator
+```
+
+- Bundle id `io.github.markstyx.sectordefense` (placeholder — change `PRODUCT_BUNDLE_IDENTIFIER` in `ios/App/App.xcodeproj` before App Store submission)
+- App version tracks the game version (MARKETING_VERSION in the Xcode project; currently 7.6.4)
+- Portrait-only, light status bar, safe-area insets honored by the game's existing `viewport-fit=cover` layout
+- App icon is generated: `node tools/make-icon.mjs 1024 ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png --opaque`
+- Builds for device require an Apple Developer account + signing team in `ios/App/App.xcodeproj` (open in Xcode)
+
+If `xcodebuild` reports "requires Xcode", run once: `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer` (the npm scripts set `DEVELOPER_DIR` and work without it).
+
 ## Tech Stack
 
-- Vanilla HTML5 Canvas + JavaScript (single file, zero dependencies)
+- Vanilla HTML5 Canvas + JavaScript (single file, zero runtime dependencies; optional Capacitor shell for native iOS builds)
 - Fonts: JetBrains Mono (display) + Inter (body) via Google Fonts
 
 ## Testing
@@ -56,8 +73,9 @@ Then open `http://localhost:8021` on your phone or in a mobile-sized browser win
 Two layers:
 
 ```bash
-npm test             # 127 headless VM tests (~75s, no browser needed; deterministic seeded RNG)
+npm test             # 133 headless VM tests (~80s, no browser needed; deterministic seeded RNG)
 npm run test:browser # real-browser smoke, Chromium + WebKit (iOS Safari core)
+                     # incl. an 18-viewport × every-screen layout audit (baseline-gated)
                      # (needs: npx playwright install chromium-headless-shell webkit)
 node tools/balance-audit.mjs  # live balance report: tower ROI, wave economies,
                               # bot margins per difficulty, exploit probes, card audit

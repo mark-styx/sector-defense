@@ -38,8 +38,8 @@ canvas{display:block;width:100%;height:100%}
 (function(){
 'use strict';
 // ============================================================
-// SECTOR DEFENSE v7.6.3 — Code Quality Pass: consistent damage paths,
-// hot-loop allocation hoists, content-named section banners (round 42)
+// SECTOR DEFENSE v7.6.4 — Native (Capacitor) build support: legal pages
+// navigate in-webview; round-42 quality pass: consistent damage paths
 // ============================================================
 // FILE MAP — sections in order:
 //   VFX pools · tutorial/accessibility · color-blind · hero defs + progression ·
@@ -54,6 +54,7 @@ canvas{display:block;width:100%;height:100%}
 // ============================================================
 const FD="'JetBrains Mono',monospace",FB="'Inter',sans-serif";
 let animTime=0; // Global animation timer for polish effects
+function isNativeApp(){return typeof window.Capacitor!=='undefined'&&!!window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform();} // Capacitor iOS/Android shell
 // === VISUAL FX POOLS (VFX) ===
 const VFX={
 // Trail system for enemies
@@ -2894,7 +2895,7 @@ ctx.fillStyle='rgba(0,200,255,0.5)';ctx.fillText('Privacy Policy',W/2-60,legalY+
 ctx.fillText('Terms of Service',W/2+60,legalY+10);G._btns.termsLink={x:W/2,y:legalY-2,w:120,h:22};
 ctx.fillStyle='rgba(0,200,255,0.15)';ctx.fillRect(W/2-110,legalY+14,100,0.5);ctx.fillRect(W/2+10,legalY+14,100,0.5);
 const by=Math.max(legalY+46,H-80),bw=120,bh=44;ctx.fillStyle='rgba(20,30,50,0.8)';ctx.strokeStyle=C_MUT;ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(W/2-bw/2,by,bw,bh,6);ctx.fill();ctx.stroke();ctx.font='600 '+Math.min(13,W*0.033)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=C_MUT;ctx.fillText('BACK',W/2,by+bh/2+4);G._btns.settingsBack={x:W/2-bw/2,y:by,w:bw,h:bh};
-ctx.font='500 9px '+FB;ctx.fillStyle=storageAvailable?'#44ff88':'#ff8844';ctx.textAlign='center';ctx.fillText('v7.6.3 · '+(storageAvailable?'● Progress saves locally':'● Progress saves this session only'),W/2,H-14);}
+ctx.font='500 9px '+FB;ctx.fillStyle=storageAvailable?'#44ff88':'#ff8844';ctx.textAlign='center';ctx.fillText('v7.6.4 · '+(storageAvailable?'● Progress saves locally':'● Progress saves this session only'),W/2,H-14);}
 
 function drawHowToPlay(){drawStarfield();
 ctx.save();ctx.shadowColor='rgba(0,200,255,0.3)';ctx.shadowBlur=15;
@@ -5941,8 +5942,8 @@ else if(i===6){settings.showFPS=!settings.showFPS;}
 else if(i===7){settings.reduceMotion=!settings.reduceMotion;}
 else if(i===8){settings.colorBlind=settings.colorBlind==='off'?'deuteranopia':settings.colorBlind==='deuteranopia'?'protanopia':'off';}
 saveAllState();playSound('click');return;}}
-if(hitTest(px,py,G._btns.privacyLink)){window.open('privacy.html','_blank');playSound('click');return;}
-if(hitTest(px,py,G._btns.termsLink)){window.open('terms.html','_blank');playSound('click');return;}
+if(hitTest(px,py,G._btns.privacyLink)){window.open('privacy.html',isNativeApp()?'_self':'_blank');playSound('click');return;}
+if(hitTest(px,py,G._btns.termsLink)){window.open('terms.html',isNativeApp()?'_self':'_blank');playSound('click');return;}
 return;}
 if(G.phase==='biomeSelect'){if(G._btns.biomes)for(const b of G._btns.biomes){if(hitTest(px,py,b)){G.endlessBiome=b.biome;startEndlessGame();playSound('click');return;}}
 if(hitTest(px,py,G._btns.biomeBack)){G.phase='menu';playSound('click');}return;}

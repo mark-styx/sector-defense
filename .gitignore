@@ -1,5 +1,6 @@
 # Test screenshots from playtesting (the app icon at ./icon.png is tracked)
 test-artifacts/*.png
+test-artifacts/ui/
 
 # Progress notes
 progress.md
@@ -11,7 +12,11 @@ Thumbs.db
 # Node
 node_modules/
 
+# Capacitor build artifacts (regenerated: www/ via cap:prepare, App/public via npx cap sync ios)
+www/
+ios/DerivedData/
+ios/App/App/public/
+
 # Local agent/tool dirs
 .claude/
 .goose/
-
