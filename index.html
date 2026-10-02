@@ -637,6 +637,8 @@ const WAVES=buildWaves(),TOTAL_WAVES=WAVES.length;
 const canvas=document.getElementById('gameCanvas'),ctx=canvas.getContext('2d');
 let W,H,cellSize,offsetX,offsetY,mapW,mapH,topBarH=0,bottomBarH=0,currentCols=10,currentRows=16;
 let safeTop=0,safeBottom=0,safeLeft=0,safeRight=0;
+let battleLayoutKind='defense',battlePanel=null;
+let mapPositionsReady=false;
 function updateSafeAreas(){
   const cs=getComputedStyle(document.documentElement);
   safeTop=parseInt(cs.getPropertyValue('--sat'))||0;
@@ -644,9 +646,120 @@ function updateSafeAreas(){
   safeLeft=parseInt(cs.getPropertyValue('--sal'))||0;
   safeRight=parseInt(cs.getPropertyValue('--sar'))||0;
 }
-function resize(){const dpr=Math.min(window.devicePixelRatio||1,2);W=window.innerWidth;H=window.innerHeight;canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);updateSafeAreas();recalcLayout();}
-function recalcLayout(){topBarH=48+safeTop;bottomBarH=100+safeBottom;const aH=H-topBarH-bottomBarH,aW=W-safeLeft-safeRight;cellSize=Math.min(aW/currentCols,aH/currentRows);mapW=cellSize*currentCols;mapH=cellSize*currentRows;offsetX=safeLeft+(aW-mapW)/2;offsetY=topBarH+(aH-mapH)/2;}
+function resize(){const dpr=Math.min(window.devicePixelRatio||1,2);W=window.innerWidth;H=window.innerHeight;canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0);updateSafeAreas();refreshBattleLayout();}
+function refreshBattleLayout(){
+  const previous={cellSize,offsetX,offsetY};recalcLayout();
+  if(!mapPositionsReady||!previous.cellSize)return;
+  const move=(x,y)=>({x:offsetX+(x-previous.offsetX)*cellSize/previous.cellSize,y:offsetY+(y-previous.offsetY)*cellSize/previous.cellSize});
+  if(heroState.deployed){
+    for(const [xKey,yKey] of [['heroX','heroY'],['heroTargetX','heroTargetY']]){
+      const p=move(heroState[xKey],heroState[yKey]);heroState[xKey]=p.x;heroState[yKey]=p.y;
+    }
+    if(heroState.moveOrder){const p=move(heroState.moveOrder.x,heroState.moveOrder.y);Object.assign(heroState.moveOrder,p);}
+    if(heroState.shieldWall){const wall=heroState.shieldWall,p=move(wall.x,wall.y);Object.assign(wall,p);wall.w*=cellSize/previous.cellSize;wall.h*=cellSize/previous.cellSize;}
+    for(const turret of heroState.tempTurrets)Object.assign(turret,move(turret.x,turret.y));
+  }
+  for(const e of G.enemies){const p=getPosOnPath(e.progress??e.pathProgress??0,e.pathIdx||0);e.px=p.x;e.py=p.y;}
+  for(const pool of [projectilePool,enemyProjectilePool,particlePool,dmgNumPool])pool.forEach(p=>{
+    const pos=move(p.x,p.y);p.x=pos.x;p.y=pos.y;
+    if(Number.isFinite(p.tx)&&Number.isFinite(p.ty)){const target=move(p.tx,p.ty);p.tx=target.x;p.ty=target.y;}
+  });
+  chainPool.forEach(c=>{for(const [xKey,yKey] of [['x1','y1'],['x2','y2']]){const p=move(c[xKey],c[yKey]);c[xKey]=p.x;c[yKey]=p.y;}});
+}
+function recalcLayout(){
+  topBarH=(battleLayoutKind==='offense'?112:64)+safeTop;
+  const landscape=W>H*1.4&&H<600;
+  const availableW=W-safeLeft-safeRight;
+  const panelW=landscape?Math.min(300,Math.max(240,availableW*.34)):Math.min(600,availableW);
+  bottomBarH=landscape?0:(battleLayoutKind==='defense'?154:174)+safeBottom;
+  battlePanel={side:landscape,x:landscape?W-safeRight-panelW:safeLeft+(availableW-panelW)/2,
+    y:landscape?topBarH:H-bottomBarH,w:panelW,h:landscape?H-topBarH-safeBottom:bottomBarH};
+  const aH=Math.max(1,H-topBarH-bottomBarH-safeBottom*(landscape?1:0));
+  const aW=Math.max(1,availableW-(landscape?panelW:0));
+  cellSize=Math.min(aW/currentCols,aH/currentRows);mapW=cellSize*currentCols;mapH=cellSize*currentRows;
+  offsetX=safeLeft+(aW-mapW)/2;offsetY=topBarH+(aH-mapH)/2;
+}
+function drawBattlePanel(draw){
+  const physical={W,H,bottomBarH,safeTop,safeBottom,safeLeft,safeRight};
+  const before={...G._btns},panel=battlePanel;
+  ctx.save();ctx.translate(panel.x,panel.y);
+  W=panel.w;H=panel.h;bottomBarH=H;safeTop=safeLeft=safeRight=0;
+  safeBottom=panel.side?0:physical.safeBottom;
+  draw();ctx.restore();
+  const project=b=>b&&({...b,x:b.x+panel.x,y:b.y+panel.y});
+  for(const key of Object.keys(G._btns))if(G._btns[key]!==before[key])G._btns[key]=Array.isArray(G._btns[key])?
+    G._btns[key].map(project):project(G._btns[key]);
+  ({W,H,bottomBarH,safeTop,safeBottom,safeLeft,safeRight}=physical);
+}
 resize();window.addEventListener('resize',resize);
+
+// Menus retain readable rows on short screens and a focused column on wide ones.
+// The battlefield keeps its own coordinates; only menu surfaces scroll.
+const uiState={key:'',scroll:0,maxScroll:0,frame:null,scrolls:new Map()};
+const UI_HEIGHTS={menu:850,mapSelect:800,diffSelect:710,biomeSelect:610,
+settings:780,howToPlay:940,profile:780,loadout:1220,heroSelect:790,heroRoster:760,
+campaignMenu:670,campaignMap:800,campaignSwarmAttack:580,campaignVictory:640,
+campaignDefeat:580,offenseMapSelect:650,offenseResult:660,alliedVictory:700,
+clashFinal:690,clashAttackResult:540,paused:520,wavePreview:710,waveSummary:480,
+gameover:900,victory:900};
+function getMenuHeight(){
+  if(G.phase==='achievements')return 160+ACHIEVEMENTS.length*76;
+  if(G.phase==='store')return [760,650,570,610,790][store.tab]||760;
+  return UI_HEIGHTS[G.phase]||0;
+}
+function beginUISurface(key,minHeight){
+  const physical={W,H,safeTop,safeBottom,safeLeft,safeRight};
+  const availableW=Math.max(1,W-safeLeft-safeRight),availableH=Math.max(1,H-safeTop-safeBottom);
+  const scale=Math.min(1,availableW/360),width=Math.min(480,availableW/scale);
+  const viewH=availableH-18,contentH=Math.max(minHeight,Math.min(900,viewH/scale));
+  if(uiState.key!==key){uiState.scrolls.set(uiState.key,uiState.scroll);uiState.key=key;uiState.scroll=uiState.scrolls.get(key)||0;}
+  uiState.maxScroll=Math.max(0,contentH-viewH/scale);
+  uiState.scroll=Math.max(0,Math.min(uiState.maxScroll,uiState.scroll));
+  const frame={physical,scale,x:safeLeft+(availableW-width*scale)/2,
+    y:safeTop+(uiState.maxScroll?0:Math.max(0,(viewH-contentH*scale)/2)),
+    w:width*scale,viewH:Math.min(viewH,contentH*scale),contentH};
+  uiState.frame=frame;uiState.drawing=true;
+  ctx.save();ctx.beginPath();ctx.rect(frame.x,frame.y,frame.w,frame.viewH);ctx.clip();
+  ctx.translate(frame.x,frame.y-uiState.scroll*scale);ctx.scale(scale,scale);
+  W=width;H=contentH;safeTop=safeBottom=safeLeft=safeRight=0;
+  return frame;
+}
+function endUISurface(frame){
+  ctx.restore();uiState.drawing=false;
+  const project=b=>{
+    if(!b||!Number.isFinite(b.x))return b;
+    const x=frame.x+b.x*frame.scale,y=frame.y+(b.y-uiState.scroll)*frame.scale;
+    const w=b.w*frame.scale,h=b.h*frame.scale;
+    if(y+h<=frame.y||y>=frame.y+frame.viewH)return null;
+    return {...b,x,y:Math.max(frame.y,y),w,h:Math.min(y+h,frame.y+frame.viewH)-Math.max(frame.y,y)};
+  };
+  for(const key of Object.keys(G._btns))G._btns[key]=Array.isArray(G._btns[key])?
+    G._btns[key].map(project).filter(Boolean):project(G._btns[key]);
+  ({W,H,safeTop,safeBottom,safeLeft,safeRight}=frame.physical);
+  if(uiState.maxScroll>0){
+    const trackX=frame.x+frame.w-4,thumbH=Math.max(24,frame.viewH*frame.viewH/(frame.contentH*frame.scale));
+    ctx.fillStyle='rgba(100,180,255,0.16)';ctx.fillRect(trackX,frame.y,3,frame.viewH);
+    ctx.fillStyle=C_ACC;ctx.fillRect(trackX,frame.y+(frame.viewH-thumbH)*uiState.scroll/uiState.maxScroll,3,thumbH);
+    ctx.font='500 10px '+FB;ctx.textAlign='center';ctx.fillStyle=C_MUT;
+    ctx.fillText(uiState.scroll<uiState.maxScroll-1?'Swipe or scroll to see more ↓':'↑ Scroll to return',W/2,H-safeBottom-5);
+  }
+}
+function scrollUI(delta){
+  if(!uiState.frame||uiState.maxScroll<=0||!Number.isFinite(delta))return false;
+  uiState.scroll=Math.max(0,Math.min(uiState.maxScroll,uiState.scroll+delta/uiState.frame.scale));
+  return true;
+}
+function drawWrappedText(text,x,y,width,lineHeight){
+  const lines=[];let line='';
+  for(const word of String(text).split(/\s+/)){
+    const next=line?line+' '+word:word;
+    if(line&&ctx.measureText(next).width>width){lines.push(line);line=word;}else line=next;
+  }
+  if(line)lines.push(line);
+  for(let i=0;i<lines.length;i++)ctx.fillText(lines[i],x,y+i*lineHeight);
+  return y+lines.length*lineHeight;
+}
+function drawFittedText(text,x,y,width){ctx.fillText(text,x,y,Math.max(1,width));}
 
 // Audio
 let audioCtx=null,audioEnabled=false;
@@ -1891,12 +2004,12 @@ function drawHeroHUD() {
   const hero = HEROES[heroState.selectedHeroIdx];
   // Draw hero ability buttons in the bottom panel area
   const py = H - bottomBarH;
-  const bSize = 30, gap2 = 6;
-  const startX = W - bSize * 2 - gap2 * 2 - 8;
+  const bSize = 44, gap2 = 6;
+  const startX = battlePanel.side?(W-bSize*2-gap2)/2:W-bSize*2-gap2-8;
 
   // Ability button
   const abReady = heroState.abilityCd <= 0 && heroState.deathTimer <= 0;
-  const abX = startX, abY = py + 6;
+  const abX = startX, abY = H-safeBottom-(battlePanel.side?122:58);
   ctx.fillStyle = abReady ? hero.color + '33' : 'rgba(30,30,50,0.8)';
   ctx.strokeStyle = abReady ? hero.color : hero.color + '44';
   ctx.lineWidth = 1.5;
@@ -1911,7 +2024,7 @@ function drawHeroHUD() {
     ctx.font = '700 8px ' + FD; ctx.textAlign = 'center'; ctx.fillStyle = abReady ? hero.color : hero.color + '66';
     ctx.fillText('Q', abX + bSize / 2, abY + bSize / 2 + 3);
   }
-  ctx.font = '500 6px ' + FB; ctx.textAlign = 'center'; ctx.fillStyle = C_MUT;
+  ctx.font = '500 9px ' + FB; ctx.textAlign = 'center'; ctx.fillStyle = C_MUT;
   ctx.fillText(hero.ability.name.split(' ')[0], abX + bSize / 2, abY + bSize + 8);
 
   // Aim badge — crosshair chip; lit while manual control is on
@@ -1938,7 +2051,7 @@ function drawHeroHUD() {
 
   // Ultimate button
   const ultReady = heroState.ultimateCd <= 0 && heroState.deathTimer <= 0;
-  const ultX = startX + bSize + gap2, ultY = py + 6;
+  const ultX = startX + bSize + gap2, ultY = abY;
   ctx.fillStyle = ultReady ? '#ffcc00' + '33' : 'rgba(30,30,50,0.8)';
   ctx.strokeStyle = ultReady ? '#ffcc00' : '#ffcc00' + '44';
   ctx.lineWidth = 1.5;
@@ -1955,7 +2068,7 @@ function drawHeroHUD() {
     ctx.font = '700 8px ' + FD; ctx.textAlign = 'center'; ctx.fillStyle = ultReady ? '#ffcc00' : '#ffcc00' + '66';
     ctx.fillText('ULT', ultX + bSize / 2, ultY + bSize / 2 + 3);
   }
-  ctx.font = '500 6px ' + FB; ctx.textAlign = 'center'; ctx.fillStyle = C_MUT;
+  ctx.font = '500 9px ' + FB; ctx.textAlign = 'center'; ctx.fillStyle = C_MUT;
   ctx.fillText('Ultimate', ultX + bSize / 2, ultY + bSize + 8);
 
   G._btns.heroAbility = {x: abX, y: abY, w: bSize, h: bSize};
@@ -2614,24 +2727,25 @@ if(t.disabled>0){ctx.font='600 '+Math.max(8,s*0.6)+'px '+FB;ctx.textAlign='cente
 
 // HUD
 function drawHUD(){ctx.fillStyle=C_SUR;ctx.fillRect(0,0,W,topBarH);ctx.strokeStyle=C_BOR;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,topBarH);ctx.lineTo(W,topBarH);ctx.stroke();
-const fs=Math.min(13,W*0.033);ctx.font='700 '+fs+'px '+FD;ctx.textAlign='left';ctx.textBaseline='middle';const y=topBarH/2,pad=10;
+const fs=12;ctx.font='700 '+fs+'px '+FD;ctx.textAlign='left';ctx.textBaseline='middle';const y=safeTop+20,pad=safeLeft+12;
 // Wave counter
 ctx.fillStyle=C_ACC;const totalW=allied.active?allied.totalWaves:clash.active?5:getMatchWaveGoal();const wn=G.endlessMode?G.endlessWave+1:allied.active?allied.wave+1:(G.phase==='wave'?G.wave+1:(G.wave<totalW?G.wave+1:totalW));const wt=G.endlessMode?'∞':totalW;
 ctx.fillText('W'+wn+'/'+wt,pad,y);
 // Lives
-ctx.fillStyle=G.lives<=5?C_DNG:C_TXT;ctx.fillText('♥'+G.lives,W*0.3,y);
+ctx.fillStyle=G.lives<=5?C_DNG:C_TXT;ctx.fillText('♥ '+G.lives,pad+100,y);
 // Nexium
-ctx.textAlign='right';ctx.fillStyle=C_WRN;ctx.fillText('◆'+Math.floor(G.nexium),W-pad-60,y);
+ctx.textAlign='left';ctx.fillStyle=C_WRN;ctx.fillText('◆ '+Math.floor(G.nexium),pad,safeTop+46);
 // Kills
-ctx.fillStyle=C_MUT;ctx.font='500 '+(fs-1)+'px '+FB;ctx.fillText('K:'+G.totalKills,W-pad-25,y);
+ctx.fillStyle=C_MUT;ctx.font='500 11px '+FB;ctx.fillText('Kills '+G.totalKills,pad+100,safeTop+46);
 // Speed
-const sbw=30,sx=W-pad-44-6;ctx.font='600 '+(fs-1)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=G.gameSpeed===1?C_MUT:G.gameSpeed===2?C_ACC:C_WRN;ctx.fillText(G.gameSpeed+'x',sx-sbw/2,y);G._btns.speed={x:sx-sbw,y:0,w:sbw,h:topBarH};
+const sbw=44,sx=W-safeRight-60;ctx.font='600 13px '+FD;ctx.textAlign='center';ctx.fillStyle=G.gameSpeed===1?C_MUT:G.gameSpeed===2?C_ACC:C_WRN;ctx.fillText(G.gameSpeed+'x',sx-sbw/2,safeTop+32);G._btns.speed={x:sx-sbw,y:safeTop+10,w:sbw,h:44};
 // Pause — full 44px-wide touch target (Apple HIG minimum)
-const px2=W-pad;ctx.fillStyle=C_MUT;ctx.fillText('⏸',px2-22,y);G._btns.pause={x:px2-44,y:0,w:44,h:topBarH};
+const px2=W-safeRight-10;ctx.fillStyle=C_MUT;ctx.fillText('⏸',px2-22,safeTop+32);G._btns.pause={x:px2-44,y:safeTop+10,w:44,h:44};
 ctx.textAlign='left';ctx.textBaseline='alphabetic';}
 
 // Bottom panel
-function drawBottomPanel(){const py=H-bottomBarH;ctx.fillStyle=C_SUR;ctx.fillRect(0,py,W,bottomBarH);ctx.strokeStyle=C_BOR;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,py);ctx.lineTo(W,py);ctx.stroke();
+function drawBottomPanel(){drawBattlePanel(drawBottomPanelContents);}
+function drawBottomPanelContents(){const py=H-bottomBarH;ctx.fillStyle=C_SUR;ctx.fillRect(0,py,W,bottomBarH);ctx.strokeStyle=C_BOR;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,py);ctx.lineTo(W,py);ctx.stroke();
 if(G.showTowerInfo&&G.towerInfoIdx>=0&&G.towerInfoIdx<G.towers.length)drawTowerInfoPanel(py);
 else if(G.phase==='build')drawBuildPanel(py);
 else if(G.phase==='wave')drawWavePanel(py);
@@ -2643,7 +2757,7 @@ if(G.phase==='build'||G.phase==='wave')drawGlobalAbilities(py);
 if(!G.showTowerInfo)drawHeroHUD();
 if(G.showTowerInfo)G._btns.globals=null;}
 
-function drawGlobalAbilities(py){const bs=36,gap=8,sx=8,by=py+bottomBarH-bs-2;
+function drawGlobalAbilities(py){const bs=44,gap=6,sx=battlePanel.side?(W-3*bs-2*gap)/2:8,by=H-safeBottom-58;
 const abs=[{n:'💥',l:'Strike',cd:G.orbitalCD,mcd:60,ac:G.orbitalTargeting},{n:'⚡',l:'Surge',cd:G.chronoCD,mcd:90,ac:G.chronoActive>0},{n:'🔧',l:'Repair',cd:G.repairCD,mcd:120,ac:false}];
 G._btns.globals=[];
 for(let i=0;i<abs.length;i++){const a=abs[i],bx=sx+i*(bs+gap),rdy=a.cd<=0;
@@ -2653,28 +2767,47 @@ if(!rdy){const cr=a.cd/a.mcd;ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillRect(bx+1,b
 ctx.font='500 '+Math.max(7,bs*0.22)+'px '+FB;ctx.fillStyle=C_MUT;ctx.fillText(a.l,bx+bs/2,by+bs+9);
 G._btns.globals.push({x:bx,y:by,w:bs,h:bs});}ctx.textBaseline='alphabetic';}
 
-function drawBuildPanel(py){const fs=Math.min(13,W*0.033);ctx.font='700 '+fs+'px '+FD;ctx.textAlign='center';ctx.fillStyle=C_ACC;ctx.fillText('BUILD PHASE — Tap cells to build',W/2,py+18);
-const bw=140,bh=34,bx=W/2-bw/2,by=py+28;ctx.fillStyle='#004466';ctx.strokeStyle=C_ACC;ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(bx,by,bw,bh,6);ctx.fill();ctx.stroke();ctx.font='700 '+Math.min(13,W*0.033)+'px '+FD;ctx.fillStyle=C_ACC;ctx.fillText('START WAVE',W/2,by+bh/2+1);G._btns.startWave={x:bx,y:by,w:bw,h:bh};}
+function drawBuildPanel(py){const fs=12;ctx.font='700 '+fs+'px '+FD;ctx.textAlign='center';ctx.fillStyle=C_ACC;ctx.fillText('Tap cells to build',W/2,py+20);
+const bw=150,bh=44,bx=W/2-bw/2,by=py+34;ctx.fillStyle='#004466';ctx.strokeStyle=C_ACC;ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(bx,by,bw,bh,6);ctx.fill();ctx.stroke();ctx.font='700 13px '+FD;ctx.fillStyle=C_ACC;ctx.fillText('START WAVE',W/2,by+bh/2+4);G._btns.startWave={x:bx,y:by,w:bw,h:bh};}
 
-function drawWavePanel(py){const fs=Math.min(12,W*0.03);ctx.font='600 '+fs+'px '+FB;ctx.textAlign='center';ctx.fillStyle=C_TXT;const alive=G.enemies.filter(e=>e.alive).length,q=G.spawnQueue.length;ctx.fillText('Enemies: '+alive+' active | '+q+' incoming',W/2,py+18);ctx.font='500 '+Math.min(10,W*0.025)+'px '+FB;ctx.fillStyle=C_MUT;ctx.fillText('Tap tower for info',W/2,py+34);
-const bw=140,bh=44,bx=W-bw-8,by=H-bh-2,fast=G.deploymentSpeed===3;
+function drawWavePanel(py){const fs=12;ctx.font='600 '+fs+'px '+FB;ctx.textAlign='center';ctx.fillStyle=C_TXT;const alive=G.enemies.filter(e=>e.alive).length,q=G.spawnQueue.length;ctx.fillText(alive+' active · '+q+' incoming',W/2,py+20);
+const bw=150,bh=44,bx=W/2-bw/2,by=py+34,fast=G.deploymentSpeed===3;
 ctx.fillStyle=q>0?(fast?'#332610':'#142638'):'#151c29';ctx.strokeStyle=q>0?(fast?C_WRN:C_ACC):C_BOR;ctx.lineWidth=fast?2:1;
 ctx.beginPath();ctx.roundRect(bx,by,bw,bh,6);ctx.fill();ctx.stroke();
 ctx.font='700 '+Math.min(11,W*0.028)+'px '+FD;ctx.fillStyle=q>0?(fast?C_WRN:C_ACC):C_MUT;
 ctx.fillText(q>0?'DEPLOY » '+G.deploymentSpeed+'×':'ALL DEPLOYED',bx+bw/2,by+bh/2+4);
 G._btns.deploySpeed=q>0?{x:bx,y:by,w:bw,h:bh}:null;}
 
-function drawTowerInfoPanel(py){const t=G.towers[G.towerInfoIdx];const type=TT[t.typeIdx];const stats=getTowerStats(t);const d=DIFFS[G.diffIdx];const fs=Math.min(11,W*0.028),pad=8;
-ctx.font='700 '+(fs+1)+'px '+FD;ctx.textAlign='left';ctx.fillStyle=type.color;ctx.fillText(type.name+' Lv.'+(t.level+1),pad,py+14);
-ensureTowerDurability(t);ctx.font='500 '+(fs-2)+'px '+FD;ctx.textAlign='right';ctx.fillStyle=t.offline?C_DNG:C_MUT;ctx.fillText('HP '+Math.ceil(t.hp)+'/'+t.maxHp+(t.offline?' · OFFLINE':''),W-pad-28,py+14);ctx.textAlign='left';
-ctx.font='500 '+(fs-1)+'px '+FB;ctx.fillStyle=C_TXT;ctx.fillText('DMG:'+stats.damage+' RNG:'+stats.range.toFixed(1)+' SPD:'+stats.fireRate.toFixed(2)+'s',pad,py+28);
-const by=py+36,bh=26,bg=4;
-if(t.level<2){const cost=Math.round(type.upCost[t.level]*d.costM);const ca=G.nexium>=cost;const uw=(W-pad*2-bg*3)*0.32,ux=pad;ctx.fillStyle=ca?'#003344':'#222';ctx.strokeStyle=ca?C_ACC:'#444';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(ux,by,uw,bh,3);ctx.fill();ctx.stroke();ctx.font='600 '+(fs-2)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=ca?C_ACC:'#666';ctx.fillText('UP ◆'+cost,ux+uw/2,by+bh/2+1);G._btns.upgrade={x:ux,y:by,w:uw,h:bh};}else G._btns.upgrade=null;
-const ab=type.ab,aw=(W-pad*2-bg*3)*0.36,ax=pad+(W-pad*2-bg*3)*0.32+bg;ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(ax,by,aw,bh,3);
-if(!t.abilityUnlocked){const uc=getAbilityUnlockCost(t),ca=G.nexium>=uc;ctx.fillStyle=ca?'#0a2a1a':'#1a1a2a';ctx.strokeStyle=ca?'#44ffaa':'#444';ctx.fill();ctx.stroke();ctx.font='600 '+(fs-2)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=ca?'#44ffaa':'#666';ctx.fillText('UNLOCK ◆'+uc,ax+aw/2,by+bh/2+1);G._btns.ability={x:ax,y:by,w:aw,h:bh};}
-else{const ar=t.abilityCooldown<=0&&!t.offline&&t.disabled<=0&&!(t.buildTimer>0);ctx.fillStyle=ar?'#002244':'#1a1a2a';ctx.strokeStyle=ar?'#44aaff':'#444';ctx.fill();ctx.stroke();ctx.font='600 '+(fs-2)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=ar?'#44aaff':'#555';ctx.fillText(t.offline?'REPAIRS AFTER WAVE':ar?'⚡ '+ab.name:ab.name+' '+Math.max(0,Math.ceil(t.abilityCooldown))+'s',ax+aw/2,by+bh/2+1);G._btns.ability=ar?{x:ax,y:by,w:aw,h:bh}:null;}
-const ref=Math.floor(t.totalSpent*loadoutBonuses.sellMultiplier);const sw=(W-pad*2-bg*3)*0.28,sxx=W-pad-sw;ctx.fillStyle='#331111';ctx.strokeStyle=C_DNG;ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(sxx,by,sw,bh,3);ctx.fill();ctx.stroke();ctx.font='600 '+(fs-2)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=C_DNG;ctx.fillText('SELL ◆'+ref,sxx+sw/2,by+bh/2+1);G._btns.sell={x:sxx,y:by,w:sw,h:bh};
-const cs=22,cx=W-pad-cs/2,cy=py+12;ctx.font='700 '+(fs+2)+'px '+FB;ctx.textAlign='center';ctx.fillStyle=C_MUT;ctx.fillText('✕',cx,cy+2);G._btns.closeInfo={x:cx-cs/2,y:cy-cs/2,w:cs,h:cs};}
+function drawTowerInfoPanel(py){
+const t=G.towers[G.towerInfoIdx],type=TT[t.typeIdx],stats=getTowerStats(t),pad=10;
+ensureTowerDurability(t);
+ctx.textAlign='left';ctx.font='700 12px '+FD;ctx.fillStyle=type.color;
+drawFittedText(type.name+' Lv.'+(t.level+1),pad,py+20,W-70);
+ctx.font='500 11px '+FB;ctx.fillStyle=t.offline?C_DNG:C_MUT;
+ctx.fillText('HP '+Math.ceil(t.hp)+'/'+t.maxHp+(t.offline?' · OFFLINE':''),pad,py+38);
+ctx.fillStyle=C_TXT;drawFittedText('DMG '+stats.damage+' · RNG '+stats.range.toFixed(1)+' · '+stats.fireRate.toFixed(2)+'s',pad,py+58,W-20);
+const width=(W-2*pad-12)/3,by=py+74,bh=44;
+const ref=Math.floor(t.totalSpent*loadoutBonuses.sellMultiplier);
+const cost=t.level<2?Math.round(type.upCost[t.level]*DIFFS[G.diffIdx].costM):0;
+const ready=t.abilityCooldown<=0&&!t.offline&&t.disabled<=0&&!(t.buildTimer>0);
+const unlock=getAbilityUnlockCost(t);
+const options=[
+{key:'upgrade',label:t.level<2?'UPGRADE':'MAX LEVEL',detail:t.level<2?'◆ '+cost:'Level 3',color:C_ACC,enabled:t.level<2&&G.nexium>=cost},
+{key:'ability',label:t.abilityUnlocked?'ABILITY':'UNLOCK',detail:t.abilityUnlocked?(t.offline?'Offline':ready?'Ready':Math.ceil(t.abilityCooldown)+'s'):'◆ '+unlock,color:'#44ffaa',enabled:t.abilityUnlocked?ready:G.nexium>=unlock},
+{key:'sell',label:'SELL',detail:'◆ '+ref,color:C_DNG,enabled:true}];
+for(let i=0;i<options.length;i++){
+  const o=options[i],x=pad+i*(width+6);
+  ctx.fillStyle=o.enabled?'rgba(20,40,50,0.9)':'#191c26';ctx.strokeStyle=o.enabled?o.color:'#444';ctx.lineWidth=1;
+  ctx.beginPath();ctx.roundRect(x,by,width,bh,6);ctx.fill();ctx.stroke();
+  ctx.textAlign='center';ctx.font='700 10px '+FD;ctx.fillStyle=o.enabled?o.color:C_MUT;
+  drawFittedText(o.label,x+width/2,by+17,width-8);ctx.font='500 11px '+FB;
+  drawFittedText(o.detail,x+width/2,by+34,width-8);
+  G._btns[o.key]=(o.key==='upgrade'&&t.level===2)||(o.key==='ability'&&t.abilityUnlocked&&!ready)?null:{x,y:by,w:width,h:bh};
+}
+if(t.abilityUnlocked){ctx.font='500 10px '+FB;ctx.fillStyle=C_MUT;ctx.textAlign='center';drawFittedText(type.ab.name,W/2,py+138,W-20);}
+const x=W-54,y=py+4;ctx.font='700 18px '+FB;ctx.textAlign='center';ctx.fillStyle=C_MUT;ctx.fillText('✕',x+22,y+28);
+G._btns.closeInfo={x,y,w:44,h:44};
+}
 
 function drawRangeIndicator(){if(G.towerInfoIdx>=0&&G.towerInfoIdx<G.towers.length){const t=G.towers[G.towerInfoIdx];const stats=getTowerStats(t);const type=TT[t.typeIdx];const tx=offsetX+t.col*cellSize+cellSize/2,ty=offsetY+t.row*cellSize+cellSize/2,rp=stats.range*cellSize;// Filled range with gradient
 const rg=ctx.createRadialGradient(tx,ty,0,tx,ty,rp);rg.addColorStop(0,'rgba(0,200,255,0.06)');rg.addColorStop(0.8,'rgba(0,200,255,0.03)');rg.addColorStop(1,'rgba(0,200,255,0)');ctx.fillStyle=rg;ctx.beginPath();ctx.arc(tx,ty,rp,0,Math.PI*2);ctx.fill();// Dashed border
@@ -2682,6 +2815,7 @@ ctx.strokeStyle='rgba(0,200,255,0.25)';ctx.lineWidth=1;ctx.setLineDash([3,3]);ct
 ctx.strokeStyle=type.color+'44';ctx.lineWidth=0.5;ctx.beginPath();ctx.arc(tx,ty,rp-3,animTime*1.5,animTime*1.5+Math.PI*1.2);ctx.stroke();}}
 
 function drawRadialMenu(){if(!G.showRadialMenu)return;let cx=offsetX+G.radialMenuCol*cellSize+cellSize/2,cy=offsetY+G.radialMenuRow*cellSize+cellSize/2;ctx.fillStyle='rgba(0,0,0,0.4)';ctx.fillRect(0,0,W,H);
+if(cellSize<30){drawTowerPicker();return;}
 const avail=getAvailableTowers();const count=avail.length;const radius=Math.min(cellSize*2.6,W*0.22),btnR=Math.min(cellSize*0.6,W*0.07);
 const pad2=radius+btnR+20;cx=Math.max(pad2,Math.min(W-pad2,cx));cy=Math.max(pad2+topBarH,Math.min(H-pad2-bottomBarH,cy));
 G._btns.radial=[];
@@ -2695,12 +2829,29 @@ const ns=Math.max(6,btnR*0.25);ctx.font='600 '+ns+'px '+FB;ctx.fillStyle=ca?C_TX
 G._btns.radial.push({x:bx,y:by,r:btnR,idx:origIdx});}
 ctx.strokeStyle=C_ACC;ctx.lineWidth=2;ctx.strokeRect(offsetX+G.radialMenuCol*cellSize+2,offsetY+G.radialMenuRow*cellSize+2,cellSize-4,cellSize-4);}
 
+function drawTowerPicker(){
+  const towers=getAvailableTowers(),cols=W-safeLeft-safeRight>=500?5:4,bw=60,bh=68,gap=6;
+  const rows=Math.ceil(towers.length/cols),width=cols*bw+(cols-1)*gap,height=rows*bh+(rows-1)*gap;
+  const areaW=W-safeLeft-safeRight;
+  const x=safeLeft+(areaW-width)/2,y=topBarH+Math.max(0,(H-topBarH-bottomBarH-safeBottom-height)/2);
+  G._btns={radial:[]};
+  for(let i=0;i<towers.length;i++){
+    const type=towers[i],idx=TT.indexOf(type),cost=getTowerCost(idx),ready=G.nexium>=cost;
+    const bx=x+(i%cols)*(bw+gap),by=y+Math.floor(i/cols)*(bh+gap);
+    ctx.fillStyle='#111d30';ctx.strokeStyle=ready?type.color:'#556';ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect(bx,by,bw,bh,6);ctx.fill();ctx.stroke();ctx.textAlign='center';
+    ctx.font='600 10px '+FB;ctx.fillStyle=ready?C_TXT:C_MUT;drawFittedText(type.name.split(' ')[0],bx+bw/2,by+24,bw-8);
+    ctx.font='700 11px '+FD;ctx.fillStyle=ready?C_WRN:C_MUT;ctx.fillText('◆'+cost,bx+bw/2,by+48);
+    G._btns.radial.push({x:bx,y:by,w:bw,h:bh,idx});
+  }
+}
+
 function drawPlacementAnims(){for(const a of G.placementAnims){const p=1-a.timer/0.4;const r=cellSize*0.8*p;ctx.strokeStyle='rgba(0,200,255,'+(0.5*(1-p))+')';ctx.lineWidth=2;ctx.beginPath();ctx.arc(a.x,a.y,r,0,Math.PI*2);ctx.stroke();// Second ring  
 const r2=cellSize*0.5*p;ctx.strokeStyle='rgba(0,200,255,'+(0.3*(1-p))+')';ctx.lineWidth=1;ctx.beginPath();ctx.arc(a.x,a.y,r2,0,Math.PI*2);ctx.stroke();// Hex flash
 ctx.strokeStyle='rgba(0,200,255,'+(0.2*(1-p))+')';ctx.beginPath();for(let i=0;i<6;i++){const ha=Math.PI/3*i;if(i===0)ctx.moveTo(a.x+r*Math.cos(ha),a.y+r*Math.sin(ha));else ctx.lineTo(a.x+r*Math.cos(ha),a.y+r*Math.sin(ha));}ctx.closePath();ctx.stroke();}}
 function updatePlacementAnims(dt){for(let i=G.placementAnims.length-1;i>=0;i--){G.placementAnims[i].timer-=dt;if(G.placementAnims[i].timer<=0)G.placementAnims.splice(i,1);}}
 
-function drawMinimap(){if(currentCols<=10&&currentRows<=16)return;const mw=60,mh=Math.round(mw*(currentRows/currentCols)),mx=W-mw-6,my=topBarH+6;const mcw=mw/currentCols,mch=mh/currentRows;
+function drawMinimap(){if(currentCols<=10&&currentRows<=16)return;const mw=60,mh=Math.round(mw*(currentRows/currentCols)),mx=(battlePanel.side?battlePanel.x:W-safeRight)-mw-6,my=topBarH+6;const mcw=mw/currentCols,mch=mh/currentRows;
 ctx.fillStyle='rgba(10,14,26,0.8)';ctx.fillRect(mx-1,my-1,mw+2,mh+2);ctx.strokeStyle=C_BOR;ctx.lineWidth=1;ctx.strokeRect(mx-1,my-1,mw+2,mh+2);
 for(let pi=0;pi<currentPaths.length;pi++){ctx.fillStyle='rgba(0,200,255,0.3)';for(const[c,r]of currentPaths[pi])ctx.fillRect(mx+c*mcw,my+r*mch,mcw,mch);}
 ctx.fillStyle='#4488ff';for(const t of G.towers)ctx.fillRect(mx+t.col*mcw,my+t.row*mch,mcw,mch);
@@ -2718,9 +2869,9 @@ const opts=[['SFX Volume',settings.sfxVol.toString(),'🔊'],['Music Volume',set
 ['Reduce Motion',settings.reduceMotion?'On':'Off','♿'],
 ['Color Blind',settings.colorBlind==='off'?'Off':settings.colorBlind==='deuteranopia'?'Deut.':'Prot.','👁']];
 
-const fs=Math.min(13,W*0.033),rowH=Math.min(58,H*0.068);G._btns.settingsOpts=[];
+const fs=13,rowH=58;G._btns.settingsOpts=[];
 for(let i=0;i<opts.length;i++){const[label,val,icon]=opts[i];
-const ry=H*0.12+i*rowH;
+const ry=90+i*rowH;
 ctx.fillStyle=i%2===0?'rgba(15,25,45,0.5)':'rgba(10,18,35,0.3)';
 ctx.beginPath();ctx.roundRect(W*0.06,ry,W*0.88,rowH-6,8);ctx.fill();
 ctx.fillStyle='rgba(0,200,255,0.06)';ctx.beginPath();ctx.roundRect(W*0.06,ry,3,rowH-6,2);ctx.fill();
@@ -2737,12 +2888,12 @@ ctx.font='700 '+Math.min(12,W*0.03)+'px '+FD;ctx.textAlign='center';
 ctx.fillStyle=isActive?C_ACC:'#6880a0';ctx.fillText(valStr,valX+valMW/2,ry+rowH/2);
 G._btns.settingsOpts.push({x:W*0.06,y:ry,w:W*0.88,h:rowH-6,idx:i});}
 // Legal links
-const legalY=H*0.12+opts.length*rowH+8;
+const legalY=90+opts.length*rowH+8;
 ctx.font='500 '+Math.min(11,W*0.028)+'px '+FB;ctx.textAlign='center';
 ctx.fillStyle='rgba(0,200,255,0.5)';ctx.fillText('Privacy Policy',W/2-60,legalY+10);G._btns.privacyLink={x:W/2-120,y:legalY-2,w:120,h:22};
 ctx.fillText('Terms of Service',W/2+60,legalY+10);G._btns.termsLink={x:W/2,y:legalY-2,w:120,h:22};
 ctx.fillStyle='rgba(0,200,255,0.15)';ctx.fillRect(W/2-110,legalY+14,100,0.5);ctx.fillRect(W/2+10,legalY+14,100,0.5);
-const by=H*0.85,bw=120,bh=36;ctx.fillStyle='rgba(20,30,50,0.8)';ctx.strokeStyle=C_MUT;ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(W/2-bw/2,by,bw,bh,6);ctx.fill();ctx.stroke();ctx.font='600 '+Math.min(13,W*0.033)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=C_MUT;ctx.fillText('BACK',W/2,by+bh/2+1);G._btns.settingsBack={x:W/2-bw/2,y:by,w:bw,h:bh};
+const by=Math.max(legalY+46,H-80),bw=120,bh=44;ctx.fillStyle='rgba(20,30,50,0.8)';ctx.strokeStyle=C_MUT;ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(W/2-bw/2,by,bw,bh,6);ctx.fill();ctx.stroke();ctx.font='600 '+Math.min(13,W*0.033)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=C_MUT;ctx.fillText('BACK',W/2,by+bh/2+4);G._btns.settingsBack={x:W/2-bw/2,y:by,w:bw,h:bh};
 ctx.font='500 9px '+FB;ctx.fillStyle=storageAvailable?'#44ff88':'#ff8844';ctx.textAlign='center';ctx.fillText('v7.6.3 · '+(storageAvailable?'● Progress saves locally':'● Progress saves this session only'),W/2,H-14);}
 
 function drawHowToPlay(){drawStarfield();
@@ -2758,18 +2909,18 @@ const sections=[
 {title:'ABILITIES',color:'#ffaa22',items:['💥 Vanguard Strike — Massive area blast','⚡ Temporal Surge — Speed all towers','🔧 Field Repair — Restore 5 lives','Hero abilities: auto by default, aimable in manual']},
 {title:'CURRENCY',color:'#aa66ff',items:['◆ Nexium — match-only build resource','Earned from DAMAGE dealt to enemies','Killers pay a small bonus on top','◇ Helix Credits — permanent currency','Spend ◇ in the Store: heroes, skins, bundles']}
 ];
-let htY=H*0.1;const htFS=Math.min(11,W*0.028);
+let htY=88;const htFS=12;
 for(const sec of sections){
 ctx.fillStyle='rgba('+parseInt(sec.color.slice(1,3),16)+','+parseInt(sec.color.slice(3,5),16)+','+parseInt(sec.color.slice(5,7),16)+',0.06)';
 ctx.beginPath();ctx.roundRect(W*0.08,htY,W*0.84,18,4);ctx.fill();
 ctx.font='700 '+Math.min(10,W*0.025)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=sec.color;
-ctx.fillText(sec.title,W/2,htY+12);htY+=24;
+ctx.fillText(sec.title,W/2,htY+12);htY+=34;
 ctx.font='500 '+htFS+'px '+FB;ctx.textAlign='center';
 for(const item of sec.items){
-ctx.fillStyle='rgba(200,215,230,0.7)';ctx.fillText(item,W/2,htY);htY+=htFS+5;}
+ctx.fillStyle='rgba(200,215,230,0.7)';htY=drawWrappedText(item,W/2,htY,W*0.84,htFS+5);}
 htY+=8;}
 htY+=4;ctx.fillStyle='rgba(255,170,0,0.06)';ctx.beginPath();ctx.roundRect(W*0.08,htY,W*0.84,18,4);ctx.fill();
-ctx.font='700 '+Math.min(10,W*0.025)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=C_WRN;ctx.fillText('TIPS',W/2,htY+12);htY+=24;
+ctx.font='700 '+Math.min(10,W*0.025)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=C_WRN;ctx.fillText('TIPS',W/2,htY+12);htY+=34;
 ctx.font='500 '+htFS+'px '+FB;ctx.fillStyle='rgba(200,200,180,0.6)';
 const tips=['Use abilities in emergencies only','Endless mode scales infinitely','Arsenal Cards give powerful bonuses'];
 for(const tip of tips){ctx.fillText('• '+tip,W/2,htY);htY+=htFS+5;}
@@ -2884,15 +3035,15 @@ ctx.fillStyle=sel?'rgba(0,200,255,0.15)':'rgba(20,30,50,0.6)';ctx.strokeStyle=se
 ctx.font='600 '+Math.min(11,W*0.028)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=sel?BIOMES[tabs[i]].accent:C_MUT;ctx.fillText(BIOMES[tabs[i]]?tabs[i].toUpperCase():'',bx+tw/2,by+th/2+1);G._btns.biomeTabs.push({x:bx,y:by,w:tw,h:th,tab:tabs[i]});}
 // Filter maps by biome
 const filtered=MAPS.map((m,i)=>({...m,origIdx:i})).filter(m=>m.biome===G.biomeTab);
-const cw=Math.min(W*0.85,340),ch=Math.min(H*0.18,120),gap=10,sy=H*0.17;G._btns.maps=[];
+const cw=Math.min(W*0.9,400),ch=126,gap=10,sy=116;G._btns.maps=[];
 for(let i=0;i<filtered.length;i++){const map=filtered[i];const cx=W/2-cw/2,cy=sy+i*(ch+gap);
 ctx.fillStyle='rgba(20,30,50,0.9)';ctx.strokeStyle=map.diff==='Easy'?'#44ff88':map.diff==='Medium'?'#ffaa22':'#ff4466';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(cx,cy,cw,ch,8);ctx.fill();ctx.stroke();
 const pw=cw*0.3,ph=ch-16,ppx=cx+8,ppy=cy+8;ctx.fillStyle=BIOMES[map.biome].ground;ctx.fillRect(ppx,ppy,pw,ph);
 const pcw=pw/map.cols,pch=ph/map.rows;for(const path of map.paths){ctx.fillStyle=BIOMES[map.biome].glow+'0.3)';for(const[pc,pr]of path)ctx.fillRect(ppx+pc*pcw,ppy+pr*pch,pcw,pch);}
-const ix=cx+pw+20;ctx.font='700 '+Math.min(16,W*0.04)+'px '+FD;ctx.textAlign='left';ctx.fillStyle=C_TXT;ctx.fillText(map.name,ix,cy+22);
+const ix=cx+pw+20;ctx.font='700 14px '+FD;ctx.textAlign='left';ctx.fillStyle=C_TXT;drawFittedText(map.name,ix,cy+22,cx+cw-ix-10);
 ctx.font='600 '+Math.min(12,W*0.03)+'px '+FB;ctx.fillStyle=map.diff==='Easy'?'#44ff88':map.diff==='Medium'?'#ffaa22':'#ff4466';ctx.fillText(map.diff,ix,cy+38);
-ctx.font='500 '+Math.min(10,W*0.025)+'px '+FB;ctx.fillStyle=C_MUT;ctx.fillText(map.desc,ix,cy+54);
-if(map.restricted&&map.restricted.length){ctx.fillStyle='#ff6644';ctx.font='500 '+Math.min(9,W*0.022)+'px '+FB;ctx.fillText('Restricted: '+map.restricted.join(', '),ix,cy+68);}
+ctx.font='500 11px '+FB;ctx.fillStyle=C_MUT;drawWrappedText(map.desc,ix,cy+54,cx+cw-ix-10,14);
+if(map.restricted&&map.restricted.length){ctx.fillStyle='#ff6644';ctx.font='500 '+Math.min(9,W*0.022)+'px '+FB;drawFittedText('Restricted: '+map.restricted.join(', '),ix,cy+98,cx+cw-ix-10);}
 ctx.fillText(map.cols+'×'+map.rows+' grid • '+map.paths.length+' path'+(map.paths.length>1?'s':''),ix,cy+ch-10);
 G._btns.maps.push({x:cx,y:cy,w:cw,h:ch,origIdx:map.origIdx});}
 const by=sy+filtered.length*(ch+gap)+8,bw=120,bh=36;ctx.fillStyle='rgba(20,30,50,0.8)';ctx.strokeStyle=C_MUT;ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(W/2-bw/2,by,bw,bh,6);ctx.fill();ctx.stroke();ctx.font='600 '+Math.min(13,W*0.033)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=C_MUT;ctx.fillText('BACK',W/2,by+bh/2+1);G._btns.mapBack={x:W/2-bw/2,y:by,w:bw,h:bh};}
@@ -2922,19 +3073,19 @@ const by=sy+3*(ch+gap)+8,bw=120,bh=36;ctx.fillStyle='rgba(20,30,50,0.8)';ctx.str
 
 function drawWavePreview(){ctx.fillStyle='rgba(10,14,26,0.94)';ctx.fillRect(0,0,W,H);
 ctx.font='800 '+Math.min(22,W*0.055)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=C_ACC;
-const wn=G.endlessMode?G.endlessWave+1:G.wave+1;ctx.fillText('WAVE '+wn,W/2,H*0.25);
+const wn=G.endlessMode?G.endlessWave+1:G.wave+1;ctx.fillText('WAVE '+wn,W/2,76);
 // Round 40 escalation disclosure — classic waves compound enemy HP.
-if(!G.endlessMode&&!allied.active&&!(clash.active&&clash.phase==='defend')&&!campaign.active){const wmPct=Math.round((waveHpMult(G.wave)-1)*100);if(wmPct>0){ctx.font='600 '+Math.min(11,W*0.028)+'px '+FB;ctx.fillStyle='#ff8866';ctx.fillText('⚠ Enemy strength +'+wmPct+'%',W/2,H*0.25+22);}}
+if(!G.endlessMode&&!allied.active&&!(clash.active&&clash.phase==='defend')&&!campaign.active){const wmPct=Math.round((waveHpMult(G.wave)-1)*100);if(wmPct>0){ctx.font='600 '+Math.min(11,W*0.028)+'px '+FB;ctx.fillStyle='#ff8866';ctx.fillText('⚠ Enemy strength +'+wmPct+'%',W/2,104);}}
 const waveDef=G.endlessMode?endlessNextWave:allied.active?(ALLIED_WAVES[allied.wave]||ALLIED_WAVES[ALLIED_WAVES.length-1]):(clash.active&&clash.phase==='defend'&&clash._clashWaves)?(clash._clashWaves[G.wave]||clash._clashWaves[0]):WAVES[G.wave];
-const fs=Math.min(13,W*0.033);let yp=H*0.35;
+const fs=Math.min(13,W*0.033);let yp=144;
 if(waveDef)for(const grp of waveDef.e){const type=ET[grp.t];ctx.font='600 '+fs+'px '+FB;ctx.fillStyle=type?type.color:C_TXT;ctx.fillText(grp.c+'× '+(type?type.name:grp.t),W/2,yp);yp+=fs+8;}
-const bossWaves=[9,19,29,TOTAL_WAVES-1];if(!campaign.active&&(G.endlessMode?(G.endlessWave+1)%10===0:bossWaves.includes(G.wave))){ctx.font='700 '+(fs+2)+'px '+FD;ctx.fillStyle=C_DNG;ctx.fillText(!G.endlessMode&&G.wave===TOTAL_WAVES-1?'⚠ FINAL BOSS WAVE ⚠':'⚠ BOSS WAVE ⚠',W/2,yp+10);}
+const bossWaves=[9,19,29,TOTAL_WAVES-1];if(!campaign.active&&(G.endlessMode?(G.endlessWave+1)%10===0:bossWaves.includes(G.wave))){ctx.font='700 '+(fs+2)+'px '+FD;ctx.fillStyle=C_DNG;ctx.fillText(!G.endlessMode&&G.wave===TOTAL_WAVES-1?'⚠ FINAL BOSS WAVE ⚠':'⚠ BOSS WAVE ⚠',W/2,yp+10);yp+=34;}
 if(loadoutBonuses.veteranInsight){
 const nextWave=G.endlessMode?G.endlessWave+1:G.wave+1;
 if(nextWave<WAVES.length){const nw=WAVES[nextWave];
 ctx.font='600 '+Math.min(11,W*0.028)+'px '+FD;ctx.fillStyle='#aa88ff';ctx.fillText('NEXT WAVE:',W/2,yp+16);yp+=24;
 if(nw)for(const grp of nw.e){const type2=ET[grp.t];ctx.font='500 '+Math.min(10,W*0.025)+'px '+FB;ctx.fillStyle=type2?type2.color:'#888';ctx.fillText(grp.c+'x '+(type2?type2.name:grp.t),W/2,yp);yp+=14;}}}
-ctx.font='500 '+Math.min(12,W*0.03)+'px '+FB;ctx.fillStyle=C_MUT;ctx.fillText('Tap to continue',W/2,H*0.8);}
+ctx.font='500 '+Math.min(12,W*0.03)+'px '+FB;ctx.fillStyle=C_MUT;ctx.fillText('Tap to continue',W/2,Math.max(yp+32,H-48));}
 
 function drawWaveSummary(){ctx.fillStyle='rgba(10,14,26,0.94)';ctx.fillRect(0,0,W,H);
 ctx.font='700 '+Math.min(20,W*0.05)+'px '+FD;ctx.textAlign='center';ctx.fillStyle='#44ff88';ctx.fillText('WAVE '+G.wave+' COMPLETE',W/2,H*0.3);
@@ -3042,7 +3193,9 @@ G._btns.campaignMenuBack={x:W/2-backW/2,y:backY,w:backW,h:backH};}
 
 function drawCampaignMap(){
 ctx.fillStyle=C_BG;ctx.fillRect(0,0,W,H);
-const panelH=200,mapAreaH=H-panelH;
+const panelH=(campaign.subAction==='build'||campaign.subAction==='recruit')?330:220,mapAreaH=H-panelH;
+const visibleBottom=uiState.drawing?uiState.scroll+uiState.frame.viewH/uiState.frame.scale:H;
+const panelY=visibleBottom-panelH;
 // Header
 ctx.font='800 '+Math.min(16,W*0.04)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=C_ACC;
 ctx.shadowColor=C_ACC;ctx.shadowBlur=8;ctx.fillText('THE HELIX WAR',W/2,20);ctx.shadowBlur=0;
@@ -3053,16 +3206,16 @@ ctx.font='600 '+Math.min(10,W*0.025)+'px '+FB;ctx.fillStyle=C_TXT;
 ctx.fillText('Turn '+campaign.turn+' | ◆'+campaign.nexiumBank+' (+'+incomePerTurn+'/turn) | AP: '+campaign.actionPoints+'/'+campaign.maxAP,W/2,34);
 ctx.font='500 '+Math.min(9,W*0.022)+'px '+FB;ctx.fillStyle=C_MUT;
 ctx.fillText('You '+pc+' · Swarm '+sc+' | Battles Won: '+campaign.battlesWon+' | Swarm Aggression: '+campaign.swarmThreat.toFixed(1),W/2,47);
-ctx.fillStyle='#44aaff';ctx.fillText('■ you',W*0.5-110,60);
-ctx.fillStyle='#ff6666';ctx.fillText('■ swarm',W*0.5-55,60);
-ctx.fillStyle='#8899aa';ctx.fillText('■ neutral',W*0.5+4,60);
-ctx.fillStyle='rgba(255,200,0,0.6)';ctx.fillText('★ take the Swarm Hive to win',W*0.5+72,60);
+ctx.fillStyle='#44aaff';ctx.fillText('■ you',W/2-80,64);
+ctx.fillStyle='#ff6666';ctx.fillText('■ swarm',W/2,64);
+ctx.fillStyle='#8899aa';ctx.fillText('■ neutral',W/2+80,64);
+ctx.fillStyle='rgba(255,200,0,0.6)';ctx.fillText('★ Take the Swarm Hive to win',W/2,80);
 // Hex grid - compact to fit above panel
 const hexR=Math.min(W*0.075,34),hexH=hexR*Math.sqrt(3);
-const availH=mapAreaH-70;
+const availH=mapAreaH-110-hexR;
 const gapX=hexR*2.2,gapY=Math.min(hexH*1.6,availH/4.5);
 const gridW=5,gridH=5;
-const startX=W/2-(gridW-1)*gapX/2,startY=78;
+const startX=W/2-(gridW-1)*gapX/2,startY=112;
 G._btns.campaignHexes=[];
 if(!campaign.territories)return;
 // Draw connections
@@ -3095,13 +3248,12 @@ let icons='';
 if(t.buildings)for(const b of t.buildings){if(b==='outpost')icons+='△';if(b==='garrison')icons+='■';if(b==='lab')icons+='☆';}
 if(t.army&&(t.army.infantry||t.army.armor||t.army.artillery))icons+='⚔';
 if(icons){ctx.font=Math.max(6,hexR*0.22)+'px '+FB;ctx.fillStyle=t.owner==='player'?'#88ccff':t.owner==='swarm'?'#ff8888':C_MUT;ctx.fillText(icons,hx,hy+hexR*0.45);}
-G._btns.campaignHexes.push({x:hx-hexR,y:hy-hexR,w:hexR*2,h:hexR*2,id:t.id});}
+if(hy+hexR<=panelY)G._btns.campaignHexes.push({x:hx-hexR,y:hy-hexR,w:hexR*2,h:hexR*2,id:t.id});}
 // Bottom panel
-const panelY=H-panelH;
 ctx.fillStyle='rgba(10,14,26,0.95)';ctx.fillRect(0,panelY,W,panelH);
 ctx.strokeStyle=C_BOR;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,panelY);ctx.lineTo(W,panelY);ctx.stroke();
 // Message display
-if(campaign.message&&campaign.messageTimer>0){ctx.font='600 11px '+FD;ctx.textAlign='center';ctx.fillStyle=C_WRN;ctx.fillText(campaign.message,W/2,panelY+16);}
+if(campaign.message&&campaign.messageTimer>0){ctx.font='600 11px '+FD;ctx.textAlign='center';ctx.fillStyle=C_WRN;drawFittedText(campaign.message,W/2,panelY+16,W-24);}
 // Selected territory info
 const sel=campaign.selectedTerritory>=0?campaign.territories[campaign.selectedTerritory]:null;
 if(sel&&campaign.subAction===''){
@@ -3238,7 +3390,7 @@ ctx.font='700 12px '+FD;ctx.textAlign='center';ctx.fillStyle=C_WRN;ctx.fillText(
 G._btns.campaignEndTurn={x:W/2-bw2/2,y:btnY,w:bw2,h:bh2};
 }
 // Back button at very bottom
-const bw=80,bh=28,bx=W/2-bw/2,by=H-36;
+const bw=80,bh=28,bx=W/2-bw/2,by=visibleBottom-36;
 ctx.fillStyle='rgba(20,30,50,0.8)';ctx.strokeStyle=C_MUT;ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(bx,by,bw,bh,6);ctx.fill();ctx.stroke();
 ctx.font='600 10px '+FD;ctx.textAlign='center';ctx.fillStyle=C_MUT;ctx.fillText('QUIT',W/2,by+bh/2+1);
 G._btns.campaignBack={x:bx,y:by,w:bw,h:bh};}
@@ -3423,64 +3575,58 @@ G.placementAnims.push({x:cell.x,y:cell.y,timer:0.4});
 playSound('place');}
 
 function drawOffenseHUD(){
-ctx.fillStyle=C_SUR;ctx.fillRect(0,0,W,topBarH);ctx.strokeStyle=C_BOR;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,topBarH);ctx.lineTo(W,topBarH);ctx.stroke();
-const fs=Math.min(13,W*0.033);ctx.font='700 '+fs+'px '+FD;ctx.textAlign='left';ctx.textBaseline='middle';const y=topBarH/2-6;
-ctx.fillStyle='#ff8844';ctx.fillText('Bio: '+Math.floor(offense.bioMass),10,y);
-ctx.font='500 '+Math.min(9,W*0.023)+'px '+FB;ctx.fillStyle=offense.bioReserve>0?'rgba(255,170,80,0.7)':C_DNG;
-ctx.fillText(offense.bioReserve>0?('reserve '+Math.floor(offense.bioReserve)):'RESERVE SPENT',10,y+13);
-ctx.textAlign='right';ctx.fillStyle=C_MUT;
-if(offense.campaignAttacking){ctx.fillText('HELIX WAR — ATTACK',W-56,y);}
-else{ctx.fillText('Wave '+offense.waveCurrent,W-56,y);}
-// Abandon/retreat button — this mode previously had no way out at all.
-{const exW=44,exX=W-exW-6,exY=Math.max(4,safeTop*0.4);
+ctx.fillStyle=C_SUR;ctx.fillRect(0,0,W,topBarH);
+const left=safeLeft+12,right=W-safeRight-12;
+ctx.textAlign='left';ctx.font='700 13px '+FD;ctx.fillStyle='#ff8844';
+ctx.fillText('Bio: '+Math.floor(offense.bioMass),left,safeTop+23);
+ctx.font='500 11px '+FB;ctx.fillStyle=offense.bioReserve>0?C_MUT:C_DNG;
+ctx.fillText(offense.bioReserve>0?'Reserve '+Math.floor(offense.bioReserve):'RESERVE SPENT',left,safeTop+43);
+ctx.textAlign='right';ctx.fillStyle=C_MUT;ctx.font='600 11px '+FD;
+drawFittedText(offense.campaignAttacking?'HELIX WAR ATTACK':'Wave '+offense.waveCurrent,right-56,safeTop+24,Math.max(60,W-safeLeft-safeRight-180));
+const exX=right-44,exY=safeTop+8;
 ctx.fillStyle='rgba(50,15,15,0.9)';ctx.strokeStyle=C_DNG;ctx.lineWidth=1;
-ctx.beginPath();ctx.roundRect(exX,exY,exW,32,6);ctx.fill();ctx.stroke();
-ctx.font='700 15px '+FD;ctx.textAlign='center';ctx.fillStyle=C_DNG;
-ctx.fillText('✕',exX+exW/2,exY+17);
-G._btns.offenseExit={x:exX,y:exY,w:exW,h:32};}
-// Progress bar
-const barX=10,barY=topBarH/2+4,barW2=W-20,barH2=10;
-ctx.fillStyle='#1a2235';ctx.beginPath();ctx.roundRect(barX,barY,barW2,barH2,3);ctx.fill();
-const prog2=Math.min(1,offense.unitsPast/offense.goalUnits);
-ctx.fillStyle='#44ff88';ctx.beginPath();ctx.roundRect(barX,barY,barW2*prog2,barH2,3);ctx.fill();
-ctx.font='600 '+Math.max(7,barH2-1)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=C_TXT;
-ctx.fillText(offense.unitsPast+'/'+offense.goalUnits+' units past',W/2,barY+barH2-1);
-ctx.textBaseline='alphabetic';
-// Bio-energy display + swarm ability buttons
-ctx.font='600 9px '+FD;ctx.textAlign='left';ctx.fillStyle='#aa88ff';
-ctx.fillText('⚡'+Math.floor(swarmEnhanced.bioEnergy)+' PULSE',10,topBarH+14);
-const swarmAbs=[{type:'frenzy',label:'FREN',cost:30},{type:'armor',label:'ARMR',cost:40},{type:'tunnel',label:'TNEL',cost:50}];
-if(swarmEnhanced.hiveTitanUnlocked)swarmAbs.push({type:'titan',label:'TITAN',cost:0});
+ctx.beginPath();ctx.roundRect(exX,exY,44,44,6);ctx.fill();ctx.stroke();
+ctx.font='700 16px '+FD;ctx.textAlign='center';ctx.fillStyle=C_DNG;ctx.fillText('✕',exX+22,exY+28);
+G._btns.offenseExit={x:exX,y:exY,w:44,h:44};
+const barY=safeTop+56,barW=W-safeLeft-safeRight-24;
+ctx.fillStyle='#1a2235';ctx.fillRect(left,barY,barW,12);
+ctx.fillStyle='#44ff88';ctx.fillRect(left,barY,barW*Math.min(1,offense.unitsPast/offense.goalUnits),12);
+ctx.font='600 10px '+FD;ctx.fillStyle=C_TXT;ctx.fillText(offense.unitsPast+'/'+offense.goalUnits+' units past',W/2,barY+10);
+ctx.font='600 11px '+FD;ctx.textAlign='left';ctx.fillStyle='#aa88ff';ctx.fillText('⚡ '+Math.floor(swarmEnhanced.bioEnergy),left,safeTop+94);
+const abs=[{type:'frenzy',label:'FREN',cost:30},{type:'armor',label:'ARMR',cost:40},{type:'tunnel',label:'TNEL',cost:50}];
+if(swarmEnhanced.hiveTitanUnlocked)abs.push({type:'titan',label:'TITAN',cost:200});
 G._btns.swarmAbilities=[];
-for(let i=0;i<swarmAbs.length;i++){const sa=swarmAbs[i];const bw2=44,bh2=32;const bx=W-(swarmAbs.length-i)*(bw2+4);const by2=topBarH+6;
-const cost=sa.type==='titan'?200:sa.cost;const pool=sa.type==='titan'?offense.bioMass:swarmEnhanced.bioEnergy;
-const ready=pool>=cost;
-ctx.fillStyle=ready?'rgba(40,25,60,0.9)':'rgba(20,15,25,0.7)';ctx.strokeStyle=ready?'#aa88ff':'#443a55';ctx.lineWidth=1;
-ctx.beginPath();ctx.roundRect(bx,by2,bw2,bh2,4);ctx.fill();ctx.stroke();
-ctx.font='700 8px '+FD;ctx.textAlign='center';ctx.fillStyle=ready?'#ccaaff':'#665577';
-ctx.fillText(sa.label,bx+bw2/2,by2+13);
-ctx.font='500 7px '+FB;ctx.fillStyle=ready?'#aa88ff':'#554466';
-ctx.fillText(sa.type==='titan'?'◆200':'⚡'+sa.cost,bx+bw2/2,by2+25);
-G._btns.swarmAbilities.push({x:bx,y:by2,w:bw2,h:bh2,type:sa.type});}}
-
-function drawOffenseSpawnPanel(){
-const py=H-bottomBarH-10;ctx.fillStyle=C_SUR;ctx.fillRect(0,py,W,bottomBarH+10);ctx.strokeStyle=C_BOR;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,py);ctx.lineTo(W,py);ctx.stroke();
-const bs=Math.min(52,(W-16)/OFFENSE_ENEMIES.length-6),gap=6,sx=(W-OFFENSE_ENEMIES.length*(bs+gap))/2;
-G._btns.offenseSpawn=[];
-for(let i=0;i<OFFENSE_ENEMIES.length;i++){
-const oe=OFFENSE_ENEMIES[i];const bx=sx+i*(bs+gap),by=py+8;
-const ca=offense.bioMass>=oe.cost&&offense.spawnCooldown<=0;
-ctx.fillStyle=ca?'rgba(30,20,10,0.9)':'rgba(20,15,10,0.5)';ctx.strokeStyle=ca?'#ff6622':'#444';ctx.lineWidth=ca?2:1;
-ctx.beginPath();ctx.roundRect(bx,by,bs,bs+10,6);ctx.fill();ctx.stroke();
-const et2=ET[oe.id];ctx.fillStyle=ca?(et2?et2.color:'#888'):'#555';ctx.font='600 '+Math.max(9,bs*0.28)+'px '+FD;ctx.textAlign='center';
-ctx.fillText(oe.name.substring(0,4),bx+bs/2,by+bs/2);
-ctx.font='600 '+Math.max(8,bs*0.22)+'px '+FB;ctx.fillStyle=ca?C_WRN:'#555';
-ctx.fillText('◆'+oe.cost,bx+bs/2,by+bs+4);
-G._btns.offenseSpawn.push({x:bx,y:by,w:bs,h:bs+10,idx:i});}
-ctx.font='500 '+Math.max(8,10)+'px '+FB;ctx.textAlign='center';ctx.fillStyle=C_MUT;
-ctx.fillText('Tap unit to spawn',W/2,py+bs+26);
+for(let i=0;i<abs.length;i++){
+ const a=abs[i],bw=48,bh=38,x=right-(abs.length-i)*(bw+4)+4,y=safeTop+72;
+ const ready=(a.type==='titan'?offense.bioMass:swarmEnhanced.bioEnergy)>=a.cost;
+ ctx.fillStyle=ready?'rgba(40,25,60,0.9)':'rgba(20,15,25,0.7)';ctx.strokeStyle=ready?'#aa88ff':'#443a55';ctx.lineWidth=1;
+ ctx.beginPath();ctx.roundRect(x,y,bw,bh,4);ctx.fill();ctx.stroke();ctx.textAlign='center';
+ ctx.font='700 10px '+FD;ctx.fillStyle=ready?'#ccaaff':C_MUT;ctx.fillText(a.label,x+bw/2,y+14);
+ ctx.font='500 10px '+FB;ctx.fillText((a.type==='titan'?'◆':'⚡')+a.cost,x+bw/2,y+29);
+ G._btns.swarmAbilities.push({x,y,w:bw,h:bh,type:a.type});
+}}
+function drawUnitSpawnPanel(buttonKey){
+ctx.fillStyle=C_SUR;ctx.fillRect(0,0,W,H);
+const count=OFFENSE_ENEMIES.length,cols=W>=360?count:4,gap=6;
+const bw=Math.min(76,(W-16-(cols-1)*gap)/cols),bh=54;
+const startX=(W-cols*bw-(cols-1)*gap)/2,startY=10,rows=Math.ceil(count/cols);
+G._btns[buttonKey]=[];
+for(let i=0;i<count;i++){
+ const oe=OFFENSE_ENEMIES[i],x=startX+(i%cols)*(bw+gap),y=startY+Math.floor(i/cols)*(bh+gap);
+ const ready=offense.bioMass>=oe.cost&&offense.spawnCooldown<=0;
+ ctx.fillStyle=ready?'rgba(30,40,30,0.9)':'rgba(20,15,10,0.7)';ctx.strokeStyle=ready?'#ff8844':'#444';ctx.lineWidth=1;
+ ctx.beginPath();ctx.roundRect(x,y,bw,bh,6);ctx.fill();ctx.stroke();ctx.textAlign='center';
+ ctx.font='600 10px '+FD;ctx.fillStyle=ready?(ET[oe.id]?.color||C_TXT):C_MUT;
+ drawFittedText(oe.name.slice(0,6),x+bw/2,y+20,bw-8);
+ ctx.font='600 11px '+FB;ctx.fillStyle=ready?C_WRN:C_MUT;ctx.fillText('◆ '+oe.cost,x+bw/2,y+42);
+ G._btns[buttonKey].push({x,y,w:bw,h:bh,idx:i});
+}
+const hintY=startY+rows*(bh+gap)+8;
+ctx.font='500 11px '+FB;ctx.textAlign='center';ctx.fillStyle=C_MUT;ctx.fillText('Tap unit to spawn',W/2,hintY);
 if(offense.campaignAttacking&&offense.defender){ctx.fillStyle=C_ACC;ctx.font='600 10px '+FD;
-ctx.fillText('DEFENDER  ◆'+Math.floor(offense.defender.nexium)+'  ·  '+G.towers.length+' towers',W/2,py+bs+42);}}
+drawFittedText('DEFENDER ◆'+Math.floor(offense.defender.nexium)+' · '+G.towers.length+' towers',W/2,hintY+18,W-20);}
+}
+function drawOffenseSpawnPanel(){drawBattlePanel(()=>drawUnitSpawnPanel('offenseSpawn'));}
 
 function drawOffenseGame(){
 drawMap();if(!settings.reduceMotion)VFX.drawTrails(ctx);
@@ -3500,8 +3646,8 @@ else{ctx.fillText(won?'FORTRESS BREACHED!':'ASSAULT FAILED',W/2,H*0.25);}
 ctx.shadowBlur=0;
 ctx.font='600 '+Math.min(14,W*0.035)+'px '+FB;ctx.fillStyle=C_TXT;
 ctx.fillText('Units Past: '+offense.unitsPast+'/'+offense.goalUnits,W/2,H*0.38);
-drawCreditLog(H*0.44);
-const bw=180,bh=44,bx=W/2-bw/2;let by=H*0.58;
+const creditEnd=drawCreditLog(H*0.44);
+const bw=180,bh=44,bx=W/2-bw/2;let by=Math.max(creditEnd+28,H*0.58);
 if(offense.campaignAttacking){
 // Campaign mode - single Continue button
 ctx.fillStyle='#003344';ctx.strokeStyle=C_ACC;ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(bx,by,bw,bh,8);ctx.fill();ctx.stroke();
@@ -3572,16 +3718,16 @@ G.enemies.push(e);}
 function drawLoadoutScreen(){
 drawStarfield();
 ctx.save();ctx.shadowColor='rgba(170,102,255,0.3)';ctx.shadowBlur=15;
-ctx.font='800 '+Math.min(22,W*0.055)+'px '+FD;ctx.textAlign='center';ctx.fillStyle='#aa66ff';ctx.fillText('LOADOUT',W/2,H*0.06);
+ctx.font='800 '+Math.min(22,W*0.055)+'px '+FD;ctx.textAlign='center';ctx.fillStyle='#aa66ff';ctx.fillText('LOADOUT',W/2,38);
 ctx.restore();
 const sepW3=W*0.3;const sepGrad3=ctx.createLinearGradient(W/2-sepW3/2,0,W/2+sepW3/2,0);
 sepGrad3.addColorStop(0,'transparent');sepGrad3.addColorStop(0.5,'#aa66ff');sepGrad3.addColorStop(1,'transparent');
-ctx.strokeStyle=sepGrad3;ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(W/2-sepW3/2,H*0.08);ctx.lineTo(W/2+sepW3/2,H*0.08);ctx.stroke();
+ctx.strokeStyle=sepGrad3;ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(W/2-sepW3/2,54);ctx.lineTo(W/2+sepW3/2,54);ctx.stroke();
 const equipped=Array.from(loadout.equippedCards);
-ctx.font='500 '+Math.min(11,W*0.028)+'px '+FB;ctx.fillStyle=C_MUT;ctx.fillText('Equipped: '+equipped.length+'/3 cards',W/2,H*0.1);
+ctx.font='500 '+Math.min(11,W*0.028)+'px '+FB;ctx.fillStyle=C_MUT;ctx.fillText('Equipped: '+equipped.length+'/3 cards',W/2,72);
 // Cards grid
-const cols=4,cw=Math.min((W-32)/cols-6,90),ch=cw*1.25,gap=8;
-const startX2=(W-(cols*(cw+gap)-gap))/2,sy=H*0.14;
+const cols=3,cw=Math.min((W-32)/cols-6,130),ch=144,gap=8;
+const startX2=(W-(cols*(cw+gap)-gap))/2,sy=96;
 G._btns.loadoutCards=[];
 let idx=0;
 for(let i=0;i<ARSENAL_CARDS.length;i++){
@@ -3593,23 +3739,21 @@ ctx.strokeStyle=unlocked?(isEquipped?C_ACC:'#445'):'#222';ctx.lineWidth=isEquipp
 ctx.beginPath();ctx.roundRect(cx,cy,cw,ch,6);ctx.fill();ctx.stroke();
 // Icon
 ctx.font=Math.min(20,cw*0.3)+'px '+FB;ctx.textAlign='center';ctx.fillStyle=unlocked?'#fff':'#333';
-ctx.fillText(card.icon,cx+cw/2,cy+cw*0.35);
-// Name
-ctx.font='600 '+Math.max(7,cw*0.12)+'px '+FD;ctx.fillStyle=unlocked?C_TXT:'#333';
-ctx.fillText(card.name.split(' ')[0],cx+cw/2,cy+cw*0.55);
-if(card.name.split(' ').length>1)ctx.fillText(card.name.split(' ').slice(1).join(' '),cx+cw/2,cy+cw*0.55+Math.max(7,cw*0.12)+1);
-// Desc
-ctx.font='500 '+Math.max(6,cw*0.1)+'px '+FB;ctx.fillStyle=unlocked?C_MUT:'#222';
-ctx.fillText(card.desc.substring(0,16),cx+cw/2,cy+ch-Math.max(6,cw*0.1)-2);
-if(!unlocked){ctx.fillStyle='#444';ctx.font='600 '+Math.max(8,cw*0.14)+'px '+FD;ctx.fillText('🔒',cx+cw/2,cy+ch/2);}
+ctx.fillText(card.icon,cx+cw/2,cy+32);
+// Titles and descriptions retain their own rows, including locked cards.
+ctx.font='600 11px '+FD;ctx.fillStyle=unlocked?C_TXT:'#8191a8';
+drawWrappedText(card.name,cx+cw/2,cy+56,cw-10,13);
+ctx.font='500 10px '+FB;ctx.fillStyle=unlocked?C_MUT:'#748298';
+drawWrappedText(card.desc,cx+cw/2,cy+103,cw-12,12);
+if(!unlocked){ctx.fillStyle='#8191a8';ctx.font='600 10px '+FD;ctx.textAlign='right';ctx.fillText('🔒',cx+cw-6,cy+16);ctx.textAlign='center';}
 G._btns.loadoutCards.push({x:cx,y:cy,w:cw,h:ch,idx:i});idx++;}
 // Tower Skins section
 const skinY=sy+Math.ceil(ARSENAL_CARDS.length/cols)*(ch+gap)+10;
 ctx.font='700 '+Math.min(14,W*0.035)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=C_ACC;ctx.fillText('TOWER SKINS',W/2,skinY);
-const skinSize=Math.min(40,(W-32)/TT.length-4);const skinGap=4;const skinStartX=(W-(TT.length*(skinSize+skinGap)-skinGap))/2;
+const skinCols=5,skinSize=48,skinGap=8,skinStartX=(W-(skinCols*(skinSize+skinGap)-skinGap))/2;
 G._btns.loadoutSkins=[];
 for(let i=0;i<TT.length;i++){
-const t=TT[i];const sx2=skinStartX+i*(skinSize+skinGap),sy2=skinY+10;
+const t=TT[i];const sx2=skinStartX+(i%skinCols)*(skinSize+skinGap),sy2=skinY+10+Math.floor(i/skinCols)*(skinSize+skinGap);
 const equipped2=loadout.equippedSkins[t.id];
 ctx.fillStyle='rgba(20,30,50,0.9)';ctx.strokeStyle=t.color;ctx.lineWidth=1;
 ctx.beginPath();ctx.roundRect(sx2,sy2,skinSize,skinSize,4);ctx.fill();ctx.stroke();
@@ -3844,12 +3988,18 @@ const achievements={unlocked:new Set(),toasts:[]};
 function addToast(text,dur){achievements.toasts.push({text:text,desc:'',timer:dur||2.5});}
 function checkAchievement(id){if(achievements.unlocked.has(id))return;achievements.unlocked.add(id);const a=ACHIEVEMENTS.find(x=>x.id===id);if(a){achievements.toasts.push({text:a.icon+' '+a.name,desc:a.desc,timer:3.0});saveAllState();playSound('levelup');tryVibrate(50);}}
 function updateToasts(dt){while(achievements.toasts.length>4)achievements.toasts.shift();for(let i=achievements.toasts.length-1;i>=0;i--){achievements.toasts[i].timer-=dt;if(achievements.toasts[i].timer<=0)achievements.toasts.splice(i,1);}}
-function drawToasts(){for(let i=0;i<achievements.toasts.length;i++){const t=achievements.toasts[i];const a=Math.min(1,t.timer/0.3,1-(Math.max(0,0.3-t.timer)/0.3));const ty=safeTop+44+i*55;ctx.globalAlpha=a;
-ctx.save();ctx.shadowColor='rgba(255,200,0,0.3)';ctx.shadowBlur=12;
-const toastGrad=ctx.createLinearGradient(W*0.08,ty,W*0.92,ty);
-toastGrad.addColorStop(0,'rgba(0,30,60,0.95)');toastGrad.addColorStop(0.5,'rgba(0,40,80,0.95)');toastGrad.addColorStop(1,'rgba(0,30,60,0.95)');
-ctx.fillStyle=toastGrad;ctx.strokeStyle='rgba(255,200,0,0.4)';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(W*0.06,ty,W*0.88,46,12);ctx.fill();ctx.stroke();
-ctx.restore();ctx.font='700 13px '+FD;ctx.textAlign='center';ctx.fillStyle='#ffcc00';ctx.fillText(t.text,W/2,ty+19);ctx.font='500 11px '+FB;ctx.fillStyle=C_MUT;ctx.fillText(t.desc,W/2,ty+36);ctx.globalAlpha=1;}}
+function drawToasts(){
+const onMenu=!!getMenuHeight()||BATTLE_OVERLAYS.has(G.phase);
+const count=Math.min(3,achievements.toasts.length),areaW=!onMenu&&battlePanel.side?battlePanel.x-safeLeft:W-safeLeft-safeRight;
+const tw=Math.min(400,areaW-24),tx=W>=1000?W-safeRight-tw-16:safeLeft+(areaW-tw)/2;
+for(let i=0;i<count;i++){
+ const t=achievements.toasts[i],a=Math.min(1,t.timer/0.3);
+ const ty=onMenu?Math.max(safeTop+8,H-safeBottom-122-(count-1-i)*55):topBarH+8+i*55;
+ ctx.globalAlpha=a;ctx.fillStyle='#0d2440';ctx.strokeStyle='rgba(255,200,0,0.5)';ctx.lineWidth=1;
+ ctx.beginPath();ctx.roundRect(tx,ty,tw,46,8);ctx.fill();ctx.stroke();
+ ctx.font='700 12px '+FD;ctx.textAlign='center';ctx.fillStyle='#ffcc00';drawFittedText(t.text,tx+tw/2,ty+19,tw-20);
+ ctx.font='500 11px '+FB;ctx.fillStyle='#a0b3c9';drawFittedText(t.desc,tx+tw/2,ty+36,tw-20);ctx.globalAlpha=1;
+}}
 
 // ============================================================
 // HAPTICS
@@ -4083,38 +4233,23 @@ function drawClashAttack(){
 drawMap();if(!settings.reduceMotion)VFX.drawTrails(ctx);
 for(const t of G.towers)drawTower(t);for(const e of G.enemies)if(e.alive)drawEnemy(e);drawHeroOnField();drawShieldWall();drawTempTurrets();
 drawProjectiles();drawChains();if(!settings.reduceMotion)VFX.drawImpacts(ctx);if(!settings.reduceMotion)VFX.drawDeathRings(ctx);drawParticles();drawDmgNums();
-// HUD
-ctx.fillStyle='rgba(10,14,26,0.9)';ctx.fillRect(0,0,W,44);
-ctx.font='700 14px '+FD;ctx.textAlign='left';ctx.fillStyle=C_ACC;ctx.fillText('SECTOR CLASH — ATTACK',10,16);
-ctx.font='600 12px '+FD;ctx.fillStyle=C_TXT;ctx.fillText('Round '+clash.round+'/'+clash.maxRounds+' vs RIVAL VEK',10,34);
-ctx.textAlign='right';ctx.font='600 11px '+FD;
-ctx.fillStyle='#44ff88';ctx.fillText('Bio: '+Math.floor(offense.bioMass),W-8,13);
-ctx.fillStyle=C_WRN;ctx.fillText('Past: '+offense.unitsPast+'/'+offense.goalUnits,W-8,25);
+// HUD reserves an independent column for the forfeit control.
+ctx.fillStyle=C_SUR;ctx.fillRect(0,0,W,topBarH);
+const left=safeLeft+12,right=W-safeRight-12;
+ctx.font='700 12px '+FD;ctx.textAlign='left';ctx.fillStyle=C_ACC;
+ctx.fillText('CLASH ATTACK',left,safeTop+21);
+ctx.font='500 11px '+FB;ctx.fillStyle=C_TXT;ctx.fillText('Round '+clash.round+'/'+clash.maxRounds+' vs VEK',left,safeTop+43);
 const timeLeft=Math.ceil(Math.max(0,clash.attackTimeLimit-clash.attackTime));
-ctx.fillStyle=timeLeft<=20?C_DNG:C_ACC;ctx.fillText('Time: '+timeLeft+'s',W-8,37);
-// Forfeit button — the attack phase previously had no way out.
-{const exW=44,exX=W-exW-6,exY=5;
+ctx.textAlign='right';ctx.font='600 11px '+FD;ctx.fillStyle='#44ff88';
+ctx.fillText('Bio '+Math.floor(offense.bioMass),right-54,safeTop+19);
+ctx.fillStyle=timeLeft<=20?C_DNG:C_ACC;ctx.font='500 10px '+FB;
+ctx.fillText('Past '+offense.unitsPast+'/'+offense.goalUnits+' · '+timeLeft+'s',right-54,safeTop+42);
+const exX=right-44,exY=safeTop+8;
 ctx.fillStyle='rgba(50,15,15,0.9)';ctx.strokeStyle=C_DNG;ctx.lineWidth=1;
-ctx.beginPath();ctx.roundRect(exX,exY,exW,32,6);ctx.fill();ctx.stroke();
-ctx.font='700 15px '+FD;ctx.textAlign='center';ctx.fillStyle=C_DNG;
-ctx.fillText('✕',exX+exW/2,exY+21);
-G._btns.clashExit={x:exX,y:exY,w:exW,h:32};}
-// Spawn panel
-const panelY=H-90;ctx.fillStyle='rgba(10,14,26,0.92)';ctx.fillRect(0,panelY,W,90);
-G._btns.clashAttackSpawn=[];
-const bw=Math.min(60,(W-20)/OFFENSE_ENEMIES.length-4);
-const sx=(W-(OFFENSE_ENEMIES.length*(bw+4)-4))/2;
-for(let i=0;i<OFFENSE_ENEMIES.length;i++){
-const oe=OFFENSE_ENEMIES[i];const bx=sx+i*(bw+4);const by=panelY+8;
-const canAfford=offense.bioMass>=oe.cost;
-ctx.fillStyle=canAfford?'rgba(0,60,40,0.8)':'rgba(30,20,20,0.8)';
-ctx.strokeStyle=canAfford?'#44ff88':'#443333';ctx.lineWidth=1;
-ctx.beginPath();ctx.roundRect(bx,by,bw,bw+16,4);ctx.fill();ctx.stroke();
-ctx.font='600 '+Math.max(7,bw*0.16)+'px '+FD;ctx.textAlign='center';
-ctx.fillStyle=canAfford?C_TXT:'#555';ctx.fillText(oe.name.substring(0,5),bx+bw/2,by+bw*0.5);
-ctx.font='500 '+Math.max(6,bw*0.14)+'px '+FB;ctx.fillStyle=canAfford?'#44ff88':'#553333';
-ctx.fillText(oe.cost+'⚡',bx+bw/2,by+bw+10);
-G._btns.clashAttackSpawn.push({x:bx,y:by,w:bw,h:bw+16,idx:i});}}
+ctx.beginPath();ctx.roundRect(exX,exY,44,44,6);ctx.fill();ctx.stroke();ctx.font='700 16px '+FD;
+ctx.textAlign='center';ctx.fillStyle=C_DNG;ctx.fillText('✕',exX+22,exY+28);
+G._btns.clashExit={x:exX,y:exY,w:44,h:44};
+drawBattlePanel(()=>drawUnitSpawnPanel('clashAttackSpawn'));}
 
 function updateClashAttack(dt){
 if(G.phase!=='clashAttack')return;
@@ -4177,13 +4312,13 @@ ctx.font='600 14px '+FD;ctx.fillStyle=C_TXT;
 ctx.fillText('Score: '+clash.playerWins+' — '+clash.aiWins,W/2,H*0.18);
 const badge=getClashBadge(clash.elo);
 ctx.fillStyle=badge.color;ctx.font='700 16px '+FD;
-ctx.fillText(badge.icon+' '+badge.name+' ('+clash.elo+' ELO)',W/2,H*0.26);
+drawFittedText(badge.icon+' '+badge.name+' ('+clash.elo+' ELO)',W/2,H*0.26,W-32);
 ctx.font='500 12px '+FB;ctx.fillStyle=C_MUT;
 ctx.fillText('Momentum built: '+clash.threat,W/2,H*0.34);
 ctx.fillText('Rival momentum: '+clash.aiThreat,W/2,H*0.38);
-drawCreditLog(H*0.44);
+const creditEnd=drawCreditLog(H*0.44);
 // Menu button
-const by=H*0.62,bw2=140,bh2=44;
+const by=Math.max(creditEnd+28,H*0.62),bw2=140,bh2=44;
 ctx.fillStyle='rgba(0,60,40,0.8)';ctx.strokeStyle=C_ACC;ctx.lineWidth=1.5;
 ctx.beginPath();ctx.roundRect(W/2-bw2/2,by,bw2,bh2,8);ctx.fill();ctx.stroke();
 ctx.font='700 14px '+FD;ctx.textAlign='center';ctx.fillStyle=C_ACC;ctx.fillText('MAIN MENU',W/2,by+bh2/2+4);
@@ -4292,13 +4427,13 @@ G._btns.profileBack={x:W/2-bw3/2,y:by3,w:bw3,h:bh3};}
 function drawAchievementsScreen(){
 drawStarfield();
 ctx.save();ctx.shadowColor='rgba(170,102,255,0.3)';ctx.shadowBlur=15;
-ctx.font='800 22px '+FD;ctx.textAlign='center';ctx.fillStyle='#aa66ff';ctx.fillText('ACHIEVEMENTS',W/2,H*0.06);
+ctx.font='800 22px '+FD;ctx.textAlign='center';ctx.fillStyle='#aa66ff';ctx.fillText('ACHIEVEMENTS',W/2,38);
 ctx.restore();
 const sepWA=W*0.3;const sepGradA=ctx.createLinearGradient(W/2-sepWA/2,0,W/2+sepWA/2,0);
 sepGradA.addColorStop(0,'transparent');sepGradA.addColorStop(0.5,'#aa66ff');sepGradA.addColorStop(1,'transparent');
 ctx.strokeStyle=sepGradA;ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(W/2-sepWA/2,H*0.08);ctx.lineTo(W/2+sepWA/2,H*0.08);ctx.stroke();
-ctx.font='500 11px '+FB;ctx.fillStyle=C_MUT;ctx.fillText(achievements.unlocked.size+'/'+ACHIEVEMENTS.length+' unlocked',W/2,H*0.10);
-const cw=W*0.85,ch=54,gap=6;const sx=(W-cw)/2;let y=H*0.14;
+ctx.font='500 11px '+FB;ctx.fillStyle=C_MUT;ctx.fillText(achievements.unlocked.size+'/'+ACHIEVEMENTS.length+' unlocked',W/2,72);
+const cw=W*0.9,ch=68,gap=8;const sx=(W-cw)/2;let y=100;
 for(let i=0;i<ACHIEVEMENTS.length;i++){const a=ACHIEVEMENTS[i];const unlocked=achievements.unlocked.has(a.id);
 ctx.fillStyle=unlocked?'rgba(30,50,40,0.9)':'rgba(20,20,30,0.9)';
 ctx.strokeStyle=unlocked?'#44ff88':'#333';ctx.lineWidth=1;
@@ -4306,10 +4441,10 @@ ctx.beginPath();ctx.roundRect(sx,y,cw,ch,8);ctx.fill();ctx.stroke();
 ctx.font='600 18px '+FB;ctx.textAlign='left';ctx.fillStyle=unlocked?'#fff':'#444';
 ctx.fillText(a.icon,sx+14,y+ch/2+6);
 ctx.font='700 12px '+FD;ctx.fillStyle=unlocked?C_TXT:'#555';ctx.fillText(a.name,sx+44,y+20);
-ctx.font='500 10px '+FB;ctx.fillStyle=unlocked?C_MUT:'#333';ctx.fillText(a.desc,sx+44,y+36);
+ctx.font='500 10px '+FB;ctx.fillStyle=unlocked?C_MUT:'#333';drawWrappedText(a.desc,sx+44,y+36,cw-64,14);
 if(unlocked){ctx.font='500 10px '+FB;ctx.textAlign='right';ctx.fillStyle='#44ff88';ctx.fillText('✓',sx+cw-14,y+ch/2+3);}
 ctx.textAlign='left';y+=ch+gap;
-if(y>H-70)break;}
+}
 // Back button
 const by=H-50,bw2=120,bh2=36;
 ctx.fillStyle='rgba(20,30,50,0.8)';ctx.strokeStyle=C_MUT;ctx.lineWidth=1;
@@ -4408,9 +4543,9 @@ let menuItems=[
 ];
 if(!prog.tutorialDone)menuItems.unshift({label:'\u25b6  TUTORIAL',key:'menuTutorial',color:'#00ffaa',icon:'\u25b6',glow:true});
 
-const bw=Math.min(280,W*0.8),bh=Math.min(40,H*0.044),gap=Math.min(6,H*0.006);
+const bw=Math.min(320,W*0.86),bh=44,gap=6;
 const totalH=menuItems.length*(bh+gap)-gap;
-const startY=H*0.22;
+const startY=142;
 for(let i=0;i<menuItems.length;i++){
 const mi=menuItems[i];const by=startY+i*(bh+gap);
 const bx=W/2-bw/2;
@@ -4441,9 +4576,9 @@ ctx.fillText(mi.label,W/2+4,by+bh/2+Math.min(4,bh*0.11));
 G._btns[mi.key]={x:bx,y:by,w:bw,h:bh};}
 // Commander level + currency balance at bottom
 ctx.font='500 10px '+FB;ctx.textAlign='center';ctx.fillStyle='rgba(104,128,160,0.4)';
-ctx.fillText('Commander Level '+prog.level,W/2,H*0.94);
+ctx.fillText('Commander Level '+prog.level,W/2,Math.max(startY+totalH+24,H-40));
 ctx.fillStyle='rgba(255,204,0,0.55)';
-ctx.fillText('◇ '+helixCredits+' Helix Credits',W/2,H*0.96);
+ctx.fillText('◇ '+helixCredits+' Helix Credits',W/2,Math.max(startY+totalH+42,H-22));
 }
 
 
@@ -4510,8 +4645,8 @@ function wrapModalLines(lines,maxChars){const out=[];for(const text of lines){co
 function drawModal(){const m=G._modal;if(!m)return;
 ctx.fillStyle='rgba(4,7,14,0.82)';ctx.fillRect(0,0,W,H);
 const bw=Math.min(320,W*0.88);const wrapped=wrapModalLines(m.lines,Math.max(24,Math.floor(bw/6.2)));
-const lineH=Math.min(15,W*0.038);
-const bh=Math.min(H*0.72,118+wrapped.length*lineH+66);
+const lineH=20;
+const bh=118+wrapped.length*lineH+66;
 const bx=W/2-bw/2,by=Math.max(safeTop,Math.min(H/2-bh/2,H*0.12));
 ctx.fillStyle='rgba(15,22,40,0.98)';ctx.strokeStyle=(m.color||C_ACC)+'77';ctx.lineWidth=1.5;
 ctx.beginPath();ctx.roundRect(bx,by,bw,bh,14);ctx.fill();ctx.stroke();
@@ -4569,7 +4704,7 @@ function drawStoreScreen() {
   // Tab bar
   const tabNames = ['HEROES', 'TOWERS', 'MAPS', 'BUNDLES', 'CREDITS'];
   const tabColors = ['#ff8844', '#4488ff', '#44ff88', '#ffcc00', '#aa66ff'];
-  const tabW = Math.min(60, (W - 20) / 5 - 2), tabH = 26;
+  const tabW = Math.min(82, (W - 20) / 5 - 2), tabH = 44;
   const tabStartX = (W - tabNames.length * (tabW + 3) + 3) / 2;
   const tabY = safeTop + 70;
   for (let i = 0; i < tabNames.length; i++) {
@@ -4578,7 +4713,7 @@ function drawStoreScreen() {
     ctx.fillStyle = active ? tabColors[i] + '33' : 'rgba(10,15,30,0.8)';
     ctx.strokeStyle = active ? tabColors[i] : tabColors[i] + '44'; ctx.lineWidth = active ? 1.5 : 0.5;
     ctx.beginPath(); ctx.roundRect(tx, tabY, tabW, tabH, 4); ctx.fill(); ctx.stroke();
-    ctx.font = '600 ' + Math.min(8, W * 0.02) + 'px ' + FD; ctx.textAlign = 'center';
+    ctx.font = '600 10px ' + FD; ctx.textAlign = 'center';
     ctx.fillStyle = active ? tabColors[i] : C_MUT;
     ctx.fillText(tabNames[i], tx + tabW / 2, tabY + tabH / 2 + 3);
     G._btns.storeTabs.push({x: tx, y: tabY, w: tabW, h: tabH, idx: i});
@@ -4594,11 +4729,8 @@ function drawStoreScreen() {
   else if (store.tab === 3) drawStoreBundles(contentY, contentH);
   else if (store.tab === 4) drawStoreCredits(contentY, contentH);
 
-  // Purchase confirmation overlay
-  if (store.confirmPurchase) drawPurchaseConfirm();
-
   // Back button
-  const by = H - 46, bw = 120, bh = 34;
+  const by = H - 54, bw = 120, bh = 44;
   ctx.fillStyle = 'rgba(20,30,50,0.8)'; ctx.strokeStyle = C_MUT; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.roundRect(W / 2 - bw / 2, by, bw, bh, 6); ctx.fill(); ctx.stroke();
   ctx.font = '600 ' + Math.min(12, W * 0.03) + 'px ' + FD; ctx.textAlign = 'center';
@@ -4608,7 +4740,7 @@ function drawStoreScreen() {
 
 function drawStoreHeroSkins(cy, ch) {
   // Hero sub-tabs
-  const stW = Math.min(55, (W - 20) / 5 - 2), stH = 22;
+  const stW = Math.min(82, (W - 20) / 5 - 2), stH = 36;
   const stStartX = (W - HEROES.length * (stW + 3) + 3) / 2;
   for (let i = 0; i < HEROES.length; i++) {
     const tx = stStartX + i * (stW + 3);
@@ -4617,7 +4749,7 @@ function drawStoreHeroSkins(cy, ch) {
     ctx.fillStyle = active ? hCol + '33' : 'rgba(10,15,30,0.6)';
     ctx.strokeStyle = active ? hCol : hCol + '44'; ctx.lineWidth = active ? 1.5 : 0.5;
     ctx.beginPath(); ctx.roundRect(tx, cy, stW, stH, 4); ctx.fill(); ctx.stroke();
-    ctx.font = '600 ' + Math.min(7, W * 0.018) + 'px ' + FD; ctx.textAlign = 'center';
+    ctx.font = '600 10px ' + FD; ctx.textAlign = 'center';
     ctx.fillStyle = active ? hCol : C_MUT;
     ctx.fillText(hero.name.split(' ').pop(), tx + stW / 2, cy + stH / 2 + 2.5);
     G._btns.storeHeroTabs.push({x: tx, y: cy, w: stW, h: stH, idx: i});
@@ -4666,12 +4798,12 @@ function drawStoreHeroSkins(cy, ch) {
     // Skin name
     ctx.font = '700 ' + Math.min(10, W * 0.025) + 'px ' + FD; ctx.textAlign = 'left';
     ctx.fillStyle = owned ? skin.color : C_MUT;
-    ctx.fillText(skin.name, cx + 50, ry + 22);
+    drawFittedText(skin.name,cx+50,ry+22,cardW-58);
 
     // Description
     if (skin.desc) {
-      ctx.font = '500 ' + Math.min(8, W * 0.02) + 'px ' + FB;
-      ctx.fillStyle = C_MUT; ctx.fillText(skin.desc, cx + 50, ry + 36);
+      ctx.font = '500 10px ' + FB;
+      ctx.fillStyle=C_MUT;ctx.font='500 10px '+FB;drawWrappedText(skin.desc,cx+50,ry+40,cardW-58,12);
     }
 
     // Status / price
@@ -4724,7 +4856,7 @@ function drawStoreTowerPacks(cy, ch) {
     ctx.font = '700 ' + Math.min(12, W * 0.03) + 'px ' + FD; ctx.textAlign = 'left';
     ctx.fillStyle = owned ? C_ACC : C_TXT;
     ctx.fillText(pack.name, startX + 16, ry + 54);
-    ctx.font = '500 ' + Math.min(8, W * 0.02) + 'px ' + FB;
+    ctx.font = '500 10px ' + FB;
     ctx.fillStyle = C_MUT; ctx.fillText(pack.desc, startX + 16, ry + 68);
 
     ctx.textAlign = 'right';
@@ -4770,8 +4902,8 @@ function drawStoreMapThemes(cy, ch) {
     ctx.font = '700 ' + Math.min(11, W * 0.028) + 'px ' + FD; ctx.textAlign = 'left';
     ctx.fillStyle = owned ? tc : C_TXT;
     ctx.fillText(theme.name, startX + 58, ry + 28);
-    ctx.font = '500 ' + Math.min(8, W * 0.02) + 'px ' + FB;
-    ctx.fillStyle = C_MUT; ctx.fillText(theme.desc, startX + 58, ry + 44);
+    ctx.font = '500 10px ' + FB;
+    ctx.fillStyle = C_MUT; drawFittedText(theme.desc,startX+58,ry+44,cardW-140);
 
     ctx.textAlign = 'right';
     if (owned) {
@@ -4818,7 +4950,7 @@ function drawStoreBundles(cy, ch) {
     ctx.font = '500 ' + Math.min(9, W * 0.022) + 'px ' + FB;
     ctx.fillStyle = C_MUT; ctx.fillText(bundle.desc, startX + 16, ry + 40);
     ctx.font = '600 8px ' + FD; ctx.fillStyle = '#88aacc';
-    ctx.fillText('Contents: ' + bundle.contents, startX + 16, ry + 56);
+    drawFittedText('Contents: '+bundle.contents,startX+16,ry+56,cardW-32);
 
     ctx.textAlign = 'right';
     if (owned) {
@@ -5029,9 +5161,9 @@ function drawHeroSelect() {
   ctx.fillText('Choose a commander for this battle', W / 2, safeTop + 52);
 
   // Hero cards
-  const cw = Math.min(W * 0.88, 320), ch = 58;
+  const cw = Math.min(W * 0.9, 380), ch = 88;
   const gap = 6;
-  const startY = safeTop + 68;
+  const startY = safeTop + 82;
   G._btns.heroCards = [];
   G._btns.heroNone = null;
 
@@ -5078,9 +5210,9 @@ function drawHeroSelect() {
     ctx.fillText(h.title + '  •  Lv.' + lvl, cx + 52, cy + 33);
 
     // Passive description
-    ctx.font = '400 ' + Math.min(8, W * 0.02) + 'px ' + FB;
+    ctx.font = '400 11px ' + FB;
     ctx.fillStyle = 'rgba(160,190,220,0.7)';
-    ctx.fillText(h.passive.name + ': ' + h.passive.desc, cx + 52, cy + 48);
+    drawWrappedText(h.passive.name + ': ' + h.passive.desc, cx + 52, cy + 52,cw-64,14);
 
     // Level pips
     const pipX = cx + cw - 40;
@@ -5105,7 +5237,7 @@ function drawHeroSelect() {
   G._btns.heroNone = {x: noneCx, y: noneY, w: cw, h: 32};
 
   // Deploy button
-  const btnW = Math.min(200, W * 0.5), btnH = 38;
+  const btnW = Math.min(240, W * 0.72), btnH = 44;
   const btnX = (W - btnW) / 2, btnY = noneY + 50;
   const hasHero = heroState.selectedHeroIdx >= 0;
   const btnLabel = hasHero ? 'DEPLOY ' + HEROES[heroState.selectedHeroIdx].name.split(' ').pop().toUpperCase() : 'START WITHOUT HERO';
@@ -5121,7 +5253,7 @@ function drawHeroSelect() {
   G._btns.heroDeploy = {x: btnX, y: btnY, w: btnW, h: btnH};
 
   // Back button
-  const bbw = 60, bbh = 28;
+  const bbw = 70, bbh = 44;
   ctx.fillStyle = 'rgba(20,30,50,0.8)'; ctx.strokeStyle = C_MUT + '44'; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.roundRect(10, safeTop + 10, bbw, bbh, 6); ctx.fill(); ctx.stroke();
   ctx.font = '600 10px ' + FD; ctx.textAlign = 'center'; ctx.fillStyle = C_MUT;
@@ -5359,8 +5491,8 @@ function drawHeroRoster() {
   ctx.fillText('HERO ROSTER', W / 2, safeTop + 36);
   ctx.shadowBlur = 0;
 
-  const cw = Math.min(W * 0.9, 340), ch = 78;
-  const gap = 8, startY = safeTop + 56;
+  const cw = Math.min(W * 0.9, 400), ch = 120;
+  const gap = 10, startY = safeTop + 72;
   G._btns.rosterCards = [];
 
   for (let i = 0; i < HEROES.length; i++) {
@@ -5408,23 +5540,23 @@ function drawHeroRoster() {
     } else {
       ctx.fillStyle = h.color; ctx.fillRect(barX, barY, barW, barH);
     }
-    ctx.font = '400 7px ' + FB; ctx.fillStyle = C_MUT;
+    ctx.font = '400 10px ' + FB; ctx.fillStyle = C_MUT;
     ctx.fillText(xpNeeded > 0 ? hp.xp + ' XP  (need ' + xpNeeded + ' more)' : 'MAX LEVEL', barX, barY + 13);
 
     // Stats
-    ctx.font = '400 8px ' + FB; ctx.fillStyle = 'rgba(160,190,220,0.7)';
-    ctx.fillText('Matches: ' + hp.matchesPlayed + '  |  Kills: ' + hp.totalKills, cx + 50, cy + 66);
+    ctx.font = '400 11px ' + FB; ctx.fillStyle = 'rgba(160,190,220,0.7)';
+    ctx.fillText('Matches: ' + hp.matchesPlayed + '  |  Kills: ' + hp.totalKills, cx + 50, cy + 72);
 
     // Ability + passive preview
     ctx.textAlign = 'right'; ctx.font = '500 7px ' + FD; ctx.fillStyle = h.color + 'aa';
-    ctx.fillText(h.ability.name, cx + cw - 8, cy + 18);
-    ctx.font = '400 7px ' + FB; ctx.fillStyle = C_MUT;
-    ctx.fillText(h.passive.desc.substring(0, 30), cx + cw - 8, cy + 30);
+    ctx.textAlign='left';ctx.font='500 11px '+FD;ctx.fillText(h.ability.name,cx+50,cy+88);
+    ctx.font = '400 10px ' + FB; ctx.fillStyle = C_MUT;
+    ctx.font='400 11px '+FB;drawFittedText(h.passive.desc,cx+50,cy+106,cw-62);
     ctx.textAlign = 'left';
   }
 
   // Back button
-  const bbw = 60, bbh = 28;
+  const bbw = 70, bbh = 44;
   ctx.fillStyle = 'rgba(20,30,50,0.8)'; ctx.strokeStyle = C_MUT + '44'; ctx.lineWidth = 1;
   ctx.beginPath(); ctx.roundRect(10, safeTop + 10, bbw, bbh, 6); ctx.fill(); ctx.stroke();
   ctx.font = '600 10px ' + FD; ctx.textAlign = 'center'; ctx.fillStyle = C_MUT;
@@ -5472,9 +5604,14 @@ if(t>2.0){ctx.globalAlpha=(t-2.0)/0.5;ctx.fillStyle='#030508';ctx.fillRect(0,0,W
 // adding it to BOTH lists (and to the render() dispatch).
 const MENU_PHASES=new Set(['menu','mapSelect','diffSelect','biomeSelect','howToPlay','profile','loadout','settings','achievements','offenseMapSelect','campaignMenu','campaignMap','heroSelect','heroRoster','store']);
 const SIM_PAUSED_PHASES=new Set(['paused','wavePreview','waveSummary','menu','mapSelect','diffSelect','howToPlay','gameover','victory','settings','biomeSelect','campaign','campaignMenu','campaignMap','campaignSwarmAttack','swarmCommander','offenseMapSelect','offenseResult','loadout','profile','campaignVictory','campaignDefeat','alliedVictory','clashFinal','clashAttackResult','achievements','heroSelect','heroRoster','store']);
+const BATTLE_OVERLAYS=new Set(['paused','wavePreview','waveSummary','gameover','victory']);
 // Vignette gradient is rebuilt only on resize, not every frame.
 let _vig=null,_vigW=0,_vigH=0;
 function render(){ctx.clearRect(0,0,W,H);G._btns={};
+ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.globalAlpha=1;ctx.shadowBlur=0;
+uiState.frame=null;
+const layoutKind=G.phase==='offenseGame'?'offense':G.phase==='clashAttack'?'clash':'defense';
+if(battleLayoutKind!==layoutKind){battleLayoutKind=layoutKind;refreshBattleLayout();}
 // Splash screen
 if(splashActive&&settings.reduceMotion){splashActive=false;G.phase='menu';Music.play('menu');}
 if(splashActive){drawSplashScreen();return;}
@@ -5485,6 +5622,8 @@ if(isMenu&&Music.currentTrack!=='menu'){Music.play('menu');}
 else if(!isMenu&&G.phase!=='paused'&&Music.currentTrack==='menu'&&ambientBiome){Music.play(ambientBiome);}
 }
 if(settings.screenShake&&G.shakeTimer>0){const dx=(Math.random()-0.5)*G.shakeIntensity*2,dy=(Math.random()-0.5)*G.shakeIntensity*2;ctx.save();ctx.translate(dx,dy);}
+const menuHeight=BATTLE_OVERLAYS.has(G.phase)?0:getMenuHeight();
+const menuFrame=menuHeight?beginUISurface(G.phase+':'+(G.phase==='store'?store.tab+':'+store.heroSkinTab:G.phase==='campaignMap'?campaign.subAction:''),menuHeight):null;
 if(G.phase==='menu')drawMenuScreenV2();
 else if(G.phase==='alliedVictory')drawAlliedVictory();
 else if(G.phase==='clashFinal')drawClashFinal();
@@ -5522,17 +5661,38 @@ if(VFX.waveFlash>0){ctx.globalAlpha=VFX.waveFlash*0.15;ctx.fillStyle='#00ccff';c
 // Low health warning
 if(G.lives>0&&G.lives<5){VFX.lowHealthPulse=1;const lha=0.08+0.04*Math.sin(animTime*3);ctx.globalAlpha=lha;ctx.strokeStyle=C_DNG;ctx.lineWidth=4;ctx.strokeRect(2,2,W-4,H-4);ctx.globalAlpha=1;}
 if(G.orbitalTargeting)drawOrbitalTargeting();if(G.showRadialMenu)drawRadialMenu();
-if(G.phase==='wavePreview')drawWavePreview();
-
-if(G.phase==='waveSummary')drawWaveSummary();
-else if(G.phase==='paused')drawPauseOverlay();
-else if(G.phase==='gameover'||G.phase==='victory')drawGameOverScreen();}
+}
+if(menuFrame)endUISurface(menuFrame);
 if(settings.screenShake&&G.shakeTimer>0)ctx.restore();
+if(BATTLE_OVERLAYS.has(G.phase)){
+  ctx.fillStyle='rgba(10,14,26,0.94)';ctx.fillRect(0,0,W,H);G._btns={};
+  const frame=beginUISurface(G.phase,UI_HEIGHTS[G.phase]);
+  if(G.phase==='wavePreview')drawWavePreview();
+  else if(G.phase==='waveSummary')drawWaveSummary();
+  else if(G.phase==='paused')drawPauseOverlay();
+  else drawGameOverScreen();
+  endUISurface(frame);
+  if(G.phase==='wavePreview'||G.phase==='waveSummary'){
+    const x=W-safeRight-56,y=safeTop+10;
+    ctx.fillStyle='#132239';ctx.strokeStyle=C_BOR;ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect(x,y,44,44,6);ctx.fill();ctx.stroke();
+    ctx.font='600 16px '+FD;ctx.textAlign='center';ctx.fillStyle=C_MUT;ctx.fillText('⏸',x+22,y+28);
+    G._btns.pause={x,y,w:44,h:44};
+  }
+}
 drawToasts();drawScreenFade();
 // Tutorial overlay
 drawTutorialOverlay();
 // Briefing / confirmation modal renders above everything else
-drawModal();
+if(G._modal){
+  ctx.fillStyle='rgba(4,7,14,0.82)';ctx.fillRect(0,0,W,H);G._btns={};
+  const minH=270+wrapModalLines(G._modal.lines,44).length*20;
+  const frame=beginUISurface('modal:'+G._modal.title,Math.max(420,minH));drawModal();endUISurface(frame);
+}
+if(G.phase==='store'&&store.confirmPurchase){
+  ctx.fillStyle='rgba(0,0,0,0.75)';ctx.fillRect(0,0,W,H);G._btns={};
+  const frame=beginUISurface('purchase',300);drawPurchaseConfirm();endUISurface(frame);
+}
 // Button press highlight
 if(pressedBtn&&pressedBtnTimer>0){
   const a=pressedBtnTimer/0.15;
@@ -5591,7 +5751,7 @@ if(settings.showFPS){debugEl.style.display='block';debugEl.textContent='FPS: '+_
 // Input
 function getGridCell(px,py){const c=Math.floor((px-offsetX)/cellSize),r=Math.floor((py-offsetY)/cellSize);if(c<0||c>=currentCols||r<0||r>=currentRows)return null;return{col:c,row:r};}
 function hitTest(px,py,r){return r&&px>=r.x&&px<=r.x+r.w&&py>=r.y&&py<=r.y+r.h;}
-function hitCircle(px,py,c){const dx=px-c.x,dy=py-c.y;return Math.sqrt(dx*dx+dy*dy)<=c.r;}
+function hitCircle(px,py,c){if(c.w)return hitTest(px,py,c);const dx=px-c.x,dy=py-c.y;return Math.sqrt(dx*dx+dy*dy)<=c.r;}
 
 
 function getCellAt(px, py) {
@@ -5873,8 +6033,26 @@ if(!occ&&(G.phase==='build'||G.phase==='wave')){
   G.showRadialMenu=true;G.radialMenuCol=cell.col;G.radialMenuRow=cell.row;playSound('click');return;}}
 G.showTowerInfo=false;G.towerInfoIdx=-1;}
 
-canvas.addEventListener('touchstart',e=>{e.preventDefault();const tx=e.touches[0].clientX,ty=e.touches[0].clientY;lastTouchFlash={x:tx,y:ty,timer:0.2};pressedBtn=findPressedButton(tx,ty);pressedBtnTimer=0.15;handleTap(tx,ty);},{passive:false});
-canvas.addEventListener('click',e=>handleTap(e.clientX,e.clientY));
+let uiTouch=null,lastTouchTime=-Infinity;
+canvas.addEventListener('touchstart',e=>{e.preventDefault();const tx=e.touches[0].clientX,ty=e.touches[0].clientY;
+  uiTouch={x:tx,y:ty,lastY:ty,moved:false};lastTouchFlash={x:tx,y:ty,timer:0.2};
+  pressedBtn=findPressedButton(tx,ty);pressedBtnTimer=0.15;},{passive:false});
+canvas.addEventListener('touchmove',e=>{e.preventDefault();if(!uiTouch)return;
+  const touch=e.touches[0];if(Math.hypot(touch.clientX-uiTouch.x,touch.clientY-uiTouch.y)>8)uiTouch.moved=true;
+  if(uiTouch.moved){scrollUI(uiTouch.lastY-touch.clientY);pressedBtn=null;}
+  uiTouch.lastY=touch.clientY;},{passive:false});
+canvas.addEventListener('touchend',e=>{e.preventDefault();if(!uiTouch)return;
+  const touch=e.changedTouches[0];lastTouchTime=performance.now();
+  if(!uiTouch.moved)handleTap(touch.clientX,touch.clientY);uiTouch=null;},{passive:false});
+canvas.addEventListener('touchcancel',()=>{uiTouch=null;pressedBtn=null;});
+canvas.addEventListener('wheel',e=>{if(scrollUI(e.deltaY))e.preventDefault();},{passive:false});
+window.addEventListener('keydown',e=>{
+  const delta=e.key==='ArrowDown'?48:e.key==='ArrowUp'?-48:e.key==='PageDown'?H*.75:e.key==='PageUp'?-H*.75:e.key==='Home'?-Infinity:e.key==='End'?Infinity:0;
+  if(!delta||!uiState.frame||!uiState.maxScroll)return;
+  if(!Number.isFinite(delta))uiState.scroll=delta>0?uiState.maxScroll:0;else scrollUI(delta);
+  e.preventDefault();
+});
+canvas.addEventListener('click',e=>{if(performance.now()-lastTouchTime>500)handleTap(e.clientX,e.clientY);});
 canvas.addEventListener('mousemove',e=>{if(G.showRadialMenu&&G._btns.radial){G.hoveredRadialIdx=-1;for(const btn of G._btns.radial)if(hitCircle(e.clientX,e.clientY,btn)){G.hoveredRadialIdx=btn.idx;break;}}});
 
 // Start game
@@ -5959,6 +6137,7 @@ if (document.fonts && document.fonts.load) {
   for (const w of ['400', '600', '700', '800']) document.fonts.load(w + ' 16px "JetBrains Mono"');
   for (const w of ['400', '500', '600', '700']) document.fonts.load(w + ' 16px "Inter"');
 }
+mapPositionsReady=true;
 document.fonts.ready.then(()=>requestAnimationFrame(gameLoop));
 
 })();
