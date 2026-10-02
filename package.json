@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Single-file HTML5 tower defense game for mobile",
   "scripts": {
-    "test": "node --test test/",
+    "test": "node --test test/*.test.mjs",
     "test:browser": "node test/browser-smoke.mjs",
     "serve": "npx serve . -l 8021",
     "cap:prepare": "rm -rf www && mkdir -p www && cp index.html icon.png privacy.html terms.html www/ && npx cap sync ios",
