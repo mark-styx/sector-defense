@@ -3057,7 +3057,7 @@ const cw=Math.min(W*0.9,400),ch=126,gap=10,sy=116;G._btns.maps=[];
 for(let i=0;i<filtered.length;i++){const map=filtered[i];const cx=W/2-cw/2,cy=sy+i*(ch+gap);
 ctx.fillStyle='rgba(20,30,50,0.9)';ctx.strokeStyle=map.diff==='Easy'?'#44ff88':map.diff==='Medium'?'#ffaa22':'#ff4466';ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(cx,cy,cw,ch,8);ctx.fill();ctx.stroke();
 const pw=cw*0.3,ph=ch-16,ppx=cx+8,ppy=cy+8;ctx.fillStyle=BIOMES[map.biome].ground;ctx.fillRect(ppx,ppy,pw,ph);
-const pcw=pw/map.cols,pch=ph/map.rows;for(const path of map.paths){ctx.fillStyle=BIOMES[map.biome].glow+'0.3)';for(const[pc,pr]of path)ctx.fillRect(ppx+pc*pcw,ppy+pr*pch,pcw,pch);}
+const pcw=pw/map.cols,pch=ph/map.rows;ctx.fillStyle=BIOMES[map.biome].glow+'0.3)';for(const path of map.paths){ctx.strokeStyle=BIOMES[map.biome].glow+'0.35)';ctx.lineWidth=Math.min(pcw,pch)*0.8;ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();path.forEach(([pc,pr],i)=>{const px2=ppx+(pc+0.5)*pcw,py=ppy+(pr+0.5)*pch;i?ctx.lineTo(px2,py):ctx.moveTo(px2,py);});ctx.stroke();ctx.lineCap='butt';ctx.lineJoin='miter';}
 const ix=cx+pw+20;ctx.font='700 14px '+FD;ctx.textAlign='left';ctx.fillStyle=C_TXT;drawFittedText(map.name,ix,cy+22,cx+cw-ix-10);
 ctx.font='600 '+Math.min(12,W*0.03)+'px '+FB;ctx.fillStyle=map.diff==='Easy'?'#44ff88':map.diff==='Medium'?'#ffaa22':'#ff4466';ctx.fillText(map.diff,ix,cy+38);
 ctx.font='500 11px '+FB;ctx.fillStyle=C_MUT;drawWrappedText(map.desc,ix,cy+54,cx+cw-ix-10,14);
