@@ -1,6 +1,49 @@
 import UIKit
 import Capacitor
 
+// iOS 26 WKWebView renders edge-to-edge but does not propagate safe-area
+// insets to CSS env() (Capacitor 8 / Xcode 27). Inject the native insets as
+// CSS custom properties + explicit #safe-insets probe geometry, which the
+// game's updateSafeAreas() already consumes; dispatch resize so it reflows.
+class SafeAreaBridgeViewController: CAPBridgeViewController {
+    private var appliedKey = ""
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        injectInsets()
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        // Layout may settle before the webview finishes loading; retry.
+        for delay in [0.0, 0.5, 2.0] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                self?.injectInsets()
+            }
+        }
+    }
+
+    private func injectInsets() {
+        guard let webView = bridge?.webView, !webView.isLoading else { return }
+        let i = view.safeAreaInsets
+        guard i != .zero else { return }
+        let key = "\(i.top),\(i.bottom),\(i.left),\(i.right)"
+        guard key != appliedKey else { return }
+        let js = """
+        (function(){var p=document.getElementById('safe-insets');if(!p)return;
+        var s=document.documentElement.style;
+        s.setProperty('--sat','\(i.top)px');s.setProperty('--sab','\(i.bottom)px');
+        s.setProperty('--sal','\(i.left)px');s.setProperty('--sar','\(i.right)px');
+        p.style.top='\(i.top)px';p.style.right='\(i.right)px';
+        p.style.bottom='\(i.bottom)px';p.style.left='\(i.left)px';
+        window.dispatchEvent(new Event('resize'));})();
+        """
+        webView.evaluateJavaScript(js) { [weak self] _, error in
+            if error == nil { self?.appliedKey = key }
+        }
+    }
+}
+
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
