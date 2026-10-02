@@ -10,6 +10,7 @@ import {fileURLToPath} from 'node:url';
 import {runEnemyAttackBrowserTests} from './browser-enemy-attacks.mjs';
 import {runCampaignAssaultBrowserTests} from './browser-campaign-assault.mjs';
 import {runBossVisualBrowserTests} from './browser-boss-visuals.mjs';
+import {auditLayouts} from './browser-ui-layout.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');

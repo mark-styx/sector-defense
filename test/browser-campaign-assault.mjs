@@ -77,7 +77,7 @@ export async function runCampaignAssaultBrowserTests(engineName,engine) {
     assert.equal(towers.length,startingCount+1);
     assert.ok(towers.at(-1).bt>0,'construction is still visible');
     assert.ok((await off()).defender.built>=1);
-    assert.ok((await labels()).some(t=>t.startsWith('DEFENDER  ◆')),'opponent resources are shown');
+    assert.ok((await labels()).some(t=>t.startsWith('DEFENDER ◆')),'opponent resources are shown');
     const pixels = await fixture(`(() => {
       const t=G.towers.at(-1),scale=canvas.width/W;
       const x=Math.floor((offsetX+(t.col+0.5)*cellSize)*scale)-16;
