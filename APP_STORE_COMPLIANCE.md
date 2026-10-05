@@ -75,7 +75,7 @@ Note: IAP is currently simulated in the web version. Real StoreKit integration w
 | JetBrains Mono (Google Fonts) | SIL Open Font License 1.1 | Allowed |
 | Inter (Google Fonts) | SIL Open Font License 1.1 | Allowed |
 
-No other third-party libraries, SDKs, or assets are used. All game code, art, sound, and music are original.
+No other third-party libraries, SDKs, or assets are used in the shipped app. All game code, art, sound, and music are original. (Dev-only tooling, not shipped: Playwright for automated browser testing, Apache-2.0.)
 
 ## App Store Metadata (Draft)
 
@@ -95,7 +95,7 @@ Features:
 • 10 hand-crafted maps across Urban, Volcanic, and Arctic biomes
 • 4 difficulty levels from Standard to Legendary
 • Helix Store with cosmetic hero skins, tower packs, and map themes
-• Achievement system with 20+ challenges
+• Achievement system with 10 challenges
 • Commander profile with XP and leveling
 
 **Privacy Policy URL:** [Will be set to deployed privacy.html URL]
