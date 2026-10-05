@@ -1,0 +1,23 @@
+{
+  "name": "sector-defense",
+  "version": "7.6.4",
+  "private": true,
+  "type": "module",
+  "description": "Single-file HTML5 tower defense game for mobile",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "test:browser": "node test/browser-smoke.mjs",
+    "serve": "npx serve . -l 8021",
+    "cap:prepare": "rm -rf www && mkdir -p www && cp index.html icon.png privacy.html terms.html www/ && npx cap sync ios",
+    "ios:sim": "npm run cap:prepare && DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -project ios/App/App.xcodeproj -scheme App -sdk iphonesimulator -configuration Debug -derivedDataPath ios/DerivedData build -quiet && DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun simctl boot 'iPhone 18 Pro' 2>/dev/null; DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun simctl install 'iPhone 18 Pro' ios/DerivedData/Build/Products/Debug-iphonesimulator/App.app && DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun simctl launch 'iPhone 18 Pro' io.github.markstyx.sectordefense",
+    "ios:device": "bash tools/ios-device.sh"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.2",
+    "playwright": "^1.63.0"
+  },
+  "dependencies": {
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/ios": "^8.5.2"
+  }
+}
