@@ -1,0 +1,22 @@
+#!/bin/bash
+# Abort commits when the upstream branch has moved, so history never forks
+# across machines (Syncthing syncs files, never .git — git remotes are the
+# only history transport). Offline commits are allowed through.
+branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+[ -n "$branch" ] && [ "$branch" != "HEAD" ] || exit 0
+upstream=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null)
+[ -n "$upstream" ] || exit 0 # local-only branch, nothing to compare
+
+if ! git fetch --quiet origin 2>/dev/null; then
+  echo "pre-commit: offline, skipping upstream check — push when back online"
+  exit 0
+fi
+
+ahead=$(git rev-list --count HEAD..@{u} 2>/dev/null)
+[ -n "$ahead" ] || ahead=0
+if [ "$ahead" -gt 0 ]; then
+  echo "pre-commit: $upstream is $ahead commit(s) ahead of $branch."
+  echo "pre-commit: pull first:  git pull --rebase"
+  exit 1
+fi
+exit 0

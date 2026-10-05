@@ -1,0 +1,11 @@
+#!/bin/bash
+# Auto-push after every commit to main, so the other machine's `git pull`
+# always finds fresh history. Feature branches push manually as usual.
+branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+[ "$branch" = "main" ] || exit 0
+if git push --quiet origin main 2>/dev/null; then
+  echo "post-commit: pushed main -> origin"
+else
+  echo "post-commit: push FAILED (offline, or origin moved) — run: git push origin main"
+fi
+exit 0
