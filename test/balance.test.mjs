@@ -228,15 +228,10 @@ test('swarm commander: every assault map is winnable', async () => {
     const mc = center(maps[mapIdx]); g.tap(mc.x, mc.y); g.frame(2);
     assert.equal(state(g).phase, 'offenseGame');
     g.window._setGameState('gameSpeed', 3);
-    const startBio = g.window._getOffenseState().bioMass;
-    // Strategy scales with budget: rich maps break entry camps with sustained
-    // devastator tanks; modest budgets stream venomspine with a skitterling
-    // floor as ablative bodies.
-    const tankAt = startBio >= 300 ? 25 : 200;
-    // Skitterling ablative floor for modest/mid budgets; only the two
-    // fortress-class maps (450+) save for venomspine below 10 bio.
-    const useFloor = startBio < 450;
-    const capSec = 180;
+    // The rebalanced fortresses are composition puzzles rather than one-spam
+    // checks: Skyline needs air, Caldera needs armor, and the Citadel needs
+    // cheap screens in front of its air push.
+    const capSec = 220;
     let frames = 0;
     while (frames++ < capSec * 60) {
       const off = g.window._getOffenseState();
@@ -245,19 +240,19 @@ test('swarm commander: every assault map is winnable', async () => {
       const alive = g.window._getEnemies().filter(e => e.alive).length;
       const tapAb = type => {
         const b = abs.find(a => a.type === type);
-        if (b) { g.tap(b.x + b.w / 2, b.y + b.h / 2); g.frame(1); }
+        if (b) g.tap(b.x + b.w / 2, b.y + b.h / 2);
       };
-      if (alive >= 8) tapAb('armor');
+      if (alive >= 7) tapAb('armor');
       tapAb('tunnel');
-      if (alive >= 5) tapAb('frenzy');
+      if (alive >= 8) tapAb('frenzy');
       const spawn = g.window._getBtns().offenseSpawn;
       if (spawn && spawn.length) {
-        let pick = null;
-        if (off.bioMass >= tankAt) pick = spawn.find(b => b.idx === 4);
-        else if (off.bioMass >= 10) pick = spawn.find(b => b.idx === 1);
-        // Rich maps save for venomspine below 10 bio (skitterlings are the
-        // worst hp/bio post-reprice); modest budgets keep flooding bodies.
-        else if (useFloor) pick = spawn.find(b => b.idx === 0);
+        let idx;
+        if (mapIdx === 2) idx = 3;                         // Stingwing air raid
+        else if (mapIdx === 3) idx = 4;                    // Devastator armor
+        else if (mapIdx === 4) idx = Math.floor(frames / 5) % 3 === 0 ? 0 : 3; // screen + air
+        else idx = off.bioMass >= 10 ? 1 : 0;              // learning forts
+        const pick = spawn.find(b => b.idx === idx);
         if (pick) { const c = center(pick); g.tap(c.x, c.y); }
       }
       g.frame(1);
@@ -266,4 +261,32 @@ test('swarm commander: every assault map is winnable', async () => {
     assert.ok(off.unitsPast >= off.goalUnits,
       `assault map ${mapIdx} (${maps[mapIdx].name}) failed: ${off.unitsPast}/${off.goalUnits}`);
   }
+});
+
+test('swarm commander: Citadel rejects a one-unit air spam', async () => {
+  const g = await boot();
+  tapBtn(g, 'menuOffense');
+  const map = center(g.window._getBtns().offenseMaps[4]);
+  g.tap(map.x, map.y); g.frame(2);
+  g.window._setGameState('gameSpeed', 3);
+  let frames = 0;
+  while (state(g).phase === 'offenseGame' && frames++ < 220 * 60) {
+    const off = g.window._getOffenseState();
+    const alive = g.window._getEnemies().filter(e => e.alive).length;
+    const abs = g.window._getBtns().swarmAbilities || [];
+    const tapAb = type => {
+      const b = abs.find(a => a.type === type);
+      if (b) g.tap(b.x + b.w / 2, b.y + b.h / 2);
+    };
+    if (alive >= 8) tapAb('armor');
+    tapAb('tunnel');
+    if (alive >= 5) tapAb('frenzy');
+    const wing = (g.window._getBtns().offenseSpawn || []).find(b => b.idx === 3);
+    if (wing && off.bioMass >= 15) g.tap(center(wing).x, center(wing).y);
+    g.frame(1);
+  }
+  const off = g.window._getOffenseState();
+  assert.equal(state(g).phase, 'offenseResult', 'Citadel assault should resolve');
+  assert.ok(off.unitsPast < off.goalUnits,
+    `pure Stingwing spam should fail the Citadel (${off.unitsPast}/${off.goalUnits})`);
 });

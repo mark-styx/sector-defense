@@ -117,6 +117,8 @@ test('swarm: bio income scales with lane progress, not just time', async () => {
   for (let i = 0; i < 60; i++) g.frame(1);
   const walkRate = (g.window._getOffenseState().bioMass - b1) / 60;
   assert.ok(idleRate > 0 && idleRate < 0.06, `idle trickle sane (${idleRate.toFixed(4)}/frame)`);
-  assert.ok(walkRate > idleRate * 1.5,
+  // Progress is intentionally a modest recovery now: a complete breach
+  // returns 80% total, so it must beat idle income without minting bio.
+  assert.ok(walkRate > idleRate + 0.002,
     `walking unit must beat idle income (${walkRate.toFixed(4)} vs ${idleRate.toFixed(4)})`);
 });

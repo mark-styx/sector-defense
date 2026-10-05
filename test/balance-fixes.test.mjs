@@ -198,6 +198,25 @@ test('R6: skitterling costs 4 bio, blisterbomb 6', async () => {
   assert.ok(Math.abs((bioB - bioC) - 6) < 0.11, `blisterbomb should cost 6, spent ${bioB - bioC}`);
 });
 
+test('swarm breach recovery stretches bio but never creates it', async () => {
+  const g = await boot();
+  tapBtn(g, 'menuOffense');
+  const map = center(g.window._getBtns().offenseMaps[0]);
+  g.tap(map.x, map.y); g.frame(2);
+  // Isolate the economy: no defenders, no reserve trickle, exactly enough
+  // bio to buy one 10-bio Venomspine.
+  g.evaluate('G.towers=[];offense.bioReserve=0;offense.bioMass=10;offense.timeLeft=999;render();');
+  const venom = center(g.window._getBtns().offenseSpawn.find(b => b.idx === 1));
+  g.tap(venom.x, venom.y); g.frame(2);
+  let guard = 0;
+  while (g.window._getOffenseState().unitsPast < 1 && guard++ < 60 * 60) g.frame(1);
+  const off = g.window._getOffenseState();
+  assert.equal(off.unitsPast, 1, 'unopposed strain should breach');
+  assert.ok(off.bioMass >= 7.5 && off.bioMass <= 8.5,
+    `10-bio breach should recover about 8, got ${off.bioMass.toFixed(2)}`);
+  assert.ok(off.bioMass < 10, 'a successful breach must not mint extra bio');
+});
+
 // ----------------------------------------------- R2/R3/R4: economy changes
 test('R2: tower costs scale with the disclosed difficulty costM', async () => {
   const g = await boot();

@@ -21,3 +21,4 @@ ios/App/App/public/
 # Local agent/tool dirs
 .claude/
 .goose/
+test-artifacts/

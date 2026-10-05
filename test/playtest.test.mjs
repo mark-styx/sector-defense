@@ -168,8 +168,12 @@ test('swarm commander: finite bio reserve caps regen and enables a real loss', a
   off = g.window._getOffenseState();
   assert.ok(off.bioReserve < reserve0, 'reserve depletes as bio regenerates');
 
+  // Isolate reserve behavior from the new fortress-alert clock; alert expiry
+  // has its own assertion below.
+  g.evaluate('offense.timeLeft=9999;');
+
   // Idle until the reserve is spent: bio must plateau, not grow forever.
-  // (Round 39 trickle is 1.2/s — allow enough sim time for the full drain.)
+  // Trickle is 1.5/s — allow enough sim time for the full drain.
   for (let i = 0; i < 60 * 600 && g.window._getOffenseState().bioReserve > 0.0001; i++) g.frame(1);
   off = g.window._getOffenseState();
   assert.ok(off.bioReserve <= 0.01, 'reserve exhausts');
@@ -193,6 +197,19 @@ test('swarm commander: finite bio reserve caps regen and enables a real loss', a
   assert.equal(state(g).phase, 'offenseResult', 'exhausted assault reaches a result');
   const final = g.window._getOffenseState();
   assert.ok(final.unitsPast < final.goalUnits, 'exhausted assault is a defeat');
+});
+
+test('swarm commander: fortress alert closes an unfinished assault', async () => {
+  const g = await boot();
+  tapBtn(g, 'menuOffense'); g.frame(2);
+  const map = center(g.window._getBtns().offenseMaps[0]);
+  g.tap(map.x, map.y); g.frame(2);
+  const initial = g.window._getOffenseState();
+  assert.ok(initial.timeLimit > 0 && initial.timeLeft > 0, 'fortress exposes an alert clock');
+  g.evaluate('offense.timeLeft=0.001;');
+  g.frame(2);
+  assert.equal(state(g).phase, 'offenseResult', 'expired alert ends the assault');
+  assert.ok(g.window._getOffenseState().unitsPast < initial.goalUnits, 'expired assault is a loss');
 });
 
 test('difficulty ladder: enemies are stronger, faster and denser per stage', async () => {
