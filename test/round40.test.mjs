@@ -81,11 +81,11 @@ test('overcharge conservatively waits for a target worth a 5x shot', async () =>
 test('classic enemy HP escalates with wave number', async () => {
   const g = await boot();
   await startClassic(g);
-  // Wave 1 (index 0): no ramp. Wave 40 (index 39): ~2.006x.
+  // Wave 1 (index 0): no ramp. Wave 40 (index 39): ~2.63x.
   assert.equal(g.window._getWaveHpMult(0), 1);
   const m40 = g.window._getWaveHpMult(39);
-  assert.ok(Math.abs(m40 - Math.pow(1.018, 39)) < 1e-9);
-  assert.ok(m40 > 1.9 && m40 < 2.1, `wave-40 ramp ~2x, got ${m40.toFixed(3)}`);
+  assert.ok(Math.abs(m40 - Math.pow(1.025, 39)) < 1e-9);
+  assert.ok(m40 > 2.5 && m40 < 2.8, `wave-40 ramp ~2.6x, got ${m40.toFixed(3)}`);
   // Live spawn check: wave 37 (index 36) leads with skitterlings — the first
   // spawn carries the ramp immediately (wave 40's skitterlings arrive ~56s
   // into the wave, too late for a quick probe).
@@ -99,7 +99,7 @@ test('classic enemy HP escalates with wave number', async () => {
     if (e) break;
   }
   assert.ok(e, 'a skitterling should spawn early in wave 37');
-  assert.equal(e.hp, Math.round(30 * 1.15 * g.window._getWaveHpMult(36)), 'late-wave enemy carries the ramp');
+  assert.equal(e.hp, Math.round(30 * 1.42 * g.window._getWaveHpMult(36)), 'late-wave enemy carries the ramp');
 });
 
 test('endless and other modes keep their own curves (no classic ramp)', async () => {

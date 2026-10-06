@@ -351,8 +351,10 @@ test('arsenal cards apply their effects (deep pockets, iron will, scavenger)', a
   const after = state(g);
   assert.ok(after.totalKills >= 1, 'sentinel should score kills');
   if (state(g).phase === 'waveSummary') { g.tap(195, 422); g.frame(2); }
-  // 350 - 50 (tower) + 72 (damage income, scavenger-boosted) + 6 (kill kickers) = 378.
-  assert.equal(state(g).nexium, 378, 'scavenger: damage income at +15%');
+  // 350 - 50 (tower) + 62 (damage income, scavenger-boosted; Standard now
+  // fields 7 skitterlings at 43hp each, two leak past the lone sentinel) + 6
+  // (kill kickers) = 368.
+  assert.equal(state(g).nexium, 368, 'scavenger: damage income at +15%');
 });
 
 test('tower info: ability activation and sell refund work', async () => {

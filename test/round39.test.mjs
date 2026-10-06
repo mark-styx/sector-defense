@@ -71,7 +71,7 @@ test('per-enemy damage credit is capped (no stall farming)', async () => {
   const d = DIFFS0(), expectMax = e.maxHp * 1.25 * 0.30 * (d.rewM / d.hpM);
   assert.ok(eco1 - eco0 <= expectMax + 1, `nexium gain ${(eco1 - eco0).toFixed(1)} exceeds theoretical max ${expectMax.toFixed(1)}`);
 });
-function DIFFS0() { return {rewM: 1.0, hpM: 1.15}; } // Standard
+function DIFFS0() { return {rewM: 1.0, hpM: 1.22}; } // Standard
 
 test('nexium extractor card boosts damage income by 20%', async () => {
   const g = await loadGame({
@@ -80,12 +80,13 @@ test('nexium extractor card boosts damage income by 20%', async () => {
   }).ready();
   g.frame(170);
   await startClassic(g);
-  // 300 start (no deep pockets), -50 sentinel, +75.13 damage income (1.2x),
-  // +6 kill kickers -> 331.13 -> rounds to 331.
+  // 300 start (no deep pockets), -50 sentinel, +65.13 damage income (1.2x,
+  // hpM-normalized rate: harder Standard pays slightly less per HP),
+  // +6 kill kickers -> 321.13 -> rounds to 321.
   await placeSentinelAndStart(g);
   for (let i = 0; i < 60 * 180 && state(g).phase === 'wave'; i++) g.frame(1);
   if (state(g).phase === 'waveSummary') { g.tap(195, 422); g.frame(2); }
-  assert.equal(state(g).nexium, 331, 'extractor: 20% more damage income, no time bonus');
+  assert.equal(state(g).nexium, 321, 'extractor: 20% more damage income, no time bonus');
 });
 
 test('impact FX spawn when projectiles land', async () => {

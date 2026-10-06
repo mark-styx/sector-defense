@@ -221,19 +221,14 @@ test('difficulty ladder: enemies are stronger, faster and denser per stage', asy
     const d = g.window._getBtns().diffs.find(x => x.idx === diffIdx);
     g.tap(center(d).x, center(d).y); g.frame(2);
     tapBtn(g, 'heroNone'); tapBtn(g, 'heroDeploy'); g.frame(2);
-    // Let wave 1 run out passively (leaks end the wave), then open wave 2:
-    // base composition 10 skitterlings distinguishes the density ladder
-    // (wave 1's 6 skitterlings rounds identically for x1.1 and x1.15).
-    tapBtn(g, 'startWave'); g.frame(2);
-    g.tap(195, 400); g.frame(2);
-    let guard = 0;
-    while (state(g).phase === 'wave' && guard++ < 90 * 60) g.frame(1);
-    if (state(g).phase === 'waveSummary') { g.tap(195, 400); g.frame(2); }
-    tapBtn(g, 'startWave'); g.frame(2);
+    // Density: drive startWave directly at wave 14 (28 enemies — wave 2's
+    // 10 skitterlings quantize identically for x1.15 and x1.17 tiers).
+    const queue = g.evaluate(`G.wave=13;startWave(),G.spawnQueue.length`);
+    // HP: open wave 2 live and read the first spawn.
+    g.evaluate(`G.wave=1;G.spawnQueue=[];startWave()`);
     g.tap(195, 400); g.frame(2);
     for (let i = 0; i < 120 && g.window._getEnemies().length === 0; i++) g.frame(1);
     const e = g.window._getEnemies()[0];
-    const queue = state(g).spawnQueueLength + g.window._getEnemies().length;
     tapBtn(g, 'pause'); g.frame(2); tapBtn(g, 'quit'); g.frame(2);
     return {queue, hp: e ? e.hp : 0};
   };

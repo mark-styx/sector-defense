@@ -59,9 +59,11 @@ test('enemy shields halve continuous tick damage (barrier AOE)', async () => {
     }
     return out;
   };
-  const plain = deltas(false).filter(d => d > 0.01);
+  const plain = deltas(false).filter(d => d > 0.01 && d < 1);
   g.window._setEnemyField(id, 'shieldTimer', 0);
-  const shielded = deltas(true).filter(d => d > 0.01);
+  // Barrier also fires 12-dmg projectiles (6 when shielded); keep those out
+  // of the sample so the ratio measures the continuous aura ticks only.
+  const shielded = deltas(true).filter(d => d > 0.01 && d < 1);
   assert.ok(plain.length >= 2, `need plain samples, got ${plain.length}`);
   assert.ok(shielded.length >= 1, `need shielded samples, got ${shielded.length}`);
   const mean = a => a.reduce((s, x) => s + x, 0) / a.length;

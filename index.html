@@ -557,16 +557,16 @@ const OFFENSE_COST={};OFFENSE_ENEMIES.forEach(o=>OFFENSE_COST[o.id]=o.cost);
 
 // Tower definitions
 const TT=[
-{id:'sentinel',name:'Sentinel Turret',cost:50,color:'#4488ff',range:3,damage:8,fireRate:0.25,splash:0,slows:false,antiAir:false,upCost:[40,60],abCost:30,desc:'Best damage per ◆',ab:{name:'Overdrive',desc:'2x rate 5s',cd:30,dur:5,type:'stim'}},
-{id:'thunder',name:'Thunder Cannon',cost:150,color:'#ff8800',range:3.5,damage:40,fireRate:1.5,splash:1.2,slows:false,antiAir:false,upCost:[100,150],abCost:90,desc:'Splash damage',ab:{name:'Firestorm',desc:'3x splash',cd:45,dur:0,type:'nuke'}},
-{id:'hawk',name:'Hawk Battery',cost:100,color:'#ff3344',range:4,damage:18,fireRate:0.6,splash:0,slows:false,antiAir:true,upCost:[70,100],abCost:60,desc:'Anti-air',ab:{name:'Barrage',desc:'8 missiles',cd:25,dur:0,type:'flak'}},
-{id:'neural',name:'Neural Disruptor',cost:200,color:'#aa44ff',range:2.5,damage:3,fireRate:0.3,splash:0,slows:true,antiAir:false,upCost:[120,180],abCost:120,desc:'Slows + DOT',ab:{name:'Neural Storm',desc:'AOE 3s',cd:40,dur:3,type:'storm'}},
-{id:'nova',name:'Nova Cannon',cost:300,color:'#ffcc00',range:5,damage:120,fireRate:3.0,splash:0,slows:false,antiAir:false,upCost:[200,300],abCost:180,desc:'Massive hit',ab:{name:'Supercharge',desc:'5x shot',cd:60,dur:0,type:'overcharge'}},
-{id:'shockwave',name:'Shockwave Emitter',cost:175,color:'#aaddff',range:3.5,damage:15,fireRate:0.5,splash:0,slows:false,antiAir:false,upCost:[120,175],abCost:105,desc:'Disable heal',ab:{name:'Shockpulse',desc:'Stun 3s',cd:35,dur:0,type:'empblast'}},
-{id:'fusion',name:'Fusion Beam',cost:250,color:'#00ddcc',range:2.0,damage:50,fireRate:0.1,splash:0,slows:false,antiAir:false,upCost:[160,240],abCost:150,desc:'Beam weapon',ab:{name:'Core Breach',desc:'2x beam 6s',cd:30,dur:6,type:'meltdown'}},
-{id:'arctesla',name:'Arc Tesla',cost:225,color:'#88eeff',range:3,damage:12,fireRate:0.8,splash:0,slows:false,antiAir:false,upCost:[140,210],abCost:135,desc:'Chain 4 targets',ab:{name:'Overload',desc:'Chain 8',cd:30,dur:0,type:'overload'}},
-{id:'dronebay',name:'Drone Bay',cost:275,color:'#66ccaa',range:4,damage:10,fireRate:0.4,splash:0,slows:false,antiAir:false,upCost:[170,250],abCost:165,desc:'3 drones',ab:{name:'Swarm Mode',desc:'6 drones 8s',cd:40,dur:8,type:'swarm'}},
-{id:'barrier',name:'Barrier Gen',cost:200,color:'#44aaff',range:2,damage:12,fireRate:0.5,splash:0,slows:true,antiAir:false,upCost:[130,190],abCost:120,desc:'Slow+dmg area',ab:{name:'Fortify',desc:'2x eff 6s',cd:25,dur:6,type:'fortify'}}
+{id:'sentinel',name:'Sentinel Turret',cost:50,color:'#4488ff',range:3,damage:8,fireRate:0.25,splash:0,slows:false,antiAir:false,upCost:[40,60],abCost:30,desc:'Best damage per ◆',role:'Cheap workhorse with the best damage per ◆. Fast single-target shots — cluster them early, then upgrade the ones on chokes.',ab:{name:'Overdrive',desc:'2x rate 5s',cd:30,dur:5,type:'stim'}},
+{id:'thunder',name:'Thunder Cannon',cost:150,color:'#ff8800',range:3.5,damage:40,fireRate:1.5,splash:1.2,slows:false,antiAir:false,upCost:[100,150],abCost:90,desc:'Splash damage',role:'Explosive shells splash onto everything near the impact. Park it where ground packs bunch up; it cannot shoot fliers.',ab:{name:'Firestorm',desc:'3x splash',cd:45,dur:0,type:'nuke'}},
+{id:'hawk',name:'Hawk Battery',cost:100,color:'#ff3344',range:4,damage:18,fireRate:0.6,splash:0,slows:false,antiAir:true,upCost:[70,100],abCost:60,desc:'Anti-air',role:'Dedicated anti-air with fast tracking. Build one early — Stingwing and Phase Wraith waves fly straight past ground-only towers.',ab:{name:'Barrage',desc:'8 missiles',cd:25,dur:0,type:'flak'}},
+{id:'neural',name:'Neural Disruptor',cost:200,color:'#aa44ff',range:2.5,damage:3,fireRate:0.3,splash:0,slows:true,antiAir:false,upCost:[120,180],abCost:120,desc:'Slows + DOT',role:'Every hit slows enemies to half speed. Low raw damage, but it multiplies the whole kill-box — anchor it at a choke.',ab:{name:'Neural Storm',desc:'AOE 3s',cd:40,dur:3,type:'storm'}},
+{id:'nova',name:'Nova Cannon',cost:300,color:'#ffcc00',range:5,damage:120,fireRate:3.0,splash:0,slows:false,antiAir:false,upCost:[200,300],abCost:180,desc:'Massive hit',role:'Extreme-range single shots that delete armor and bosses. Slow reload means crowds need cover fire. Can also hit fliers.',ab:{name:'Supercharge',desc:'5x shot',cd:60,dur:0,type:'overcharge'}},
+{id:'shockwave',name:'Shockwave Emitter',cost:175,color:'#aaddff',range:3.5,damage:15,fireRate:0.5,splash:0,slows:false,antiAir:false,upCost:[120,175],abCost:105,desc:'Disable heal',role:'Stops Plaguebearers from healing their swarm; its stun freezes everything nearby. Utility first, damage second. Can also hit fliers.',ab:{name:'Shockpulse',desc:'Stun 3s',cd:35,dur:0,type:'empblast'}},
+{id:'fusion',name:'Fusion Beam',cost:250,color:'#00ddcc',range:2.0,damage:50,fireRate:0.1,splash:0,slows:false,antiAir:false,upCost:[160,240],abCost:150,desc:'Beam weapon',role:'A continuous beam that melts one target at a time with heavy sustained damage. Short range — center it where paths converge.',ab:{name:'Core Breach',desc:'2x beam 6s',cd:30,dur:6,type:'meltdown'}},
+{id:'arctesla',name:'Arc Tesla',cost:225,color:'#88eeff',range:3,damage:12,fireRate:0.8,splash:0,slows:false,antiAir:false,upCost:[140,210],abCost:135,desc:'Chain 4 targets',role:'Lightning chains across up to 4 enemies per strike. The budget answer to Skitterling floods and spawned swarmer tides.',ab:{name:'Overload',desc:'Chain 8',cd:30,dur:0,type:'overload'}},
+{id:'dronebay',name:'Drone Bay',cost:275,color:'#66ccaa',range:4,damage:10,fireRate:0.4,splash:0,slows:false,antiAir:false,upCost:[170,250],abCost:165,desc:'3 drones',role:'Drones strike a different target each, ground or air — up to 3 at once, 6 in Swarm Mode. Flexible wide-area coverage.',ab:{name:'Swarm Mode',desc:'6 drones 8s',cd:40,dur:8,type:'swarm'}},
+{id:'barrier',name:'Barrier Gen',cost:200,color:'#44aaff',range:2,damage:12,fireRate:0.5,splash:0,slows:true,antiAir:false,upCost:[130,190],abCost:120,desc:'Slow+dmg area',role:'Projects a slowing damage field around itself. The anchor of every kill-box — stack Thunder and Nova behind its slow.',ab:{name:'Fortify',desc:'2x eff 6s',cd:25,dur:6,type:'fortify'}}
 ];
 // Tower mastery kills (in-memory)
 const towerMasteryKills={};
@@ -621,10 +621,10 @@ absolute:{motif:'absolute',label:'CRYO-CORE',dark:'#050b17',mid:'#142741',light:
 function getMapArt(m){return MAP_ART[m?.id]||MAP_ART.outpost;}
 
 const DIFFS=[
-{id:'standard',name:'Standard',hpM:1.15,spdM:1.08,cntM:1.0,lives:18,nex:300,rewM:1.0,costM:1.0,color:'#44ff88'},
-{id:'veteran',name:'Veteran',hpM:1.45,spdM:1.22,cntM:1.1,lives:15,nex:225,rewM:0.85,costM:1.0,color:'#ffaa22'},
-{id:'elite',name:'Elite',hpM:1.7,spdM:1.32,cntM:1.15,lives:10,nex:175,rewM:0.75,costM:1.05,color:'#ff4466'},
-{id:'legendary',name:'Legendary',hpM:2.2,spdM:1.5,cntM:1.1,lives:10,nex:150,rewM:0.65,costM:1.1,color:'#ff00ff',locked:true,reqLvl:20}
+{id:'standard',name:'Standard',hpM:1.42,spdM:1.15,cntM:1.10,lives:18,nex:300,rewM:1.0,costM:1.0,color:'#44ff88'},
+{id:'veteran',name:'Veteran',hpM:1.56,spdM:1.28,cntM:1.15,lives:15,nex:225,rewM:0.85,costM:1.0,color:'#ffaa22'},
+{id:'elite',name:'Elite',hpM:1.60,spdM:1.34,cntM:1.18,lives:10,nex:175,rewM:0.75,costM:1.05,color:'#ff4466'},
+{id:'legendary',name:'Legendary',hpM:1.70,spdM:1.45,cntM:1.22,lives:10,nex:150,rewM:0.65,costM:1.1,color:'#ff00ff',locked:true,reqLvl:20}
 ];
 
 // Waves
@@ -739,7 +739,7 @@ resize();window.addEventListener('resize',resize);
 // Menus retain readable rows on short screens and a focused column on wide ones.
 // The battlefield keeps its own coordinates; only menu surfaces scroll.
 const uiState={key:'',scroll:0,maxScroll:0,frame:null,scrolls:new Map()};
-const UI_HEIGHTS={menu:850,mapSelect:800,diffSelect:710,biomeSelect:610,
+const UI_HEIGHTS={menu:905,mapSelect:800,diffSelect:710,biomeSelect:610,
 settings:780,howToPlay:940,profile:780,loadout:1220,heroSelect:790,heroRoster:760,
 campaignMenu:670,campaignMap:800,campaignSwarmAttack:580,campaignVictory:640,
 campaignDefeat:580,offenseMapSelect:650,offenseResult:660,alliedVictory:700,
@@ -747,6 +747,7 @@ clashFinal:690,clashAttackResult:540,paused:520,wavePreview:710,waveSummary:480,
 gameover:900,victory:900};
 function getMenuHeight(){
   if(G.phase==='achievements')return 160+ACHIEVEMENTS.length*76;
+  if(G.phase==='codex')return 92+TT.length*160+72;
   if(G.phase==='store')return [760,650,570,610,790][store.tab]||760;
   return UI_HEIGHTS[G.phase]||0;
 }
@@ -1504,7 +1505,7 @@ playSound('explosion');}
 // per wave (~2x by wave 40) so the damage-driven economy (more HP destroyed =
 // more income) buys its way into harder fights instead of snowballing.
 function isClassicWave(){return !G.endlessMode&&!allied.active&&!offense.active&&!clash.active&&!campaign.active;}
-function waveHpMult(w){return isClassicWave()?Math.pow(1.018,w):1;}
+function waveHpMult(w){return isClassicWave()?Math.pow(1.025,w):1;}
 function spawnEnemy(typeName,pathIdx,startProg){const type=ET[typeName];if(!type)return;const d=DIFFS[G.diffIdx];const wm=waveHpMult(G.wave);
 const e={id:nextEnemyId++,type:typeName,hp:Math.round(type.hp*d.hpM*wm),maxHp:Math.round(type.hp*d.hpM*wm),speed:type.speed*d.spdM,reward:type.reward,livesCost:type.lives,color:type.color,shape:type.shape,size:type.size,armor:type.armor,flying:type.flying,explodes:!!type.explodes,spawns:!!type.spawns,heals:!!type.heals,burrows:!!type.burrows,releases:!!type.releases,phases:!!type.phases,disables:!!type.disables,
 progress:startProg||0,pathIdx:pathIdx||0,px:0,py:0,alive:true,slowTimer:0,empTimer:0,stunTimer:0,healDisabled:0,spawnCD:3,fadeIn:0.5,
@@ -2642,9 +2643,9 @@ if(G.endlessMode){if(!endlessNextWave){const budget=100*Math.pow(1.08,G.endlessW
 else{waveDef=WAVES[G.wave];}
 G.spawnQueue=[];let delay=0;const np=currentPaths.length;
 // Higher difficulties field denser waves (cntM) on top of tougher enemies.
-// From wave 30 density also ramps with wave number (x(1+wave/120)) so the
+// From wave 20 density also ramps with wave number (x(1+wave/110)) so the
 // closing waves of a 40-wave run pressure even flawless play.
-const cntM=(DIFFS[G.diffIdx].cntM||1)*(!G.endlessMode&&G.wave>=30?1+G.wave/120:1);
+const cntM=(DIFFS[G.diffIdx].cntM||1)*(!G.endlessMode&&G.wave>=20?1+G.wave/110:1);
 for(const grp of waveDef.e){const gc=Math.max(1,Math.round(grp.c*cntM));for(let i=0;i<gc;i++){const pi=np>1?i%np:0;G.spawnQueue.push({type:grp.t,time:delay,pathIdx:pi});delay+=grp.d;}}
 G.spawnTimer=0;G.waveKills=0;G.waveNex=0;VFX.waveFlash=1;playSound('wave_start');}
 function toggleDeploymentSpeed(){
@@ -3053,7 +3054,7 @@ sepHG.addColorStop(0,'transparent');sepHG.addColorStop(0.5,C_ACC);sepHG.addColor
 ctx.strokeStyle=sepHG;ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(W/2-sepHW/2,H*0.085);ctx.lineTo(W/2+sepHW/2,H*0.085);ctx.stroke();
 const sections=[
 {title:'BASICS',color:C_ACC,items:['Tap cells near paths to place towers','Towers auto-attack passing enemies','Stop enemies before they reach your base','Heroes fight beside you — tap yours for control','Survive all '+TOTAL_WAVES+' waves to claim victory']},
-{title:'TOWERS',color:'#44ff88',items:['Tap placed towers to upgrade or sell','Each tower has a unique special ability','Unlock abilities with ◆ — they then auto-fire','Placed mid-wave, towers power up briefly first','Upgrades visibly armor up and grow towers','Mix tower types for combo effects']},
+{title:'TOWERS',color:'#44ff88',items:['Tap placed towers to upgrade or sell','Each tower has a unique special ability','Unlock abilities with ◆ — they then auto-fire','Placed mid-wave, towers power up briefly first','Upgrades visibly armor up and grow towers','Mix tower types for combo effects','TOWER CODEX (main menu) details every tower role and stats']},
 {title:'ABILITIES',color:'#ffaa22',items:['💥 Vanguard Strike — Massive area blast','⚡ Temporal Surge — Speed all towers','🔧 Field Repair — Restore 5 lives','Hero abilities: auto by default, aimable in manual']},
 {title:'CURRENCY',color:'#aa66ff',items:['◆ Nexium — match-only build resource','Earned from DAMAGE dealt to enemies','Killers pay a small bonus on top','◇ Helix Credits — permanent currency','Spend ◇ in the Store: heroes, skins, bundles']}
 ];
@@ -3073,6 +3074,47 @@ ctx.font='500 '+htFS+'px '+FB;ctx.fillStyle='rgba(200,200,180,0.6)';
 const tips=['Use abilities in emergencies only','Endless mode scales infinitely','Arsenal Cards give powerful bonuses'];
 for(const tip of tips){ctx.fillText('• '+tip,W/2,htY);htY+=htFS+5;}
 const bw=160,bh=44,bx=W/2-bw/2,by=H*0.88;ctx.fillStyle='#003344';ctx.strokeStyle=C_ACC;ctx.lineWidth=2;ctx.beginPath();ctx.roundRect(bx,by,bw,bh,6);ctx.fill();ctx.stroke();ctx.font='700 '+Math.min(16,W*0.04)+'px '+FD;ctx.fillStyle=C_ACC;ctx.fillText('BACK',W/2,by+bh/2+2);G._btns.howToBack={x:bx,y:by,w:bw,h:bh};}
+
+// Codex traits distilled from live combat code (targeting filters, splash,
+// slow, chain, drone hits) so the text can never drift from mechanics.
+function towerTraits(type){const t=[];if(type.antiAir)t.push('ANTI-AIR');if(type.splash>0)t.push('SPLASH');if(type.slows)t.push('SLOWS');
+if(type.fireRate<=0.25)t.push('RAPID FIRE');
+if(type.id==='nova'||type.id==='shockwave')t.push('HITS AIR');if(type.id==='arctesla')t.push('CHAIN ×4');if(type.id==='fusion')t.push('BEAM');if(type.id==='dronebay')t.push('3 DRONES');if(type.id==='shockwave')t.push('BLOCKS HEALING');return t;}
+
+function drawCodexScreen(){
+drawStarfield();
+ctx.save();ctx.shadowColor='rgba(68,255,170,0.3)';ctx.shadowBlur=15;
+ctx.font='800 22px '+FD;ctx.textAlign='center';ctx.fillStyle='#44ffaa';ctx.fillText('TOWER CODEX',W/2,38);
+ctx.restore();
+const sepW=W*0.3;const sepGrad=ctx.createLinearGradient(W/2-sepW/2,0,W/2+sepW/2,0);
+sepGrad.addColorStop(0,'transparent');sepGrad.addColorStop(0.5,'#44ffaa');sepGrad.addColorStop(1,'transparent');
+ctx.strokeStyle=sepGrad;ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(W/2-sepW/2,54);ctx.lineTo(W/2+sepW/2,54);ctx.stroke();
+ctx.font='500 11px '+FB;ctx.fillStyle=C_MUT;ctx.fillText('What every tower is good at — before you spend ◆',W/2,72);
+const cw=W*0.92,ch=152,gap=8;const sx=(W-cw)/2;let y=92;
+for(let i=0;i<TT.length;i++){const type=TT[i];
+ctx.fillStyle='rgba(20,30,50,0.9)';ctx.strokeStyle=type.color+'88';ctx.lineWidth=1;
+ctx.beginPath();ctx.roundRect(sx,y,cw,ch,8);ctx.fill();ctx.stroke();
+ctx.fillStyle=type.color;ctx.globalAlpha=0.7;ctx.beginPath();ctx.roundRect(sx+1,y+8,3,ch-16,2);ctx.fill();ctx.globalAlpha=1;
+ctx.textAlign='left';ctx.font='700 13px '+FD;ctx.fillStyle=type.color;
+ctx.fillText(type.name,sx+12,y+20);
+ctx.textAlign='right';ctx.font='700 11px '+FD;ctx.fillStyle=C_WRN;
+ctx.fillText('◆'+type.cost,sx+cw-10,y+20);
+ctx.textAlign='left';ctx.font='500 10.5px '+FB;ctx.fillStyle='rgba(200,215,230,0.8)';
+const ty=drawWrappedText(type.role,sx+12,y+38,cw-24,14);
+ctx.font='600 10px '+FB;ctx.fillStyle=C_ACC;
+ctx.fillText('DMG '+type.damage+' · RNG '+type.range.toFixed(1)+' · '+type.fireRate.toFixed(2)+'s · ~'+Math.round(type.damage/type.fireRate)+' dps',sx+12,ty+8);
+const traits=towerTraits(type);
+if(traits.length){ctx.font='700 9px '+FD;ctx.fillStyle='#88eeff';ctx.fillText(traits.join(' · '),sx+12,ty+24);}
+ctx.font='600 10px '+FB;ctx.fillStyle=C_MUT;
+ctx.fillText('★ '+type.ab.name+' — '+type.ab.desc+' · ◆'+type.abCost+' · CD '+type.ab.cd+'s',sx+12,ty+40);
+y+=ch+gap;}
+// Back button — at the content bottom, matching the achievements screen
+// convention (scroll surface projects it on-screen once you reach the end).
+const by=H-50,bw2=120,bh2=36;
+ctx.fillStyle='#16233a';ctx.strokeStyle=C_MUT;ctx.lineWidth=1;
+ctx.beginPath();ctx.roundRect(W/2-bw2/2,by,bw2,bh2,6);ctx.fill();ctx.stroke();
+ctx.font='600 12px '+FD;ctx.textAlign='center';ctx.fillStyle=C_MUT;ctx.fillText('BACK',W/2,by+bh2/2+1);
+G._btns.codexBack={x:W/2-bw2/2,y:by,w:bw2,h:bh2};}
 
 
 function drawTutorialOverlay(){
@@ -4713,6 +4755,7 @@ let menuItems=[
 {label:'HEROES',key:'menuHeroes',color:'#ff8844',icon:'⚔',glow:true},
 {label:'STORE',key:'menuStore',color:'#ffaa22',icon:'◇',glow:true},
 {label:'LOADOUT',key:'menuLoadout',color:'#aa66ff',icon:'🃏'},
+{label:'TOWER CODEX',key:'menuCodex',color:'#44ffaa',icon:'⬢'},
 {label:'PROFILE',key:'menuProfile',color:'#88aacc',icon:'👤'},
 {label:'SETTINGS',key:'menuSettings',color:'#88aacc',icon:'⚙'},
 {label:'HOW TO PLAY',key:'menuHowTo',color:'#88aacc',icon:'?'}
@@ -5778,8 +5821,8 @@ if(t>2.0){ctx.globalAlpha=(t-2.0)/0.5;ctx.fillStyle='#030508';ctx.fillRect(0,0,W
 // MENU_PHASES drives ambient-music routing; SIM_PAUSED_PHASES is the set of
 // phases where the simulation does not tick. Adding a new screen phase means
 // adding it to BOTH lists (and to the render() dispatch).
-const MENU_PHASES=new Set(['menu','mapSelect','diffSelect','biomeSelect','howToPlay','profile','loadout','settings','achievements','offenseMapSelect','campaignMenu','campaignMap','heroSelect','heroRoster','store']);
-const SIM_PAUSED_PHASES=new Set(['paused','wavePreview','waveSummary','menu','mapSelect','diffSelect','howToPlay','gameover','victory','settings','biomeSelect','campaign','campaignMenu','campaignMap','campaignSwarmAttack','swarmCommander','offenseMapSelect','offenseResult','loadout','profile','campaignVictory','campaignDefeat','alliedVictory','clashFinal','clashAttackResult','achievements','heroSelect','heroRoster','store']);
+const MENU_PHASES=new Set(['menu','mapSelect','diffSelect','biomeSelect','howToPlay','profile','loadout','settings','achievements','codex','offenseMapSelect','campaignMenu','campaignMap','heroSelect','heroRoster','store']);
+const SIM_PAUSED_PHASES=new Set(['paused','wavePreview','waveSummary','menu','mapSelect','diffSelect','howToPlay','gameover','victory','settings','biomeSelect','campaign','campaignMenu','campaignMap','campaignSwarmAttack','swarmCommander','offenseMapSelect','offenseResult','loadout','profile','campaignVictory','campaignDefeat','alliedVictory','clashFinal','clashAttackResult','achievements','codex','heroSelect','heroRoster','store']);
 const BATTLE_OVERLAYS=new Set(['paused','wavePreview','waveSummary','gameover','victory']);
 // Vignette gradient is rebuilt only on resize, not every frame.
 let _vig=null,_vigW=0,_vigH=0;
@@ -5806,6 +5849,7 @@ else if(G.phase==='clashFinal')drawClashFinal();
 else if(G.phase==='clashAttack'){drawClashAttack();}
 else if(G.phase==='clashAttackResult')drawClashAttackResult();
 else if(G.phase==='achievements')drawAchievementsScreen();
+else if(G.phase==='codex')drawCodexScreen();
 else if(G.phase==='campaignMenu')drawCampaignMenu();
 else if(G.phase==='campaignMap')drawCampaignMap();
 else if(G.phase==='campaignSwarmAttack')drawCampaignSwarmAttack();
@@ -6092,6 +6136,7 @@ else if(hitTest(px,py,G._btns.menuLoadout)){G.phase='loadout';playSound('click')
 else if(hitTest(px,py,G._btns.menuProfile)){G.phase='profile';playSound('click');}
 else if(hitTest(px,py,G._btns.menuSettings)){G.previousPhase='menu';G.phase='settings';playSound('click');}
 else if(hitTest(px,py,G._btns.menuHowTo)){G.phase='howToPlay';playSound('click');}
+else if(hitTest(px,py,G._btns.menuCodex)){G.phase='codex';playSound('click');}
 else if(G._btns.menuTutorial&&hitTest(px,py,G._btns.menuTutorial)){
   // Start tutorial: load Outpost Alpha, Standard difficulty, start build phase
   G.mapIdx=0;G.diffIdx=0;G.endlessMode=false;
@@ -6104,6 +6149,7 @@ else if(G._btns.menuTutorial&&hitTest(px,py,G._btns.menuTutorial)){
   playSound('click');
 }return;}
 if(G.phase==='howToPlay'){if(hitTest(px,py,G._btns.howToBack)){G.phase='menu';playSound('click');}return;}
+if(G.phase==='codex'){if(hitTest(px,py,G._btns.codexBack)){G.phase='menu';playSound('click');}return;}
 if(G.phase==='settings'){
 if(hitTest(px,py,G._btns.settingsBack)){if(G._settingsFromPause){G._settingsFromPause=false;G.phase='paused';}else{G.phase=G.previousPhase||'menu';}playSound('click');return;}
 if(G._btns.settingsOpts)for(const opt of G._btns.settingsOpts){if(hitTest(px,py,opt)){const i=opt.idx;

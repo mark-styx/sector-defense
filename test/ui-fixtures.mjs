@@ -29,6 +29,7 @@ add('difficulty-unlocked',phase('diffSelect')+'prog.level=100;');
 add('endless-biomes',phase('biomeSelect'));
 add('settings',phase('settings'));
 add('instructions',phase('howToPlay'));
+add('codex',phase('codex'));
 add('profile',phase('profile'));
 add('achievements',phase('achievements'));
 add('loadout',phase('loadout'));

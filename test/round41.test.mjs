@@ -37,7 +37,7 @@ test('oracle passive amplifies damage income, no time drip', async () => {
   const bank0 = g.window._getEconomy().earned;
   const credited = g.window._awardNexiumForDamage(id, 10);
   const gained = g.window._getEconomy().earned - bank0;
-  const expected = 10 * 0.30 * (1.0 / 1.15) * 1.12;
+  const expected = 10 * 0.30 * (1.0 / 1.42) * 1.12;
   assert.ok(Math.abs(gained - expected) < 0.02,
     `oracle amplifies damage income: got ${gained.toFixed(3)}, expected ${expected.toFixed(3)}`);
 });
@@ -74,7 +74,7 @@ test('hivemind swarmers inherit the classic wave ramp', async () => {
   }
   assert.ok(sw, 'hivemind should spit swarmers');
   const wm = g.window._getWaveHpMult(15);
-  assert.equal(sw.hp, Math.round(15 * 1.15 * wm), 'swarmer HP carries the wave ramp');
+  assert.equal(sw.hp, Math.round(15 * 1.42 * wm), 'swarmer HP carries the wave ramp');
 });
 
 test('vanguard aura and ultimate actually modify tower stats (dead-wiring fix)', async () => {

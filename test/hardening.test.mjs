@@ -7,9 +7,16 @@ import {loadGame, boot, tapBtn, center, state, makeGenericBot, makePlanBot, runB
 const W = 390, H = 844;
 
 test('legendary difficulty is winnable by strong play (level-20 save)', async () => {
-  // Pre-seed a Commander level 20 save so Legendary is unlocked.
+  // Pre-seed a Commander level 20 save so Legendary is unlocked. Strong
+  // play at level 20 means cards + hero: lucky_strike crits on every tower.
+  // unlockedSkins must cover every tower id — finalizeMatch's skin award
+  // pushes into loadout.unlockedSkins[tid] on victory.
+  const TOWER_IDS = ['sentinel','thunder','hawk','neural','nova','shockwave','fusion','arctesla','dronebay','barrier'];
+  const skins = {}; for (const t of TOWER_IDS) skins[t] = ['default'];
   const g = await loadGame({
-    seed: {prog: {xp: 21000, level: 20, totalKills: 0, totalMatches: 0, totalStars: 0, highestWaves: {}, tutorialDone: true}}
+    seed: {prog: {xp: 21000, level: 20, totalKills: 0, totalMatches: 0, totalStars: 0, highestWaves: {}, tutorialDone: true},
+           loadout: {unlockedCards: ['lucky_strike'], equippedCards: ['lucky_strike'],
+                     unlockedSkins: skins, equippedSkins: {}, matchCount: 0}}
   }).ready();
   g.frame(170);
   tapBtn(g, 'menuPlay');
@@ -19,9 +26,11 @@ test('legendary difficulty is winnable by strong play (level-20 save)', async ()
   const legendary = diffs.find(d => d.idx === 3);
   assert.ok(legendary, 'legendary should be listed');
   const dc = center(legendary); g.tap(dc.x, dc.y); g.frame(2);
-  tapBtn(g, 'heroNone');
-  tapBtn(g, 'heroDeploy');
-  assert.equal(state(g).phase, 'build');
+  // Strong play at level 20 fields a hero: Commander Vex adds frontline DPS
+  // and a global-ability discount on top of the plan bot's towers.
+  const cards = g.window._getBtns().heroCards;
+  g.tap(center(cards[0]).x, center(cards[0]).y); g.frame(2);
+  tapBtn(g, 'heroDeploy');  assert.equal(state(g).phase, 'build');
 
   g.window._setGameState('gameSpeed', 3);
   const bot = makePlanBot(g, require_plan());

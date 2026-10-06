@@ -154,12 +154,14 @@ test('R1: clash attack round has a finite reserve and a 120s timer', async () =>
   g.frame(2);
   assert.equal(state(g).phase, 'build');
   g.window._setGameState('gameSpeed', 3);
-  // Defend round 1 (5 waves), then the attack round starts.
-  const bot = makeGenericBot(g, 14);
+  // Clash defend waves now run under the tightened tier multipliers; a
+  // 14-tower generic bot no longer covers the chokepoints — allow 20.
+  const bot = makeGenericBot(g, 20);
   bot.play();
   for (let wv = 0; wv < 6; wv++) {
     const post = runBotWave(g, 240);
     if (post.phase !== 'build') break;
+    bot.play(); // keep spending income between waves like a real player
   }
   assert.equal(state(g).phase, 'clashAttack', 'attack round after defend');
   const off0 = g.window._getOffenseState();
