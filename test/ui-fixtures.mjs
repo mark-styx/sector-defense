@@ -73,6 +73,9 @@ for(let i=1;i<13;i++)if(i!==11)add('tutorial-'+i,`TUTORIAL.start();TUTORIAL.step
 for(let i=0;i<10;i++)add('battle-map-'+i,`G.mapIdx=${i};setupMap(${i});G.phase='wave';`,true);
 add('battle-late','G.phase="wave";G.wave=39;G.nexium=99999;G.totalKills=9999;settings.showFPS=true;',true);
 add('battle-bosses',`G.phase='wave';for(const [i,type] of ['devastator','hivemind','siegecrawler'].entries())spawnEnemy(type,0,.2+i*.25);`,true);
+add('battle-blizzard',`G.mapIdx=7;setupMap(7);G.nexium=10000;window.__uiPlaceTower(0);window.__uiPlaceTower(2);G.phase='wave';envState.blizzard=2.5;for(const t of G.towers){t.frozen=2;t.disabled=2;}G.spawnQueue=[{type:'skitterling',time:999,pathIdx:0}];`,true);
+add('battle-scarred',`G.mapIdx=7;setupMap(7);G.phase='build';envState.scarredCells=['3,3','3,4'];`,true);
+add('battle-heat',`G.mapIdx=4;setupMap(4);G.nexium=10000;window.__uiPlaceTower(0);G.phase='wave';G.towers[0].heat=70;G.spawnQueue=[{type:'skitterling',time:999,pathIdx:0}];`,true);
 add('tower-info-max',`G.nexium=10000;window.__uiPlaceTower(4);G.towers[0].level=2;G.towers[0].abilityUnlocked=true;G.towers[0].abilityCooldown=20;G.showTowerInfo=true;G.towerInfoIdx=0;G.phase='wave';`,true);
 add('tower-info-offline',`window.__uiPlaceTower(0);G.towers[0].offline=true;G.towers[0].hp=0;G.towers[0].abilityUnlocked=true;G.showTowerInfo=true;G.towerInfoIdx=0;G.phase='wave';`,true);
 add('hero-aim',`heroState.selectedHeroIdx=0;deployHero(0);heroState.manual=true;G.heroAim='ability';G.phase='wave';`,true);

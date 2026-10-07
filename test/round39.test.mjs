@@ -80,13 +80,13 @@ test('nexium extractor card boosts damage income by 20%', async () => {
   }).ready();
   g.frame(170);
   await startClassic(g);
-  // 300 start (no deep pockets), -50 sentinel, +65.13 damage income (1.2x,
-  // hpM-normalized rate: harder Standard pays slightly less per HP),
-  // +6 kill kickers -> 321.13 -> rounds to 321.
+  // 300 start (no deep pockets), -50 sentinel, +78 damage income (1.2x,
+  // hpM-normalized; sentinel's urban +10% DMG finishes kills faster),
+  // +6 kill kickers -> 334.
   await placeSentinelAndStart(g);
   for (let i = 0; i < 60 * 180 && state(g).phase === 'wave'; i++) g.frame(1);
   if (state(g).phase === 'waveSummary') { g.tap(195, 422); g.frame(2); }
-  assert.equal(state(g).nexium, 321, 'extractor: 20% more damage income, no time bonus');
+  assert.equal(state(g).nexium, 334, 'extractor: 20% more damage income, no time bonus');
 });
 
 test('impact FX spawn when projectiles land', async () => {

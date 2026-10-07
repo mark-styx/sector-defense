@@ -104,12 +104,12 @@ test('vanguard aura and ultimate actually modify tower stats (dead-wiring fix)',
   g.tap(sentinel.x, sentinel.y); g.frame(2);
   const s = g.window._getTowerStatsFor(0);
   // Base lv0 sentinel: damage 8, fireRate 0.25. Battle Cry (1.15x) applies.
-  assert.equal(s.damage, 9, 'aura-boosted damage round(8*1.15)');
+  assert.equal(s.damage, 10, 'aura-boosted damage round(8*1.15*1.10) — urban affinity on top');
   assert.ok(Math.abs(s.fireRate - 0.25) < 1e-9, 'fire rate untouched without ult');
   // Total War: fire 2x while the ult runs.
   g.window._setHeroUltActive(10);
   const s2 = g.window._getTowerStatsFor(0);
-  assert.equal(s2.damage, 9, 'ult is fire-rate only (no damage double-dip)');
+  assert.equal(s2.damage, 10, 'ult is fire-rate only (no damage double-dip; 10 = aura + urban affinity)');
   assert.ok(Math.abs(s2.fireRate - 0.125) < 1e-9, 'Total War halves cooldowns (fire 2x)');
   g.window._setHeroUltActive(0);
 });
