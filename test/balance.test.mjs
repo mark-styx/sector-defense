@@ -133,9 +133,10 @@ test('classic Elite is winnable', async () => {
 
 test('hard-rated maps are winnable: 3-path, long spiral, restricted (Standard)', async () => {
   // Map 3 = War Room (3 converging entries), 6 = Inferno (long spiral),
-  // 9 = Absolute Zero (fusion restricted, 14x20). Generic bot with
-  // chokepoint/convergence placement must clear all three on Standard.
-  for (const mapIdx of [3, 6, 9]) {
+  // 9 = Absolute Zero (fusion restricted, 14x20), 13 = Ashfall Terrace
+  // (lava-laced switchbacks), 15 = Permafrost Coil (inner spiral).
+  // Generic bot with chokepoint/convergence placement must clear all on Standard.
+  for (const mapIdx of [3, 6, 9, 13, 15]) {
     const g = await boot();
     tapBtn(g, 'menuPlay');
     let maps = g.window._getBtns().maps;

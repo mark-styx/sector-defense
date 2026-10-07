@@ -179,9 +179,11 @@ export function tryPlace(g, col, row, typeIdx) {
   const radial = g.window._getBtns().radial;
   if (!radial || !radial.length) { closeInfoIfOpen(g); return false; } // occupied cell opened info
   const btn = radial.find(b => b.idx === typeIdx);
-  if (!btn) { closeInfoIfOpen(g); return false; }
+  if (!btn) { closeInfoIfOpen(g); g.tap(10, 10); g.frame(1); return false; } // restricted type: radial stays open — dismiss it
   g.tap(btn.x, btn.y); g.frame(2);
-  return botState(g).towerCount === before + 1;
+  const placed = botState(g).towerCount === before + 1;
+  if (!placed) { g.tap(10, 10); g.frame(1); } // unaffordable: dismiss radial via neutral corner
+  return placed;
 }
 
 export function tryUpgrade(g, towerIdx) {
@@ -354,6 +356,9 @@ export function makeGenericBot(g, maxTowers = 14) {
 
 export function runBotWave(g, maxSec = 180) {
   const W = 390, H = 844;
+  // A radial menu left open (e.g. unaffordable placement) would eat the
+  // start-wave tap — dismiss it like a player tapping it away.
+  if (botState(g).showRadialMenu) { g.tap(10, 10); g.frame(1); }
   tapBtn(g, 'startWave');
   g.tap(W / 2, H / 2); g.frame(2);
   let f = 0;

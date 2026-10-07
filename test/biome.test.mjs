@@ -47,7 +47,7 @@ test('arctic maps field frosthoppers, volcanic cinderlings, urban stays stock', 
   g.evaluate(`spawnEnemy('ironshell',0)`);
   e = g.evaluate('G.enemies[G.enemies.length-1]');
   assert.equal(e.type, 'glacierhide', 'arctic swaps ironshell → glacierhide');
-  assert.equal(e.armor, 8, 'glacierhide is the armored variant');
+  assert.equal(e.armor, 6, 'glacierhide is the armored variant');
 
   await startOn(g, 4); // ember
   g.evaluate(`spawnEnemy('skitterling',0)`);

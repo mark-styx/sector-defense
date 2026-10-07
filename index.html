@@ -594,7 +594,7 @@ siegecrawler:{name:'Siege Crawler',hp:250,speed:0.8,reward:25,lives:2,color:'#ff
 // only stats/flavor shift per battlefield).
 const ET_VARIANTS={
 frosthopper:{name:'Frosthopper',hp:38,speed:2.1,reward:5,lives:1,color:'#9fd8ff',shape:'circle',size:0.25,armor:1,flying:false},
-glacierhide:{name:'Glacierhide',hp:240,speed:0.9,reward:15,lives:2,color:'#cfeeff',shape:'roundrect',size:0.4,armor:8,flying:false},
+glacierhide:{name:'Glacierhide',hp:220,speed:0.9,reward:15,lives:2,color:'#cfeeff',shape:'roundrect',size:0.4,armor:6,flying:false},
 rimewing:{name:'Rimewing',hp:75,speed:1.9,reward:12,lives:1,color:'#88ccff',shape:'triangle',size:0.3,armor:1,flying:true},
 cinderling:{name:'Cinderling',hp:24,speed:2.7,reward:5,lives:1,color:'#ff7733',shape:'circle',size:0.25,armor:0,flying:false},
 emberspine:{name:'Emberspine',hp:70,speed:1.65,reward:10,lives:1,color:'#ffaa33',shape:'diamond',size:0.35,armor:0,flying:false},
@@ -626,7 +626,13 @@ const MAPS=[
 {id:'inferno',name:'Inferno Gauntlet',diff:'Hard',cols:12,rows:18,biome:'volcanic',desc:'Long spiral path.',restricted:[],paths:[[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0],[9,0],[10,0],[11,0],[11,1],[11,2],[11,3],[10,3],[9,3],[8,3],[7,3],[6,3],[5,3],[4,3],[3,3],[2,3],[1,3],[0,3],[0,4],[0,5],[0,6],[1,6],[2,6],[3,6],[4,6],[5,6],[6,6],[7,6],[8,6],[9,6],[10,6],[11,6],[11,7],[11,8],[11,9],[10,9],[9,9],[8,9],[7,9],[6,9],[5,9],[4,9],[3,9],[2,9],[1,9],[0,9],[0,10],[0,11],[0,12],[1,12],[2,12],[3,12],[4,12],[5,12],[6,12],[7,12],[8,12],[9,12],[10,12],[11,12],[11,13],[11,14],[11,15],[10,15],[9,15],[8,15],[7,15],[6,15],[5,15]]],baseCell:[5,15],lavaCells:[[5,1],[6,2],[3,5],[8,5],[2,8],[9,8],[5,11],[6,14]]},
 {id:'frozen',name:'Frozen Reach',diff:'Easy',cols:10,rows:16,biome:'arctic',desc:'S-curve through ice.',restricted:[],paths:[[[0,2],[1,2],[2,2],[3,2],[4,2],[5,2],[6,2],[7,2],[8,2],[9,2],[9,3],[9,4],[9,5],[8,5],[7,5],[6,5],[5,5],[4,5],[3,5],[2,5],[1,5],[0,5],[0,6],[0,7],[0,8],[1,8],[2,8],[3,8],[4,8],[5,8],[6,8],[7,8],[8,8],[9,8],[9,9],[9,10],[9,11],[8,11],[7,11],[6,11],[5,11],[4,11],[3,11],[2,11],[1,11],[0,11],[0,12],[0,13],[0,14],[0,15]]],baseCell:[0,15],iceCells:[[3,0],[7,0],[1,4],[8,4],[4,7],[6,10],[2,13],[8,14]]},
 {id:'glacial',name:'Glacial Rift',diff:'Medium',cols:12,rows:16,biome:'arctic',desc:'2 paths cross.',restricted:[],paths:[[[0,0],[1,0],[2,0],[3,0],[3,1],[3,2],[3,3],[4,3],[5,3],[5,4],[5,5],[5,6],[5,7],[6,7],[7,7],[8,7],[8,8],[8,9],[8,10],[7,10],[6,10],[5,10],[5,11],[5,12],[5,13],[5,14],[5,15]],[[11,0],[10,0],[9,0],[8,0],[8,1],[8,2],[8,3],[7,3],[6,3],[6,4],[6,5],[6,6],[6,7],[6,8],[6,9],[6,10],[5,10],[4,10],[3,10],[3,11],[3,12],[3,13],[3,14],[3,15]]],baseCell:[5,15],iceCells:[[1,4],[10,4],[0,8],[11,8],[2,14],[9,14]]},
-{id:'absolute',name:'Absolute Zero',diff:'Hard',cols:14,rows:20,biome:'arctic',desc:'Massive spiral.',restricted:['fusion'],paths:[[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0],[9,0],[10,0],[11,0],[12,0],[13,0],[13,1],[13,2],[13,3],[13,4],[12,4],[11,4],[10,4],[9,4],[8,4],[7,4],[6,4],[5,4],[4,4],[3,4],[2,4],[1,4],[0,4],[0,5],[0,6],[0,7],[0,8],[1,8],[2,8],[3,8],[4,8],[5,8],[6,8],[7,8],[8,8],[9,8],[10,8],[11,8],[12,8],[13,8],[13,9],[13,10],[13,11],[13,12],[12,12],[11,12],[10,12],[9,12],[8,12],[7,12],[6,12],[5,12],[4,12],[3,12],[2,12],[1,12],[0,12],[0,13],[0,14],[0,15],[0,16],[1,16],[2,16],[3,16],[4,16],[5,16],[6,16],[7,16],[7,17],[7,18],[7,19]]],baseCell:[7,19],iceCells:[[3,2],[10,2],[6,6],[1,10],[12,10],[5,14],[9,14],[3,18],[11,18]]}
+{id:'absolute',name:'Absolute Zero',diff:'Hard',cols:14,rows:20,biome:'arctic',desc:'Massive spiral.',restricted:['fusion'],paths:[[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0],[9,0],[10,0],[11,0],[12,0],[13,0],[13,1],[13,2],[13,3],[13,4],[12,4],[11,4],[10,4],[9,4],[8,4],[7,4],[6,4],[5,4],[4,4],[3,4],[2,4],[1,4],[0,4],[0,5],[0,6],[0,7],[0,8],[1,8],[2,8],[3,8],[4,8],[5,8],[6,8],[7,8],[8,8],[9,8],[10,8],[11,8],[12,8],[13,8],[13,9],[13,10],[13,11],[13,12],[12,12],[11,12],[10,12],[9,12],[8,12],[7,12],[6,12],[5,12],[4,12],[3,12],[2,12],[1,12],[0,12],[0,13],[0,14],[0,15],[0,16],[1,16],[2,16],[3,16],[4,16],[5,16],[6,16],[7,16],[7,17],[7,18],[7,19]]],baseCell:[7,19],iceCells:[[3,2],[10,2],[6,6],[1,10],[12,10],[5,14],[9,14],[3,18],[11,18]]},
+{id:'relay',name:'Relay Yards',diff:'Medium',cols:11,rows:15,biome:'urban',desc:'Five-lane signal relay.',restricted:[],paths:[[[0,2],[1,2],[2,2],[3,2],[4,2],[5,2],[6,2],[7,2],[8,2],[9,2],[10,2],[10,3],[10,4],[9,4],[8,4],[7,4],[6,4],[5,4],[4,4],[3,4],[2,4],[1,4],[0,4],[0,5],[0,6],[0,7],[1,7],[2,7],[3,7],[4,7],[5,7],[6,7],[7,7],[8,7],[9,7],[10,7],[10,8],[10,9],[10,10],[9,10],[8,10],[7,10],[6,10],[5,10],[4,10],[3,10],[2,10],[1,10],[0,10],[0,11],[0,12],[0,13],[1,13],[2,13],[3,13],[4,13],[5,13],[6,13],[7,13],[8,13],[9,13],[10,13]]],baseCell:[10, 13],},
+{id:'vertiport',name:'Vertiport',diff:'Easy',cols:10,rows:15,biome:'urban',desc:'Docking comb. Constant cover.',restricted:[],paths:[[[5,2],[4,2],[3,2],[2,2],[1,2],[0,2],[0,3],[0,4],[1,4],[2,4],[3,4],[4,4],[5,4],[6,4],[7,4],[8,4],[9,4],[9,5],[9,6],[8,6],[7,6],[6,6],[5,6],[4,6],[3,6],[2,6],[1,6],[0,6],[0,7],[0,8],[1,8],[2,8],[3,8],[4,8],[5,8],[6,8],[7,8],[8,8],[9,8],[9,9],[9,10],[8,10],[7,10],[6,10],[5,10],[4,10],[3,10],[2,10],[1,10],[0,10],[0,11],[0,12],[1,12],[2,12],[3,12],[4,12],[5,12],[6,12],[7,12],[8,12],[9,12],[9,13],[9,14]]],baseCell:[9, 14],},
+{id:'fissure',name:'Fissure Run',diff:'Medium',cols:12,rows:16,biome:'volcanic',desc:'Ring the lava lake.',restricted:[],paths:[[[0,4],[1,4],[2,4],[3,4],[4,4],[5,4],[6,4],[7,4],[8,4],[9,4],[10,4],[11,4],[11,5],[11,6],[11,7],[11,8],[10,8],[9,8],[8,8],[7,8],[6,8],[5,8],[4,8],[3,8],[2,8],[1,8],[0,8],[0,9],[0,10],[0,11],[0,12],[1,12],[2,12],[3,12],[4,12],[5,12],[6,12],[7,12],[8,12],[9,12],[10,12],[11,12],[11,13],[11,14],[10,14],[9,14]]],baseCell:[9, 14],lavaCells:[[4, 5], [4, 6], [4, 7], [5, 5], [5, 6], [5, 7], [6, 5], [6, 6], [6, 7], [7, 5], [7, 6], [7, 7]],},
+{id:'ashfall',name:'Ashfall Terrace',diff:'Hard',cols:13,rows:17,biome:'volcanic',desc:'Terraced switchbacks over vents.',restricted:[],paths:[[[0,1],[1,1],[2,1],[3,1],[4,1],[5,1],[6,1],[7,1],[8,1],[9,1],[10,1],[11,1],[12,1],[12,2],[12,3],[11,3],[10,3],[9,3],[8,3],[7,3],[6,3],[5,3],[4,3],[3,3],[2,3],[1,3],[0,3],[0,4],[0,5],[1,5],[2,5],[3,5],[4,5],[5,5],[6,5],[7,5],[8,5],[9,5],[10,5],[11,5],[12,5],[12,6],[12,7],[11,7],[10,7],[9,7],[8,7],[7,7],[6,7],[5,7],[4,7],[3,7],[2,7],[1,7],[0,7],[0,8],[0,9],[1,9],[2,9],[3,9],[4,9],[5,9],[6,9],[7,9],[8,9],[9,9],[10,9],[11,9],[12,9],[12,10],[12,11],[11,11],[10,11],[9,11],[8,11],[7,11],[6,11],[5,11],[4,11],[3,11],[2,11],[1,11],[0,11],[0,12],[0,13],[1,13],[2,13],[3,13],[4,13],[5,13],[6,13],[7,13],[8,13],[9,13],[10,13],[11,13],[12,13],[12,14],[12,15],[11,15],[10,15],[9,15],[8,15],[7,15],[6,15]]],baseCell:[6, 15],lavaCells:[[3, 2], [9, 2], [3, 4], [9, 4], [3, 6], [9, 6], [3, 8], [9, 8], [3, 10], [9, 10], [3, 12], [9, 12]],},
+{id:'whiteout',name:'Whiteout Valley',diff:'Easy',cols:10,rows:15,biome:'arctic',desc:'Two valleys, one base.',restricted:[],paths:[[[0,1],[0,2],[0,3],[0,4],[1,4],[1,5],[2,5],[2,6],[3,6],[3,7],[4,7],[4,8],[4,9],[4,10],[4,11],[4,12],[4,13],[4,14],[5,14]],[[9,1],[9,2],[9,3],[9,4],[8,4],[8,5],[7,5],[7,6],[6,6],[6,7],[6,8],[6,9],[6,10],[6,11],[6,12],[6,13],[5,13],[5,14]]],baseCell:[5, 14],iceCells:[[2, 1], [7, 1], [3, 9], [5, 10], [2, 12], [7, 12]],},
+{id:'permafrost',name:'Permafrost Coil',diff:'Hard',cols:11,rows:12,biome:'arctic',desc:'Coil inward to the cold core.',restricted:[],paths:[[[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0],[9,0],[10,0],[10,1],[10,2],[10,3],[10,4],[10,5],[10,6],[10,7],[10,8],[10,9],[10,10],[10,11],[9,11],[8,11],[7,11],[6,11],[5,11],[4,11],[3,11],[2,11],[1,11],[0,11],[0,10],[0,9],[0,8],[0,7],[0,6],[0,5],[0,4],[0,3],[0,2],[1,2],[2,2],[3,2],[4,2],[5,2],[6,2],[7,2],[8,2],[9,2],[9,3],[9,4],[9,5],[9,6],[9,7],[9,8],[8,8],[7,8],[6,8],[5,8],[4,8],[3,8],[2,8],[1,8],[1,7],[1,6],[2,6],[3,6],[4,6],[5,6]]],baseCell:[5,6],iceCells:[[5,1],[5,9],[7,4],[3,4]]},
 ];
 
 // Every battlefield has a location identity in addition to its biome. These
@@ -642,7 +648,13 @@ caldera:{motif:'caldera',label:'MAGMA CRATER',dark:'#130403',mid:'#421107',light
 inferno:{motif:'inferno',label:'HELLFORGE COMPLEX',dark:'#110304',mid:'#34100b',light:'#ff3d1f'},
 frozen:{motif:'frozen',label:'POLAR WASTE',dark:'#07131e',mid:'#153147',light:'#a9edff'},
 glacial:{motif:'glacial',label:'FRACTURED ICE SHELF',dark:'#06101c',mid:'#15324c',light:'#71d9ff'},
-absolute:{motif:'absolute',label:'CRYO-CORE',dark:'#050b17',mid:'#142741',light:'#d8f7ff'}
+absolute:{motif:'absolute',label:'CRYO-CORE',dark:'#050b17',mid:'#142741',light:'#d8f7ff'},
+relay:{motif:'relay',label:'SIGNAL RELAY YARD',dark:'#0a1016',mid:'#1d2b38',light:'#ffd24d'},
+vertiport:{motif:'vertiport',label:'SKY DOCK VERTIPORT',dark:'#041210',mid:'#0f2e2a',light:'#3affc8'},
+fissure:{motif:'fissure',label:'RIFTED MAGMA PLAIN',dark:'#170308',mid:'#3d0d10',light:'#ff5c5c'},
+ashfall:{motif:'ashfall',label:'CINDER TERRACES',dark:'#12100e',mid:'#2e2620',light:'#ffa96b'},
+whiteout:{motif:'whiteout',label:'SILENT VALLEY',dark:'#0a141d',mid:'#1c3a52',light:'#e6f7ff'},
+permafrost:{motif:'permafrost',label:'PERMAFROST COIL',dark:'#070d1d',mid:'#1b2a4d',light:'#9fb8ff'}
 };
 function getMapArt(m){return MAP_ART[m?.id]||MAP_ART.outpost;}
 
@@ -774,6 +786,7 @@ gameover:900,victory:900};
 function getMenuHeight(){
   if(G.phase==='achievements')return 160+ACHIEVEMENTS.length*76;
   if(G.phase==='codex')return 92+TT.length*160+72;
+  if(G.phase==='mapSelect')return Math.max(UI_HEIGHTS.mapSelect,116+MAPS.filter(m=>m.biome===G.biomeTab).length*136+56);
   if(G.phase==='store')return [760,650,570,610,790][store.tab]||760;
   return UI_HEIGHTS[G.phase]||0;
 }
@@ -2812,9 +2825,15 @@ if(art.motif==='skyline'){ctx.fillStyle='rgba(1,3,10,.72)';for(let i=0;i<8;i++){
 else if(art.motif==='caldera'){const cx=offsetX+mapW*.5,cy=offsetY+mapH*.3;for(let i=4;i>0;i--){ctx.strokeStyle='rgba(255,'+(55+i*18)+',15,'+(.035+i*.018)+')';ctx.lineWidth=cellSize*(.18+i*.07);ctx.beginPath();ctx.ellipse(cx,cy,mapW*(.09+i*.055),mapH*(.04+i*.025),-.08,0,Math.PI*2);ctx.stroke();}}
 else if(art.motif==='glacial'){ctx.fillStyle='rgba(0,5,18,.55)';ctx.beginPath();ctx.moveTo(offsetX+mapW*.38,offsetY);ctx.lineTo(offsetX+mapW*.54,offsetY+mapH*.28);ctx.lineTo(offsetX+mapW*.46,offsetY+mapH*.53);ctx.lineTo(offsetX+mapW*.61,offsetY+mapH);ctx.lineTo(offsetX+mapW*.43,offsetY+mapH);ctx.lineTo(offsetX+mapW*.35,offsetY+mapH*.58);ctx.lineTo(offsetX+mapW*.43,offsetY+mapH*.3);ctx.lineTo(offsetX+mapW*.27,offsetY);ctx.closePath();ctx.fill();}
 else if(art.motif==='absolute'){ctx.strokeStyle='rgba(170,235,255,.09)';ctx.lineWidth=cellSize*.4;for(let i=0;i<4;i++){ctx.beginPath();ctx.arc(offsetX+mapW*.5,offsetY+mapH*.47,cellSize*(1.4+i*1.55),0,Math.PI*2);ctx.stroke();}}
+else if(art.motif==='relay'){ctx.strokeStyle='rgba(255,210,77,.07)';ctx.lineWidth=1;for(let i=0;i<4;i++){const ry=offsetY+mapH*(.18+i*.2);ctx.beginPath();ctx.moveTo(offsetX,ry+Math.sin(i)*cellSize*.3);ctx.quadraticCurveTo(offsetX+mapW*.5,ry-cellSize*.4,offsetX+mapW,ry+Math.cos(i)*cellSize*.3);ctx.stroke();}}
+else if(art.motif==='vertiport'){ctx.strokeStyle='rgba(58,255,200,.06)';ctx.lineWidth=cellSize*.3;for(let i=0;i<3;i++){ctx.beginPath();ctx.moveTo(offsetX+mapW*(.1+i*.35),offsetY);ctx.lineTo(offsetX+mapW*(.35+i*.35),offsetY+mapH);ctx.stroke();}}
+else if(art.motif==='fissure'){const cx=offsetX+mapW*.5,cy=offsetY+mapH*.45;for(let i=3;i>0;i--){ctx.strokeStyle='rgba(255,'+(40+i*20)+',50,'+(.03+i*.016)+')';ctx.lineWidth=cellSize*(.25+i*.1);ctx.beginPath();ctx.ellipse(cx,cy,mapW*(.08+i*.07),mapH*(.05+i*.03),.12,0,Math.PI*2);ctx.stroke();}}
+else if(art.motif==='ashfall'){for(let i=0;i<5;i++){ctx.fillStyle='rgba(60,50,42,'+(.05+i*.012)+')';ctx.fillRect(offsetX,offsetY+mapH*(.12+i*.17),mapW,cellSize*.5);}}
+else if(art.motif==='whiteout'){ctx.fillStyle='rgba(0,8,18,.5)';ctx.beginPath();ctx.moveTo(offsetX,offsetY+mapH*.3);ctx.lineTo(offsetX+mapW*.5,offsetY+mapH*.62);ctx.lineTo(offsetX+mapW,offsetY+mapH*.3);ctx.lineTo(offsetX+mapW,offsetY);ctx.lineTo(offsetX,offsetY);ctx.closePath();ctx.fill();}
+else if(art.motif==='permafrost'){ctx.strokeStyle='rgba(159,184,255,.07)';for(let i=0;i<3;i++){ctx.lineWidth=cellSize*(.3+i*.2);ctx.strokeRect(offsetX+mapW*(.12+i*.09),offsetY+mapH*(.14+i*.09),mapW*(.76-i*.18),mapH*(.72-i*.18));}}
 // Biome sky dress: arctic aurora curtains, volcanic horizon eruption glow,
 // skyline aircraft beacons — slow, cheap, ambient.
-if(art.motif==='frozen'||art.motif==='glacial'||art.motif==='absolute'){
+if(art.motif==='frozen'||art.motif==='glacial'||art.motif==='absolute'||art.motif==='whiteout'||art.motif==='permafrost'){
 for(let band=0;band<3;band++){const by=offsetY+mapH*(.08+band*.07),drift=Math.sin(animTime*.25+band*2)*cellSize;
 const ag=ctx.createLinearGradient(offsetX,by-cellSize*.8,offsetX+mapW,by+cellSize*.8);
 const hue=band===0?'120,255,190':band===1?'150,220,255':'190,160,255';
@@ -2822,7 +2841,7 @@ ag.addColorStop(0,'rgba('+hue+',0)');ag.addColorStop(.5,'rgba('+hue+',.14)');ag.
 ctx.fillStyle=ag;ctx.beginPath();ctx.moveTo(offsetX,by);
 for(let px2=0;px2<=mapW;px2+=cellSize)ctx.lineTo(offsetX+px2,by+Math.sin(px2*.05+animTime*.4+band)*cellSize*.35+drift*.2);
 ctx.lineTo(offsetX+mapW,by-cellSize*1.6);ctx.lineTo(offsetX,by-cellSize*1.6);ctx.closePath();ctx.fill();}}
-else if(art.motif==='ember'||art.motif==='caldera'||art.motif==='inferno'){
+else if(art.motif==='ember'||art.motif==='caldera'||art.motif==='inferno'||art.motif==='fissure'||art.motif==='ashfall'){
 const pulse=.10+.07*Math.sin(animTime*.6);
 const eg=ctx.createLinearGradient(offsetX,offsetY+mapH*.55,offsetX,offsetY+mapH);
 eg.addColorStop(0,'rgba(255,70,10,0)');eg.addColorStop(1,'rgba(255,70,10,'+pulse+')');
@@ -2843,14 +2862,20 @@ else if(art.motif==='inferno'){ctx.fillStyle='rgba(2,2,3,.55)';for(let k=0;k<4;k
 else if(art.motif==='frozen'){ctx.fillStyle='rgba(220,248,255,.32)';ctx.beginPath();ctx.moveTo(x,y+s*(.45+n*.25));ctx.quadraticCurveTo(x+s*.5,y+s*(.2+n2*.18),x+s,y+s*(.5+n*.22));ctx.lineTo(x+s,y+s);ctx.lineTo(x,y+s);ctx.closePath();ctx.fill();}
 else if(art.motif==='glacial'){ctx.beginPath();ctx.moveTo(x+s*.1,y+s*(.2+n*.5));ctx.lineTo(x+s*.48,y+s*.5);ctx.lineTo(x+s*(.72+n2*.18),y+s*.88);ctx.moveTo(x+s*.48,y+s*.5);ctx.lineTo(x+s*.8,y+s*.25);ctx.stroke();}
 else if(art.motif==='absolute'){ctx.beginPath();ctx.arc(x+s*.5,y+s*.5,s*.27,0,Math.PI*2);ctx.stroke();ctx.beginPath();for(let k=0;k<6;k++){const a=k*Math.PI/3;ctx.moveTo(x+s*.5,y+s*.5);ctx.lineTo(x+s*.5+Math.cos(a)*s*.33,y+s*.5+Math.sin(a)*s*.33);}ctx.stroke();}
+else if(art.motif==='relay'){if(n>.5){ctx.beginPath();ctx.moveTo(x+s*.5,y+s*.75);ctx.lineTo(x+s*.5,y+s*.2);ctx.stroke();ctx.beginPath();ctx.arc(x+s*.5,y+s*.18,s*.06,0,Math.PI*2);ctx.fill();}if(n2>.66){ctx.beginPath();ctx.moveTo(x+s*.2,y+s*.6);ctx.lineTo(x+s*.8,y+s*.6);ctx.stroke();}}
+else if(art.motif==='vertiport'){ctx.beginPath();ctx.arc(x+s*.5,y+s*.5,s*.3,0,Math.PI*2);ctx.stroke();if(n>.6){ctx.beginPath();ctx.moveTo(x+s*.38,y+s*.5);ctx.lineTo(x+s*.62,y+s*.5);ctx.moveTo(x+s*.5,y+s*.38);ctx.lineTo(x+s*.5,y+s*.62);ctx.stroke();}}
+else if(art.motif==='fissure'){ctx.beginPath();ctx.moveTo(x+s*.1,y+s*(.3+n*.3));ctx.lineTo(x+s*(.4+n2*.2),y+s*.5);ctx.lineTo(x+s*.6,y+s*(.4+n*.2));ctx.lineTo(x+s*.9,y+s*(.55+n2*.25));ctx.stroke();if(n>.72){ctx.fillStyle='rgba(255,90,60,.5)';ctx.fillRect(x+s*(.38+n2*.2),y+s*.48,2,2);}}
+else if(art.motif==='ashfall'){for(let k=0;k<3;k++)ctx.fillRect(x+s*(.14+k*.06),y+s*(.25+k*.22),s*(.72-k*.12),1);if(n>.68){ctx.fillStyle='rgba(255,150,80,.4)';ctx.fillRect(x+s*.44,y+s*.4,2,2);}}
+else if(art.motif==='whiteout'){ctx.beginPath();ctx.arc(x+s*(.3+n*.4),y+s*.7,s*.28,Math.PI*1.05,Math.PI*1.95);ctx.stroke();if(n2>.6){ctx.beginPath();ctx.arc(x+s*(.55+n*.3),y+s*.35,s*.18,Math.PI*1.05,Math.PI*1.95);ctx.stroke();}}
+else if(art.motif==='permafrost'){ctx.strokeRect(x+s*.22,y+s*.22,s*.56,s*.56);if(n>.55)ctx.strokeRect(x+s*.36,y+s*.36,s*.28,s*.28);}
 ctx.restore();}
 
 function strokeMapPath(points){ctx.beginPath();ctx.moveTo(points[0].x,points[0].y);for(let i=1;i<points.length;i++)ctx.lineTo(points[i].x,points[i].y);}
 function drawThemedPaths(m){const art=getMapArt(m);for(let pi=0;pi<currentPaths.length;pi++){const pts=getPathPts(pi);ctx.save();ctx.lineCap='round';ctx.lineJoin='round';
 if(art.motif==='transit'){ctx.strokeStyle='rgba(5,8,12,.9)';ctx.lineWidth=cellSize*.46;strokeMapPath(pts);ctx.stroke();ctx.strokeStyle='rgba(255,184,77,.7)';ctx.lineWidth=1;ctx.setLineDash([cellSize*.12,cellSize*.18]);strokeMapPath(pts);ctx.stroke();ctx.setLineDash([]);ctx.strokeStyle='rgba(130,190,220,.7)';ctx.lineWidth=cellSize*.16;strokeMapPath(pts);ctx.stroke();}
 else if(art.motif==='inferno'){ctx.strokeStyle='rgba(3,3,4,.72)';ctx.lineWidth=cellSize*.48;strokeMapPath(pts);ctx.stroke();ctx.strokeStyle='rgba(255,80,25,.36)';ctx.lineWidth=cellSize*.33;ctx.setLineDash([2,4]);strokeMapPath(pts);ctx.stroke();ctx.setLineDash([]);}
-else if(art.motif==='frozen'||art.motif==='glacial'||art.motif==='absolute'){ctx.strokeStyle='rgba(205,244,255,.14)';ctx.lineWidth=cellSize*.58;strokeMapPath(pts);ctx.stroke();ctx.strokeStyle=art.light;ctx.globalAlpha=.45;ctx.lineWidth=1;ctx.setLineDash([cellSize*.45,cellSize*.28]);strokeMapPath(pts);ctx.stroke();ctx.setLineDash([]);}
-else if(art.motif==='ember'||art.motif==='caldera'){ctx.strokeStyle='rgba(4,2,2,.58)';ctx.lineWidth=cellSize*.56;strokeMapPath(pts);ctx.stroke();ctx.strokeStyle=art.light;ctx.globalAlpha=.32;ctx.lineWidth=2;ctx.setLineDash([cellSize*.65,cellSize*.45]);strokeMapPath(pts);ctx.stroke();ctx.setLineDash([]);}
+else if(art.motif==='frozen'||art.motif==='glacial'||art.motif==='absolute'||art.motif==='whiteout'||art.motif==='permafrost'){ctx.strokeStyle='rgba(205,244,255,.14)';ctx.lineWidth=cellSize*.58;strokeMapPath(pts);ctx.stroke();ctx.strokeStyle=art.light;ctx.globalAlpha=.45;ctx.lineWidth=1;ctx.setLineDash([cellSize*.45,cellSize*.28]);strokeMapPath(pts);ctx.stroke();ctx.setLineDash([]);}
+else if(art.motif==='ember'||art.motif==='caldera'||art.motif==='fissure'||art.motif==='ashfall'){ctx.strokeStyle='rgba(4,2,2,.58)';ctx.lineWidth=cellSize*.56;strokeMapPath(pts);ctx.stroke();ctx.strokeStyle=art.light;ctx.globalAlpha=.32;ctx.lineWidth=2;ctx.setLineDash([cellSize*.65,cellSize*.45]);strokeMapPath(pts);ctx.stroke();ctx.setLineDash([]);}
 else{ctx.strokeStyle=art.light;ctx.globalAlpha=.32;ctx.lineWidth=1.25;ctx.setLineDash(art.motif==='command'?[2,3]:[cellSize*.35,cellSize*.45]);strokeMapPath(pts);ctx.stroke();ctx.setLineDash([]);}
 ctx.restore();}}
 
@@ -3358,11 +3383,11 @@ ctx.restore();ctx.strokeStyle=art.light;ctx.globalAlpha=.55;ctx.strokeRect(x+.5,
 
 function drawMapSelect(){drawStarfield();
 ctx.save();ctx.shadowColor='rgba(0,200,255,0.3)';ctx.shadowBlur=15;
-ctx.font='800 '+Math.min(22,W*0.055)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=C_ACC;ctx.fillText('SELECT MAP',W/2,H*0.06);
+ctx.font='800 '+Math.min(22,W*0.055)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=C_ACC;ctx.fillText('SELECT MAP',W/2,40);
 ctx.restore();
 // Biome tabs
 const tabs=['urban','volcanic','arctic'];const tw=W*0.28,th=30,tx0=W/2-tw*1.5-10;G._btns.biomeTabs=[];
-for(let i=0;i<3;i++){const bx=tx0+i*(tw+10),by=H*0.09;const sel=G.biomeTab===tabs[i];
+for(let i=0;i<3;i++){const bx=tx0+i*(tw+10),by=58;const sel=G.biomeTab===tabs[i];
 ctx.fillStyle=sel?'rgba(0,200,255,0.15)':'rgba(20,30,50,0.6)';ctx.strokeStyle=sel?BIOMES[tabs[i]].accent:'#444';ctx.lineWidth=sel?2:1;ctx.beginPath();ctx.roundRect(bx,by,tw,th,4);ctx.fill();ctx.stroke();
 ctx.font='600 '+Math.min(11,W*0.028)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=sel?BIOMES[tabs[i]].accent:C_MUT;ctx.fillText(BIOMES[tabs[i]]?tabs[i].toUpperCase():'',bx+tw/2,by+th/2+1);G._btns.biomeTabs.push({x:bx,y:by,w:tw,h:th,tab:tabs[i]});}
 // Filter maps by biome
