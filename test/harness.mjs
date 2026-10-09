@@ -57,6 +57,7 @@ export function loadGame({width = 390, height = 844, storage = null, seed = {}, 
   for (const [k, v] of Object.entries(seedAll)) store.set('sd_' + k, JSON.stringify(v));
 
   const listeners = {};
+  const documentListeners = {};
   const ctxStub = makeCtxStub();
   const canvas = {
     width: 0, height: 0, style: {},
@@ -67,8 +68,9 @@ export function loadGame({width = 390, height = 844, storage = null, seed = {}, 
   const probeEl = {style: {}};
 
   const documentStub = {
+    hidden: false,
     getElementById: id => (id === 'gameCanvas' ? canvas : id === 'safe-insets' ? probeEl : {style: {}}),
-    addEventListener() {},
+    addEventListener(type, fn) { (documentListeners[type] = documentListeners[type] || []).push(fn); },
     fonts: {ready: Promise.resolve()},
     documentElement: {}
   };
@@ -102,6 +104,7 @@ export function loadGame({width = 390, height = 844, storage = null, seed = {}, 
   const api = {
     window: sandbox.window,
     listeners,
+    documentListeners,
     evaluate(code) { return sandbox.window.__testEvaluate(code); },
     // Advance simulated time in 60fps steps, running update+render via the game's own hook.
     frame(n = 1) {
@@ -113,6 +116,10 @@ export function loadGame({width = 390, height = 844, storage = null, seed = {}, 
     tap(x, y) {
       const fns = listeners.click || [];
       for (const fn of fns) fn({clientX: x, clientY: y, preventDefault() {}});
+    },
+    setHidden(hidden) {
+      documentStub.hidden = hidden;
+      for (const fn of documentListeners.visibilitychange || []) fn({type: 'visibilitychange'});
     },
     async ready() {
       // Flush document.fonts.ready microtask chain.

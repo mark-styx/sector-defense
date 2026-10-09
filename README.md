@@ -30,7 +30,7 @@ Built as a single-file HTML5 Canvas game, optimized for iPhone (390×844 portrai
 - 10 achievements, tower mastery, commander levels, and ELO-ranked Sector Clash
 - Touch-optimized controls for mobile play
 - Deployment fast-forward: tap **DEPLOY »** during a defense wave to toggle 1×/3× enemy deployment without changing movement or combat speed. Resets each wave and stops when the queue is empty.
-- Progress, purchases, and settings persist via localStorage
+- Progress, purchases, settings, and suspended matches persist via localStorage
 
 In Helix War, neutral territories without a garrison or stationed army are marked **UNCONTESTED**. Attacking them costs the usual 2 AP, moves your army into the territory intact, and skips combat and battle rewards. Swarm territory and defended neutral territory require an assault.
 

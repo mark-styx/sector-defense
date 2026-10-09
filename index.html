@@ -1273,6 +1273,11 @@ function saveState(key, data) {
   try { _sto.setItem(STORAGE_PREFIX + key, JSON.stringify(data)); } catch(e) {}
 }
 
+function removeState(key) {
+  if (!storageAvailable||!_sto) return;
+  try { _sto.removeItem(STORAGE_PREFIX + key); } catch(e) {}
+}
+
 function loadState(key) {
   if (!storageAvailable||!_sto) return null;
   try {
@@ -1306,6 +1311,7 @@ function saveAllState() {
     unlockedMapThemes: [...store.unlockedMapThemes],
     unlockedBundles: [...store.unlockedBundles]
   });
+  syncActiveSession();
 }
 
 function loadAllState() {
@@ -1382,6 +1388,195 @@ function loadAllState() {
         }
       }
     }
+  }
+}
+
+// iOS may reclaim a suspended WKWebView after the app has spent a while in
+// the background. Profile progression already survived that, but the live
+// match did not. Keep one compact checkpoint for an in-progress battle and
+// restore it to the pause screen after a WebView/process restart.
+const ACTIVE_SESSION_VERSION = 1;
+const ACTIVE_SESSION_PHASES = new Set([
+  'build', 'wave', 'wavePreview', 'waveSummary', 'offenseGame', 'clashAttack'
+]);
+let restoredActiveSession = false;
+
+function getActiveSessionResumePhase() {
+  if (ACTIVE_SESSION_PHASES.has(G.phase)) return G.phase;
+  if ((G.phase === 'paused' || (G.phase === 'settings' && G._settingsFromPause))
+      && ACTIVE_SESSION_PHASES.has(G.previousPhase)) return G.previousPhase;
+  return null;
+}
+
+function getTutorialSessionState() {
+  const keys = ['active','step','wave','forcedTowerType','highlightCells','waitingFor',
+    'messageQueue','currentMsg','msgAlpha','arrowTarget','dimExcept','completed',
+    'pulseTimer','stepStartTime'];
+  const out = {};
+  for (const key of keys) out[key] = TUTORIAL[key];
+  return out;
+}
+
+function buildActiveSession() {
+  const resumePhase = getActiveSessionResumePhase();
+  if (!resumePhase) return null;
+  const game = {...G};
+  // Hitboxes and modal callbacks are render/input artifacts, not game state.
+  delete game._btns;
+  delete game._modal;
+  const hero = {...heroState, markedEnemies:[...heroState.markedEnemies]};
+  delete hero.hero;
+  return {
+    version: ACTIVE_SESSION_VERSION,
+    savedAt: Date.now(),
+    resumePhase,
+    game,
+    hero,
+    loadoutBonuses: {...loadoutBonuses},
+    offense: {...offense},
+    allied: {...allied},
+    clash: {...clash},
+    swarmEnhanced: {...swarmEnhanced},
+    campaign: {...campaign},
+    envState: {...envState},
+    tutorial: getTutorialSessionState(),
+    paths: currentPaths,
+    cols: currentCols,
+    rows: currentRows,
+    layout: {cellSize, offsetX, offsetY},
+    nextEnemyId,
+    endlessNextWave,
+    matchFinalized: _matchFinalized,
+    creditLog: _creditLog
+  };
+}
+
+function syncActiveSession() {
+  const session = buildActiveSession();
+  if (session) saveState('activeSession', session);
+  else removeState('activeSession');
+}
+
+function restoreActiveSession() {
+  const session = loadState('activeSession');
+  if (!session) return false;
+  const valid = session.version === ACTIVE_SESSION_VERSION
+    && ACTIVE_SESSION_PHASES.has(session.resumePhase)
+    && session.game && typeof session.game === 'object'
+    && Array.isArray(session.game.towers)
+    && Array.isArray(session.game.enemies)
+    && Array.isArray(session.game.spawnQueue)
+    && Number.isInteger(session.game.mapIdx) && session.game.mapIdx >= 0 && session.game.mapIdx < MAPS.length
+    && Array.isArray(session.paths) && session.paths.length > 0
+    && session.paths.every(path => Array.isArray(path) && path.length > 1
+      && path.every(cell => Array.isArray(cell) && cell.length === 2
+        && Number.isInteger(cell[0]) && Number.isInteger(cell[1])))
+    && Number.isInteger(session.cols) && session.cols > 0
+    && Number.isInteger(session.rows) && session.rows > 0;
+  if (!valid) { removeState('activeSession'); return false; }
+
+  try {
+    Object.assign(G, session.game);
+    if (session.offense) Object.assign(offense, session.offense);
+    if (session.allied) Object.assign(allied, session.allied);
+    if (session.clash) Object.assign(clash, session.clash);
+    if (session.swarmEnhanced) Object.assign(swarmEnhanced, session.swarmEnhanced);
+    if (session.campaign) Object.assign(campaign, session.campaign);
+    if (session.loadoutBonuses) Object.assign(loadoutBonuses, session.loadoutBonuses);
+    if (session.envState) Object.assign(envState, session.envState);
+    if (session.tutorial) Object.assign(TUTORIAL, session.tutorial);
+
+    if (session.hero) {
+      Object.assign(heroState, session.hero);
+      heroState.markedEnemies = new Set(session.hero.markedEnemies || []);
+      heroState.hero = heroState.selectedHeroIdx >= 0 ? HEROES[heroState.selectedHeroIdx] : null;
+    }
+
+    currentCols = session.cols;
+    currentRows = session.rows;
+    currentPaths = session.paths;
+    pathSets = [];
+    for (const path of currentPaths) {
+      const cells = new Set();
+      for (const [col,row] of path) cells.add(col+','+row);
+      pathSets.push(cells);
+    }
+
+    // The pause overlay uses the defense layout. Coordinates are projected
+    // from the layout that was active when the checkpoint was written; the
+    // ordinary layout switch projects them again when offense/clash resumes.
+    battleLayoutKind = 'defense';
+    recalcLayout();
+    const old = session.layout || {};
+    const ratio = Number.isFinite(old.cellSize) && old.cellSize > 0 ? cellSize / old.cellSize : 1;
+    const move = (x,y) => ({
+      x: Number.isFinite(old.offsetX) ? offsetX + (x-old.offsetX)*ratio : x,
+      y: Number.isFinite(old.offsetY) ? offsetY + (y-old.offsetY)*ratio : y
+    });
+    if (heroState.deployed) {
+      for (const [xKey,yKey] of [['heroX','heroY'],['heroTargetX','heroTargetY']]) {
+        const p = move(heroState[xKey], heroState[yKey]);
+        heroState[xKey] = p.x; heroState[yKey] = p.y;
+      }
+      if (heroState.moveOrder) Object.assign(heroState.moveOrder, move(heroState.moveOrder.x, heroState.moveOrder.y));
+      if (heroState.shieldWall) {
+        Object.assign(heroState.shieldWall, move(heroState.shieldWall.x, heroState.shieldWall.y));
+        heroState.shieldWall.w *= ratio; heroState.shieldWall.h *= ratio;
+      }
+      for (const turret of heroState.tempTurrets || []) Object.assign(turret, move(turret.x, turret.y));
+    }
+    for (const enemy of G.enemies || []) {
+      const p = getPosOnPath(enemy.progress ?? enemy.pathProgress ?? 0, enemy.pathIdx || 0);
+      enemy.px = p.x; enemy.py = p.y;
+    }
+    for (const anim of G.placementAnims || []) Object.assign(anim, move(anim.x, anim.y));
+
+    nextEnemyId = Math.max(Number.isInteger(session.nextEnemyId) ? session.nextEnemyId : 0,
+      ...(G.enemies || []).map(enemy => (enemy.id || 0) + 1));
+    endlessNextWave = session.endlessNextWave || null;
+    _matchFinalized = !!session.matchFinalized;
+    _creditLog = Array.isArray(session.creditLog) ? session.creditLog : [];
+
+    // Transient shots/particles are intentionally discarded. Their gameplay
+    // owners and health/progress are already checkpointed, and rebuilding
+    // object references from a half-flown projectile is less safe than letting
+    // the next cooldown fire normally.
+    clearEnemyAttacks();
+    particlePool.pool.forEach(p=>p.active=false);
+    projectilePool.pool.forEach(p=>p.active=false);
+    dmgNumPool.pool.forEach(d=>d.active=false);
+    chainPool.pool.forEach(c=>c.active=false);
+    VFX.initEnvParticles(currentBiomeName(), W, H);
+
+    G.previousPhase = session.resumePhase;
+    G.phase = 'paused';
+    G._settingsFromPause = false;
+    G._modal = null;
+    G._btns = {};
+    G.showRadialMenu = false;
+    G.showTowerInfo = false;
+    G.towerInfoIdx = -1;
+    G.orbitalTargeting = false;
+    G.heroAim = null;
+    restoredActiveSession = true;
+    addToast('Battle restored — tap RESUME');
+    return true;
+  } catch (e) {
+    removeState('activeSession');
+    G.phase = 'menu';
+    G.previousPhase = 'menu';
+    G.towers = [];
+    G.enemies = [];
+    G.spawnQueue = [];
+    G.enemiesAlive = 0;
+    G._btns = {};
+    allied.active = false;
+    clash.active = false;
+    offense.active = false;
+    offense.campaignAttacking = false;
+    TUTORIAL.active = false;
+    resetHeroState();
+    return false;
   }
 }
 
@@ -4438,19 +4633,29 @@ function findPressedButton(px,py){
   }
   return null;
 }
-document.addEventListener('visibilitychange', () => {
-  if (document.hidden) {
-    saveAllState();
-    const pausablePhases = ['wave', 'build', 'offenseGame', 'clashAttack', 'wavePreview'];
-    if (pausablePhases.includes(G.phase)) {
-      G.previousPhase = G.phase;
-      G.phase = 'paused';
-    }
-    if (audioCtx && audioCtx.state === 'running') audioCtx.suspend();
-  } else {
-    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+function suspendForBackground() {
+  if (ACTIVE_SESSION_PHASES.has(G.phase)) {
+    G.previousPhase = G.phase;
+    G.phase = 'paused';
+    G.showRadialMenu = false;
+    G.showTowerInfo = false;
+    G.towerInfoIdx = -1;
+    G.orbitalTargeting = false;
+    G.heroAim = null;
   }
+  // Save after pausing so a process restart can never advance the battle by
+  // the amount of wall-clock time spent away from the app.
+  saveAllState();
+  if (audioCtx && audioCtx.state === 'running') audioCtx.suspend();
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) suspendForBackground();
+  else if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
 });
+// pagehide covers WebView teardown/navigation; freeze is used by browsers
+// that implement the Page Lifecycle API before discarding a frozen page.
+window.addEventListener('pagehide', suspendForBackground);
+document.addEventListener('freeze', suspendForBackground);
 let fpsHistory=[],lowFpsMode=false;
 function checkFpsThrottle(){fpsHistory.push(_fps);if(fpsHistory.length>30)fpsHistory.shift();if(fpsHistory.length>=10){const avg=fpsHistory.reduce((a,b)=>a+b,0)/fpsHistory.length;lowFpsMode=avg<28;}}
 
@@ -6199,9 +6404,9 @@ if(TUTORIAL.active){
 
 if(G.phase==='campaignMenu'){
 if(G._btns.campaignMenuResume&&hitTest(px,py,G._btns.campaignMenuResume)){campaign.active=true;
-// Battles never persist across sessions — clear any stale mid-battle flags
-// (e.g. a save triggered during defense combat) so they can't leak into
-// unrelated matches as a phantom 12-wave cap.
+// A valid live-battle checkpoint is restored before this screen. If only an
+// older campaign metadata save remains, clear its stale battle flags so they
+// cannot leak into a new match as a phantom 12-wave cap.
 campaign.defending=false;campaign.attackTarget=-1;campaign.attackSource=-1;campaign.subAction='';
 G.phase='campaignMap';playSound('click');return;}
 if(G._btns.campaignMenuNew&&hitTest(px,py,G._btns.campaignMenuNew)){initCampaign();G.phase='campaignMap';playSound('click');return;}
@@ -6347,7 +6552,7 @@ if(G._btns.campaignReturn&&hitTest(px,py,G._btns.campaignReturn)){processCampaig
 return;}
 if(G.phase==='wavePreview'){if(hitTest(px,py,G._btns.pause)){tryPause();return;}startWave();return;}
 if(G.phase==='waveSummary'){if(hitTest(px,py,G._btns.pause)){tryPause();return;}G.phase='build';playSound('click');return;}
-if(G.phase==='paused'){if(hitTest(px,py,G._btns.resume)){G.phase=G.previousPhase;playSound('click');}
+if(G.phase==='paused'){if(hitTest(px,py,G._btns.resume)){G.phase=G.previousPhase;if(restoredActiveSession){restoredActiveSession=false;startAmbient(MAPS[G.mapIdx]?.biome||'urban');}playSound('click');}
 else if(hitTest(px,py,G._btns.pauseSettings)){G._settingsFromPause=true;G.phase='settings';playSound('click');}
 else if(hitTest(px,py,G._btns.quit)){
 if(campaign.active&&campaign.defending){
@@ -6515,6 +6720,7 @@ window._getProjSample=function(){const s=[];for(const p of projectilePool.pool)i
 
 
 loadAllState();
+restoreActiveSession();
 // The game renders no DOM text, so browsers may never fetch the canvas fonts.
 // Force-load the faces/weights the canvas uses (falls back silently offline).
 if (document.fonts && document.fonts.load) {
