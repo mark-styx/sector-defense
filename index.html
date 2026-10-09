@@ -1431,7 +1431,7 @@ function applyAllState(s) {
 // timestamp and only replaces local state at launch when strictly newer.
 // Every call is fire-and-forget safe: offline, unconfigured or mid-battle,
 // the game is unaffected.
-const CLOUD_API_DEFAULT = ''; // set to the workers.dev URL at deploy time
+const CLOUD_API_DEFAULT = 'https://sector-defense-api.styxm.workers.dev'; // deployed 2026-10-09
 const CLOUD_DEBOUNCE_MS = 4000;
 const cloud = { userId: '', secret: '', localUpdatedAt: 0, status: 'never', lastSyncAt: 0,
   inflight: false, pendingPush: false, timer: 0 };

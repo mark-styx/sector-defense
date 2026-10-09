@@ -8,5 +8,5 @@ compatibility_date = "2026-10-09"
 [[d1_databases]]
 binding = "DB"
 database_name = "sector-defense"
-database_id = "REPLACE_AFTER_CREATE"
+database_id = "f1e1a44b-b2a4-49a4-8967-a5745a7485c1"
 migrations_dir = "migrations"
