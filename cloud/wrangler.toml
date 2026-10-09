@@ -1,0 +1,12 @@
+name = "sector-defense-api"
+main = "src/worker.js"
+compatibility_date = "2026-10-09"
+
+# D1 is the single database for this game: accounts, save sync, leaderboards.
+# Create it once with `npx wrangler d1 create sector-defense`, then paste the
+# printed database_id below (local dev does not need it).
+[[d1_databases]]
+binding = "DB"
+database_name = "sector-defense"
+database_id = "REPLACE_AFTER_CREATE"
+migrations_dir = "migrations"

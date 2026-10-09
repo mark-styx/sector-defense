@@ -233,7 +233,7 @@ function drawColorBlindMarker(ctx2, x, y, size, typeId) {
   ctx2.restore();
 }
 
-const settings={sfxVol:75,musicVol:50,defaultSpeed:1,damageNumbers:true,gridOverlay:true,screenShake:true,showFPS:false,reduceMotion:false,colorBlind:'off'};
+const settings={sfxVol:75,musicVol:50,defaultSpeed:1,damageNumbers:true,gridOverlay:true,screenShake:true,showFPS:false,reduceMotion:false,colorBlind:'off',cloudSync:true,cloudApi:''};
 const MASTERY_THRESHOLDS=[0,50,150,400,1000];
 
 // Arsenal Cards
@@ -777,8 +777,8 @@ resize();window.addEventListener('resize',resize);
 // Menus retain readable rows on short screens and a focused column on wide ones.
 // The battlefield keeps its own coordinates; only menu surfaces scroll.
 const uiState={key:'',scroll:0,maxScroll:0,frame:null,scrolls:new Map()};
-const UI_HEIGHTS={menu:905,mapSelect:800,diffSelect:710,biomeSelect:610,
-settings:780,howToPlay:940,profile:780,loadout:1220,heroSelect:790,heroRoster:760,
+const UI_HEIGHTS={menu:955,mapSelect:800,diffSelect:710,biomeSelect:610,
+settings:838,howToPlay:940,profile:780,loadout:1220,heroSelect:790,heroRoster:760,
 campaignMenu:670,campaignMap:800,campaignSwarmAttack:580,campaignVictory:640,
 campaignDefeat:580,offenseMapSelect:650,offenseResult:660,alliedVictory:700,
 clashFinal:690,clashAttackResult:540,paused:520,wavePreview:710,waveSummary:480,
@@ -786,6 +786,7 @@ gameover:900,victory:900};
 function getMenuHeight(){
   if(G.phase==='achievements')return 160+ACHIEVEMENTS.length*76;
   if(G.phase==='codex')return 92+TT.length*160+72;
+  if(G.phase==='leaderboard')return 156+Math.max(leaderboard.rows?leaderboard.rows.length:8,8)*54+64;
   if(G.phase==='mapSelect')return Math.max(UI_HEIGHTS.mapSelect,116+MAPS.filter(m=>m.biome===G.biomeTab).length*136+56);
   if(G.phase==='store')return [760,650,570,610,790][store.tab]||760;
   return UI_HEIGHTS[G.phase]||0;
@@ -1287,99 +1288,132 @@ function loadState(key) {
 }
 
 function saveAllState() {
-  saveState('settings', settings);
-  saveState('mastery', towerMasteryKills);
-  saveState('prog', prog);
-  saveState('loadout', {
+  const st = exportAllState();
+  saveState('settings', st.settings);
+  saveState('mastery', st.mastery);
+  saveState('prog', st.prog);
+  saveState('loadout', st.loadout);
+  saveState('campaign', st.campaign);
+  saveState('achievements', st.achievements);
+  saveState('briefings', st.briefings);
+  saveState('clash', st.clash);
+  saveState('swarm', st.swarm);
+  saveState('heroProg', st.heroProg);
+  saveState('store', st.store);
+  saveState('meta', { updatedAt: st.updatedAt });
+  cloud.localUpdatedAt = st.updatedAt;
+  syncActiveSession();
+  scheduleCloudPush();
+}
+
+function loadAllState() {
+  applyAllState({
+    settings: loadState('settings'),
+    mastery: loadState('mastery'),
+    prog: loadState('prog'),
+    loadout: loadState('loadout'),
+    campaign: loadState('campaign'),
+    achievements: loadState('achievements'),
+    briefings: loadState('briefings'),
+    clash: loadState('clash'),
+    swarm: loadState('swarm'),
+    heroProg: loadState('heroProg'),
+    store: loadState('store')
+  });
+  const meta = loadState('meta');
+  cloud.localUpdatedAt = (meta && meta.updatedAt) || 0;
+}
+
+// One serializable snapshot of everything that persists. Shape is shared by
+// local saves (per-key above) and the cloud mirror: applyAllState() is the
+// single reader, so a cloud pull replays through the exact same guards as a
+// local load and can never inject a malformed object path.
+function exportAllState() {
+  const st = {};
+  st.settings = settings;
+  st.mastery = towerMasteryKills;
+  st.prog = prog;
+  st.loadout = {
     unlockedCards: [...loadout.unlockedCards],
     equippedCards: [...loadout.equippedCards],
     unlockedSkins: loadout.unlockedSkins,
     equippedSkins: loadout.equippedSkins,
     matchCount: loadout.matchCount
-  });
-  saveState('campaign', campaign);
-  saveState('achievements', [...achievements.unlocked]);
-  saveState('briefings', [...seenBriefings]);
-  saveState('clash', {elo: clash.elo, totalPvpWins: clash.totalPvpWins});
-  saveState('swarm', {mapsCleared: swarmEnhanced.mapsCleared, hiveTitanUnlocked: swarmEnhanced.hiveTitanUnlocked});
-  saveState('heroProg', heroProg);
-  saveState('store', {
+  };
+  st.campaign = campaign;
+  st.achievements = [...achievements.unlocked];
+  st.briefings = [...seenBriefings];
+  st.clash = { elo: clash.elo, totalPvpWins: clash.totalPvpWins };
+  st.swarm = { mapsCleared: swarmEnhanced.mapsCleared, hiveTitanUnlocked: swarmEnhanced.hiveTitanUnlocked };
+  st.heroProg = heroProg;
+  st.store = {
     helixCredits: helixCredits,
-    unlockedHeroSkins: Object.fromEntries(Object.entries(store.unlockedHeroSkins).map(([k,v])=>[k,[...v]])),
+    unlockedHeroSkins: Object.fromEntries(Object.entries(store.unlockedHeroSkins).map(([k, v]) => [k, [...v]])),
     equippedHeroSkins: store.equippedHeroSkins,
     unlockedTowerPacks: [...store.unlockedTowerPacks],
     unlockedMapThemes: [...store.unlockedMapThemes],
     unlockedBundles: [...store.unlockedBundles]
-  });
-  syncActiveSession();
+  };
+  st.updatedAt = Date.now();
+  return st;
 }
 
-function loadAllState() {
-  const s = loadState('settings');
-  if (s) {
-    Object.assign(settings, s);
+function applyAllState(s) {
+  if (s.settings) {
+    Object.assign(settings, s.settings);
     // Sanitize: corrupted saves must not brick the settings screen.
-    const nums = {sfxVol: 75, musicVol: 50, defaultSpeed: 1};
+    const nums = { sfxVol: 75, musicVol: 50, defaultSpeed: 1 };
     for (const k in nums) {
       const v = Number(settings[k]);
       settings[k] = Number.isFinite(v) ? v : nums[k];
     }
-    for (const k of ['damageNumbers', 'gridOverlay', 'screenShake', 'showFPS', 'reduceMotion'])
+    for (const k of ['damageNumbers', 'gridOverlay', 'screenShake', 'showFPS', 'reduceMotion', 'cloudSync'])
       settings[k] = !!settings[k];
+    if (typeof settings.cloudApi !== 'string') settings.cloudApi = '';
     if (!['off', 'deuteranopia', 'protanopia'].includes(settings.colorBlind)) settings.colorBlind = 'off';
   }
 
-  const m = loadState('mastery');
-  if (m) Object.assign(towerMasteryKills, m);
+  if (s.mastery) Object.assign(towerMasteryKills, s.mastery);
 
-  const p = loadState('prog');
-  if (p) Object.assign(prog, p);
+  if (s.prog) Object.assign(prog, s.prog);
 
-  const l = loadState('loadout');
-  if (l) {
-    loadout.unlockedCards = new Set(l.unlockedCards || []);
-    loadout.equippedCards = new Set(l.equippedCards || []);
-    if (l.unlockedSkins) loadout.unlockedSkins = l.unlockedSkins;
-    if (l.equippedSkins) loadout.equippedSkins = l.equippedSkins;
-    if (l.matchCount !== undefined) loadout.matchCount = l.matchCount;
+  if (s.loadout) {
+    loadout.unlockedCards = new Set(s.loadout.unlockedCards || []);
+    loadout.equippedCards = new Set(s.loadout.equippedCards || []);
+    if (s.loadout.unlockedSkins) loadout.unlockedSkins = s.loadout.unlockedSkins;
+    if (s.loadout.equippedSkins) loadout.equippedSkins = s.loadout.equippedSkins;
+    if (s.loadout.matchCount !== undefined) loadout.matchCount = s.loadout.matchCount;
   }
 
-  const c = loadState('campaign');
   // Only restore a campaign whose territories are a well-formed non-empty
   // array; anything else (truncated/old-shape/corrupt) is discarded rather
   // than bricking the campaign map render.
-  if (c && Array.isArray(c.territories) && c.territories.length === TERRITORIES.length
-      && c.territories.every(t => t && typeof t === 'object' && 'owner' in t)) {
-    Object.assign(campaign, c);
+  if (s.campaign && Array.isArray(s.campaign.territories) && s.campaign.territories.length === TERRITORIES.length
+      && s.campaign.territories.every(t => t && typeof t === 'object' && 'owner' in t)) {
+    Object.assign(campaign, s.campaign);
   }
 
-  const a = loadState('achievements');
-  if (a) achievements.unlocked = new Set(a);
+  if (Array.isArray(s.achievements)) achievements.unlocked = new Set(s.achievements);
 
-  const br = loadState('briefings');
-  if (Array.isArray(br)) seenBriefings = new Set(br.filter(k => typeof k === 'string'));
+  if (Array.isArray(s.briefings)) seenBriefings = new Set(s.briefings.filter(k => typeof k === 'string'));
 
-  const cl = loadState('clash');
-  if (cl) { clash.elo = cl.elo ?? 1000; clash.totalPvpWins = cl.totalPvpWins ?? 0; }
+  if (s.clash) { clash.elo = s.clash.elo ?? 1000; clash.totalPvpWins = s.clash.totalPvpWins ?? 0; }
 
-  const sw = loadState('swarm');
-  if (sw) { swarmEnhanced.mapsCleared = sw.mapsCleared ?? 0; swarmEnhanced.hiveTitanUnlocked = sw.hiveTitanUnlocked ?? false; }
+  if (s.swarm) { swarmEnhanced.mapsCleared = s.swarm.mapsCleared ?? 0; swarmEnhanced.hiveTitanUnlocked = s.swarm.hiveTitanUnlocked ?? false; }
 
-  const hp2 = loadState('heroProg');
-  if (hp2) { for (const k in hp2) { if (heroProg[k]) Object.assign(heroProg[k], hp2[k]); } }
+  if (s.heroProg) { for (const k in s.heroProg) { if (heroProg[k]) Object.assign(heroProg[k], s.heroProg[k]); } }
 
-  const st = loadState('store');
-  if (st) {
-    if (st.helixCredits !== undefined) helixCredits = st.helixCredits;
-    if (st.unlockedHeroSkins) {
-      for (const k in st.unlockedHeroSkins) {
-        if (store.unlockedHeroSkins[k]) store.unlockedHeroSkins[k] = new Set(st.unlockedHeroSkins[k]);
+  if (s.store) {
+    if (s.store.helixCredits !== undefined) helixCredits = s.store.helixCredits;
+    if (s.store.unlockedHeroSkins) {
+      for (const k in s.store.unlockedHeroSkins) {
+        if (store.unlockedHeroSkins[k]) store.unlockedHeroSkins[k] = new Set(s.store.unlockedHeroSkins[k]);
       }
     }
-    if (st.equippedHeroSkins) Object.assign(store.equippedHeroSkins, st.equippedHeroSkins);
-    if (st.unlockedTowerPacks) store.unlockedTowerPacks = new Set(st.unlockedTowerPacks);
-    if (st.unlockedMapThemes) store.unlockedMapThemes = new Set(st.unlockedMapThemes);
-    if (st.unlockedBundles) store.unlockedBundles = new Set(st.unlockedBundles);
+    if (s.store.equippedHeroSkins) Object.assign(store.equippedHeroSkins, s.store.equippedHeroSkins);
+    if (s.store.unlockedTowerPacks) store.unlockedTowerPacks = new Set(s.store.unlockedTowerPacks);
+    if (s.store.unlockedMapThemes) store.unlockedMapThemes = new Set(s.store.unlockedMapThemes);
+    if (s.store.unlockedBundles) store.unlockedBundles = new Set(s.store.unlockedBundles);
     // Re-register purchased tower skin packs
     for (const pack of TOWER_SKIN_PACKS) {
       if (store.unlockedTowerPacks.has(pack.id)) {
@@ -1389,6 +1423,132 @@ function loadAllState() {
       }
     }
   }
+}
+
+// === CLOUD SYNC ===
+// Mirror of local progress on a Cloudflare Worker + D1 (see cloud/). Local
+// storage stays the source of truth; the cloud copy is last-write-wins by
+// timestamp and only replaces local state at launch when strictly newer.
+// Every call is fire-and-forget safe: offline, unconfigured or mid-battle,
+// the game is unaffected.
+const CLOUD_API_DEFAULT = ''; // set to the workers.dev URL at deploy time
+const CLOUD_DEBOUNCE_MS = 4000;
+const cloud = { userId: '', secret: '', localUpdatedAt: 0, status: 'never', lastSyncAt: 0,
+  inflight: false, pendingPush: false, timer: 0 };
+
+function cloudApi() { return settings.cloudApi || CLOUD_API_DEFAULT; }
+function cloudEnabled() { return !!(settings.cloudSync && cloudApi() && typeof fetch === 'function'); }
+function cloudName() { return 'CMDR-' + (cloud.userId.slice(0, 4) || '0000').toUpperCase(); }
+function cloudHeaders(json) {
+  const h = { 'Authorization': 'Bearer ' + cloud.userId + ':' + cloud.secret };
+  if (json) h['Content-Type'] = 'application/json';
+  return h;
+}
+function cloudFetch(url, opts) {
+  const f = (typeof fetch === 'function') ? fetch : ((window && window.fetch) || null);
+  return f ? f(url, opts) : Promise.reject(new Error('no fetch'));
+}
+function loadCloudIdentity() {
+  try {
+    const raw = _sto && _sto.getItem(STORAGE_PREFIX + 'cloud_id');
+    if (!raw) return;
+    const id = JSON.parse(raw);
+    if (typeof id.userId === 'string' && typeof id.secret === 'string') { cloud.userId = id.userId; cloud.secret = id.secret; }
+  } catch (e) {}
+}
+function randomHex(n) {
+  const b = new Uint8Array(n);
+  if (window.crypto && window.crypto.getRandomValues) window.crypto.getRandomValues(b);
+  else for (let i = 0; i < n; i++) b[i] = Math.floor(Math.random() * 256);
+  return [...b].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+// First cloud-enabled launch mints a device identity (12-hex id + 40-hex
+// secret) and registers it. The secret never leaves the device unhashed
+// except to its own server; the server stores only sha256(secret:id).
+function ensureCloudIdentity() {
+  if (cloud.userId && cloud.secret) return;
+  if (!cloudEnabled()) return;
+  cloud.userId = randomHex(6);
+  cloud.secret = randomHex(20);
+  try { _sto.setItem(STORAGE_PREFIX + 'cloud_id', JSON.stringify({ userId: cloud.userId, secret: cloud.secret })); } catch (e) {}
+  cloudRegister();
+}
+async function cloudRegister() {
+  if (!cloudEnabled() || !cloud.userId) return;
+  try {
+    const r = await cloudFetch(cloudApi() + '/v1/account', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: cloud.userId, secret: cloud.secret })
+    });
+    cloud.status = r.ok ? 'linked' : (r.status === 401 ? 'conflict' : 'error');
+  } catch (e) { cloud.status = 'offline'; }
+}
+async function cloudPush() {
+  if (!cloudEnabled() || !cloud.userId) return;
+  if (cloud.inflight) { cloud.pendingPush = true; return; }
+  cloud.inflight = true;
+  try {
+    const st = exportAllState();
+    const r = await cloudFetch(cloudApi() + '/v1/save', { method: 'PUT', headers: cloudHeaders(true), body: JSON.stringify(st) });
+    if (r.ok) { cloud.status = 'synced'; cloud.lastSyncAt = Date.now(); }
+    else cloud.status = (r.status === 401) ? 'conflict' : 'error';
+  } catch (e) { cloud.status = 'offline'; }
+  finally {
+    cloud.inflight = false;
+    if (cloud.pendingPush) { cloud.pendingPush = false; cloudPush(); }
+  }
+}
+async function cloudPull() {
+  if (!cloudEnabled() || !cloud.userId) return;
+  try {
+    const r = await cloudFetch(cloudApi() + '/v1/save', { headers: cloudHeaders(false) });
+    if (!r.ok) { cloud.status = (r.status === 401) ? 'conflict' : 'error'; return; }
+    const j = await r.json();
+    if (j && j.empty) { cloud.status = 'synced'; cloudPush(); return; } // seed the cloud copy
+    if (j && (j.updatedAt || 0) > cloud.localUpdatedAt) {
+      applyAllState(j.blob || {});
+      cloud.localUpdatedAt = j.updatedAt;
+      saveAllState(); // persist locally (timestamps again; echo push is harmless)
+    }
+    cloud.status = 'synced'; cloud.lastSyncAt = Date.now();
+  } catch (e) { cloud.status = 'offline'; }
+}
+function scheduleCloudPush() {
+  if (!cloudEnabled()) return;
+  clearTimeout(cloud.timer);
+  cloud.timer = setTimeout(cloudPush, CLOUD_DEBOUNCE_MS);
+}
+// Flush a pending debounced push the moment the app goes to background.
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && cloudEnabled()) { clearTimeout(cloud.timer); cloudPush(); }
+});
+// Leaderboards: score = wave*10 + stars (endless submits under 'endless').
+const LB_DIFFS = ['standard', 'veteran', 'elite', 'legendary', 'endless'];
+const leaderboard = { mapIdx: 0, diffIdx: 0, rows: null, loading: false, error: '', key: '', fetchedAt: 0 };
+function cloudSubmitScore(mapId, diffId, score, wave, victory) {
+  if (!cloudEnabled() || !cloud.userId) return;
+  try {
+    cloudFetch(cloudApi() + '/v1/scores', {
+      method: 'POST', headers: cloudHeaders(true),
+      body: JSON.stringify({ map: mapId, diff: diffId, score: score, wave: wave, victory: !!victory, name: cloudName() + '·L' + prog.level })
+    }).catch(() => {});
+  } catch (e) {}
+}
+function loadLeaderboard(force) {
+  if (!cloudEnabled()) { leaderboard.rows = null; leaderboard.error = 'Cloud sync off'; return; }
+  const key = MAPS[leaderboard.mapIdx].id + '_' + LB_DIFFS[leaderboard.diffIdx];
+  if (!force && leaderboard.key === key && Date.now() - leaderboard.fetchedAt < 60000) return;
+  leaderboard.key = key; leaderboard.loading = true; leaderboard.error = '';
+  cloudFetch(cloudApi() + '/v1/scores?map=' + MAPS[leaderboard.mapIdx].id + '&diff=' + LB_DIFFS[leaderboard.diffIdx] + '&limit=25', { headers: {} })
+    .then(r => r.json())
+    .then(j => { leaderboard.rows = (j && j.rows) || []; leaderboard.loading = false; leaderboard.fetchedAt = Date.now(); })
+    .catch(() => { leaderboard.loading = false; leaderboard.error = 'Cloud unreachable'; });
+}
+function saveLeaderboardSelection() { saveState('lb', { mapIdx: leaderboard.mapIdx, diffIdx: leaderboard.diffIdx }); }
+function loadLeaderboardSelection() {
+  const s = loadState('lb');
+  if (s && Number.isInteger(s.mapIdx) && s.mapIdx >= 0 && s.mapIdx < MAPS.length) leaderboard.mapIdx = s.mapIdx;
+  if (s && Number.isInteger(s.diffIdx) && s.diffIdx >= 0 && s.diffIdx < LB_DIFFS.length) leaderboard.diffIdx = s.diffIdx;
 }
 
 // iOS may reclaim a suspended WKWebView after the app has spent a while in
@@ -3359,7 +3519,8 @@ sepGrad.addColorStop(0,'transparent');sepGrad.addColorStop(0.5,C_ACC);sepGrad.ad
 ctx.strokeStyle=sepGrad;ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(W/2-sepW/2,H*0.09);ctx.lineTo(W/2+sepW/2,H*0.09);ctx.stroke();
 const opts=[['SFX Volume',settings.sfxVol.toString(),'🔊'],['Music Volume',settings.musicVol.toString(),'🎵'],['Game Speed',settings.defaultSpeed+'x','⏩'],['Damage Numbers',settings.damageNumbers?'On':'Off','💢'],['Grid Overlay',settings.gridOverlay?'On':'Off','▦'],['Screen Shake',settings.screenShake?'On':'Off','📳'],['Show FPS',settings.showFPS?'On':'Off','📊'],
 ['Reduce Motion',settings.reduceMotion?'On':'Off','♿'],
-['Color Blind',settings.colorBlind==='off'?'Off':settings.colorBlind==='deuteranopia'?'Deut.':'Prot.','👁']];
+['Color Blind',settings.colorBlind==='off'?'Off':settings.colorBlind==='deuteranopia'?'Deut.':'Prot.','👁'],
+['Cloud Sync',settings.cloudSync?(cloud.status==='synced'?'On ✓':'On'):'Off','☁']];
 
 const fs=13,rowH=58;G._btns.settingsOpts=[];
 for(let i=0;i<opts.length;i++){const[label,val,icon]=opts[i];
@@ -3386,7 +3547,9 @@ ctx.fillStyle='rgba(0,200,255,0.5)';ctx.fillText('Privacy Policy',W/2-60,legalY+
 ctx.fillText('Terms of Service',W/2+60,legalY+10);G._btns.termsLink={x:W/2,y:legalY-2,w:120,h:22};
 ctx.fillStyle='rgba(0,200,255,0.15)';ctx.fillRect(W/2-110,legalY+14,100,0.5);ctx.fillRect(W/2+10,legalY+14,100,0.5);
 const by=Math.max(legalY+46,H-80),bw=120,bh=44;ctx.fillStyle='rgba(20,30,50,0.8)';ctx.strokeStyle=C_MUT;ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(W/2-bw/2,by,bw,bh,6);ctx.fill();ctx.stroke();ctx.font='600 '+Math.min(13,W*0.033)+'px '+FD;ctx.textAlign='center';ctx.fillStyle=C_MUT;ctx.fillText('BACK',W/2,by+bh/2+4);G._btns.settingsBack={x:W/2-bw/2,y:by,w:bw,h:bh};
-ctx.font='500 9px '+FB;ctx.fillStyle=storageAvailable?'#44ff88':'#ff8844';ctx.textAlign='center';ctx.fillText('v7.6.4 · '+(storageAvailable?'● Progress saves locally':'● Progress saves this session only'),W/2,H-14);}
+const CLD_LBL={synced:'Cloud synced',linked:'Cloud linked',never:'Cloud pending',offline:'Cloud offline',error:'Cloud error',conflict:'Cloud conflict'};
+const cldTxt=settings.cloudSync?(' · ☁ '+(CLD_LBL[cloud.status]||'Cloud')):'';
+ctx.font='500 9px '+FB;ctx.fillStyle=storageAvailable?'#44ff88':'#ff8844';ctx.textAlign='center';ctx.fillText('v7.6.4 · '+(storageAvailable?'● Progress saves locally':'● Progress saves this session only')+cldTxt,W/2,H-14);}
 
 function drawHowToPlay(){drawStarfield();
 ctx.save();ctx.shadowColor='rgba(0,200,255,0.3)';ctx.shadowBlur=15;
@@ -3432,6 +3595,52 @@ if(a.dmg)parts.push(sgn((a.dmg-1)*100)+' DMG');if(a.rng)parts.push(sgn((a.rng-1)
 if(a.frm)parts.push(sgn((1/a.frm-1)*100)+' RATE');
 notes.push(b.toUpperCase()+' '+parts.join(' '));}
 return notes;}
+
+// Leaderboard: cloud rankings per map + difficulty; endless runs rank on
+// their own board by wave depth. Reads the same /v1/scores API the game
+// submits to at match end.
+function drawLeaderboardScreen(){
+drawStarfield();
+ctx.save();ctx.shadowColor='rgba(255,221,85,0.3)';ctx.shadowBlur=15;
+ctx.font='800 22px '+FD;ctx.textAlign='center';ctx.fillStyle='#ffdd55';ctx.fillText('LEADERBOARD',W/2,38);
+ctx.restore();
+const selY=64,diffY=112;
+const mapName=MAPS[leaderboard.mapIdx].name.toUpperCase();
+const diffName=LB_DIFFS[leaderboard.diffIdx].toUpperCase();
+const selBtn=(key,x,y)=>{ctx.fillStyle='rgba(255,221,85,0.08)';ctx.strokeStyle='rgba(255,221,85,0.3)';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(x,y,30,26,6);ctx.fill();ctx.stroke();ctx.font='700 13px '+FD;ctx.fillStyle='#ffdd55';ctx.fillText(key==='lbMapPrev'||key==='lbDiffPrev'?'◀':'▶',x+15,y+17);G._btns[key]={x:x,y:y,w:30,h:26};};
+ctx.font='600 11px '+FB;ctx.fillStyle=C_MUT;ctx.fillText('MAP',W/2,selY-6);
+selBtn('lbMapPrev',W/2-150,selY);
+ctx.font='700 14px '+FD;ctx.fillStyle=C_TXT;ctx.fillText(mapName,W/2,selY+18);
+selBtn('lbMapNext',W/2+120,selY);
+ctx.font='600 11px '+FB;ctx.fillStyle=C_MUT;ctx.fillText('DIFFICULTY',W/2,diffY-6);
+selBtn('lbDiffPrev',W/2-150,diffY);
+ctx.font='700 13px '+FD;ctx.fillStyle=C_TXT;ctx.fillText(diffName,W/2,diffY+18);
+selBtn('lbDiffNext',W/2+120,diffY);
+let y=156;
+if(leaderboard.loading){ctx.font='600 14px '+FD;ctx.fillStyle=C_MUT;ctx.fillText('FETCHING RANKINGS…',W/2,y+26);}
+else if(leaderboard.error){ctx.font='600 13px '+FD;ctx.fillStyle=C_WRN;ctx.fillText(leaderboard.error.toUpperCase(),W/2,y+24);ctx.font='500 11px '+FB;ctx.fillStyle=C_MUT;ctx.fillText('Cloud sync must be on and online to view rankings',W/2,y+44);}
+else if(!leaderboard.rows||!leaderboard.rows.length){ctx.font='600 13px '+FD;ctx.fillStyle=C_MUT;ctx.fillText('NO RUNS YET',W/2,y+24);ctx.font='500 12px '+FB;ctx.fillStyle=C_MUT;ctx.fillText('Finish a match on this board to claim rank #1',W/2,y+46);}
+else{
+const medals=['#ffd700','#c0c0c0','#cd7f32'];
+for(let i=0;i<leaderboard.rows.length;i++){const row=leaderboard.rows[i];const ry=y+i*54;
+ctx.fillStyle=i%2===0?'rgba(15,25,45,0.5)':'rgba(10,18,35,0.3)';
+ctx.beginPath();ctx.roundRect(W*0.06,ry,W*0.88,48,8);ctx.fill();
+const med=medals[i]||(i<10?'rgba(0,200,255,0.7)':'rgba(120,140,160,0.7)');
+ctx.fillStyle=med;ctx.beginPath();ctx.roundRect(W*0.06,ry,3,48,2);ctx.fill();
+ctx.font='800 16px '+FD;ctx.textAlign='left';ctx.fillStyle=med;
+ctx.fillText('#'+row.rank,W*0.10,ry+22);
+ctx.font='500 12px '+FB;ctx.fillStyle=C_TXT;
+ctx.fillText(String(row.name).slice(0,18),W*0.10,ry+40);
+ctx.font='700 15px '+FD;ctx.textAlign='right';ctx.fillStyle=med;
+ctx.fillText(''+row.score,W*0.94,ry+22);
+ctx.font='500 10px '+FB;ctx.fillStyle=C_MUT;
+ctx.fillText('W'+row.wave+(row.victory?' ✓ WIN':''),W*0.94,ry+40);}
+y+=leaderboard.rows.length*54;}
+const backY=Math.max(y+16,H-50),bw=120,bh=44;
+ctx.fillStyle='rgba(20,30,50,0.8)';ctx.strokeStyle=C_MUT;ctx.lineWidth=1;
+ctx.beginPath();ctx.roundRect(W/2-bw/2,backY,bw,bh,6);ctx.fill();ctx.stroke();
+ctx.font='600 13px '+FD;ctx.textAlign='center';ctx.fillStyle=C_MUT;ctx.fillText('BACK',W/2,backY+bh/2+4);
+G._btns.lbBack={x:W/2-bw/2,y:backY,w:bw,h:bh};}
 
 function drawCodexScreen(){
 drawStarfield();
@@ -4538,6 +4747,10 @@ let allSkins=true;for(const t of TT){if(loadout.unlockedSkins[t.id].length<SKIN_
 if(allSkins)checkAchievement('full_arsenal');
 for(const t of TT){if(getMasteryTier(t.id)>=5){checkAchievement('tower_master');break;}}
 if(swarmEnhanced.mapsCleared>=OFFENSE_MAPS.length)checkAchievement('swarm_lord');
+// Leaderboard submit: every classic + endless run (allied/clash excluded).
+if(!allied.active&&!clash.active){
+const lbDiff=G.endlessMode?'endless':DIFFS[G.diffIdx].id;
+cloudSubmitScore(MAPS[G.mapIdx].id,lbDiff,waveReached*10+stars,waveReached,victory);}
 saveAllState();}
 
 
@@ -5121,6 +5334,7 @@ let menuItems=[
 {label:'STORE',key:'menuStore',color:'#ffaa22',icon:'◇',glow:true},
 {label:'LOADOUT',key:'menuLoadout',color:'#aa66ff',icon:'🃏'},
 {label:'TOWER CODEX',key:'menuCodex',color:'#44ffaa',icon:'⬢'},
+{label:'LEADERBOARD',key:'menuLeaderboard',color:'#ffdd55',icon:'🏆'},
 {label:'PROFILE',key:'menuProfile',color:'#88aacc',icon:'👤'},
 {label:'SETTINGS',key:'menuSettings',color:'#88aacc',icon:'⚙'},
 {label:'HOW TO PLAY',key:'menuHowTo',color:'#88aacc',icon:'?'}
@@ -6186,8 +6400,8 @@ if(t>2.0){ctx.globalAlpha=(t-2.0)/0.5;ctx.fillStyle='#030508';ctx.fillRect(0,0,W
 // MENU_PHASES drives ambient-music routing; SIM_PAUSED_PHASES is the set of
 // phases where the simulation does not tick. Adding a new screen phase means
 // adding it to BOTH lists (and to the render() dispatch).
-const MENU_PHASES=new Set(['menu','mapSelect','diffSelect','biomeSelect','howToPlay','profile','loadout','settings','achievements','codex','offenseMapSelect','campaignMenu','campaignMap','heroSelect','heroRoster','store']);
-const SIM_PAUSED_PHASES=new Set(['paused','wavePreview','waveSummary','menu','mapSelect','diffSelect','howToPlay','gameover','victory','settings','biomeSelect','campaign','campaignMenu','campaignMap','campaignSwarmAttack','swarmCommander','offenseMapSelect','offenseResult','loadout','profile','campaignVictory','campaignDefeat','alliedVictory','clashFinal','clashAttackResult','achievements','codex','heroSelect','heroRoster','store']);
+const MENU_PHASES=new Set(['menu','mapSelect','diffSelect','biomeSelect','howToPlay','profile','loadout','settings','achievements','codex','leaderboard','offenseMapSelect','campaignMenu','campaignMap','heroSelect','heroRoster','store']);
+const SIM_PAUSED_PHASES=new Set(['paused','wavePreview','waveSummary','menu','mapSelect','diffSelect','howToPlay','gameover','victory','settings','biomeSelect','leaderboard','campaign','campaignMenu','campaignMap','campaignSwarmAttack','swarmCommander','offenseMapSelect','offenseResult','loadout','profile','campaignVictory','campaignDefeat','alliedVictory','clashFinal','clashAttackResult','achievements','codex','heroSelect','heroRoster','store']);
 const BATTLE_OVERLAYS=new Set(['paused','wavePreview','waveSummary','gameover','victory']);
 // Vignette gradient is rebuilt only on resize, not every frame.
 let _vig=null,_vigW=0,_vigH=0;
@@ -6215,6 +6429,7 @@ else if(G.phase==='clashAttack'){drawClashAttack();}
 else if(G.phase==='clashAttackResult')drawClashAttackResult();
 else if(G.phase==='achievements')drawAchievementsScreen();
 else if(G.phase==='codex')drawCodexScreen();
+else if(G.phase==='leaderboard')drawLeaderboardScreen();
 else if(G.phase==='campaignMenu')drawCampaignMenu();
 else if(G.phase==='campaignMap')drawCampaignMap();
 else if(G.phase==='campaignSwarmAttack')drawCampaignSwarmAttack();
@@ -6502,6 +6717,7 @@ else if(hitTest(px,py,G._btns.menuProfile)){G.phase='profile';playSound('click')
 else if(hitTest(px,py,G._btns.menuSettings)){G.previousPhase='menu';G.phase='settings';playSound('click');}
 else if(hitTest(px,py,G._btns.menuHowTo)){G.phase='howToPlay';playSound('click');}
 else if(hitTest(px,py,G._btns.menuCodex)){G.phase='codex';playSound('click');}
+else if(hitTest(px,py,G._btns.menuLeaderboard)){loadLeaderboardSelection();G.phase='leaderboard';loadLeaderboard(true);playSound('click');}
 else if(G._btns.menuTutorial&&hitTest(px,py,G._btns.menuTutorial)){
   // Start tutorial: load Outpost Alpha, Standard difficulty, start build phase
   G.mapIdx=0;G.diffIdx=0;G.endlessMode=false;
@@ -6527,9 +6743,17 @@ else if(i===5){settings.screenShake=!settings.screenShake;}
 else if(i===6){settings.showFPS=!settings.showFPS;}
 else if(i===7){settings.reduceMotion=!settings.reduceMotion;}
 else if(i===8){settings.colorBlind=settings.colorBlind==='off'?'deuteranopia':settings.colorBlind==='deuteranopia'?'protanopia':'off';}
+else if(i===9){settings.cloudSync=!settings.cloudSync;if(settings.cloudSync){ensureCloudIdentity();if(cloud.userId)cloudPull();}}
 saveAllState();playSound('click');return;}}
 if(hitTest(px,py,G._btns.privacyLink)){window.open('privacy.html',isNativeApp()?'_self':'_blank');playSound('click');return;}
 if(hitTest(px,py,G._btns.termsLink)){window.open('terms.html',isNativeApp()?'_self':'_blank');playSound('click');return;}
+return;}
+if(G.phase==='leaderboard'){
+if(hitTest(px,py,G._btns.lbBack)){G.phase='menu';playSound('click');return;}
+if(G._btns.lbMapPrev&&hitTest(px,py,G._btns.lbMapPrev)){leaderboard.mapIdx=(leaderboard.mapIdx+MAPS.length-1)%MAPS.length;saveLeaderboardSelection();loadLeaderboard(true);playSound('click');return;}
+if(G._btns.lbMapNext&&hitTest(px,py,G._btns.lbMapNext)){leaderboard.mapIdx=(leaderboard.mapIdx+1)%MAPS.length;saveLeaderboardSelection();loadLeaderboard(true);playSound('click');return;}
+if(G._btns.lbDiffPrev&&hitTest(px,py,G._btns.lbDiffPrev)){leaderboard.diffIdx=(leaderboard.diffIdx+LB_DIFFS.length-1)%LB_DIFFS.length;saveLeaderboardSelection();loadLeaderboard(true);playSound('click');return;}
+if(G._btns.lbDiffNext&&hitTest(px,py,G._btns.lbDiffNext)){leaderboard.diffIdx=(leaderboard.diffIdx+1)%LB_DIFFS.length;saveLeaderboardSelection();loadLeaderboard(true);playSound('click');return;}
 return;}
 if(G.phase==='biomeSelect'){if(G._btns.biomes)for(const b of G._btns.biomes){if(hitTest(px,py,b)){G.endlessBiome=b.biome;startEndlessGame();playSound('click');return;}}
 if(hitTest(px,py,G._btns.biomeBack)){G.phase='menu';playSound('click');}return;}
@@ -6721,6 +6945,11 @@ window._getProjSample=function(){const s=[];for(const p of projectilePool.pool)i
 
 loadAllState();
 restoreActiveSession();
+// Cloud mirror: mint/restore the device identity, then pull — a strictly
+// newer cloud copy replaces local profile state before first render.
+loadCloudIdentity();
+ensureCloudIdentity();
+if (cloud.userId && cloudEnabled()) cloudPull();
 // The game renders no DOM text, so browsers may never fetch the canvas fonts.
 // Force-load the faces/weights the canvas uses (falls back silently offline).
 if (document.fonts && document.fonts.load) {

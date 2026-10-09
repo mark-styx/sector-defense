@@ -30,6 +30,8 @@ add('endless-biomes',phase('biomeSelect'));
 add('settings',phase('settings'));
 add('instructions',phase('howToPlay'));
 add('codex',phase('codex'));
+add('leaderboard',phase('leaderboard'));
+add('leaderboard-loaded',phase('leaderboard')+"leaderboard.rows=[{rank:1,name:'CMDR-AAAA·L9',score:403,wave:40,victory:true},{rank:2,name:'CMDR-BBBB·L7',score:381,wave:38,victory:false},{rank:3,name:'CMDR-CCCC·L5',score:260,wave:26,victory:false}];");
 add('profile',phase('profile'));
 add('achievements',phase('achievements'));
 add('loadout',phase('loadout'));

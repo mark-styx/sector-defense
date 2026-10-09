@@ -93,6 +93,12 @@ Campaign assault tests cover automatic capture, army preservation and persistenc
 
 Boss visual tests cover path facing, movement and game-time animation across defense/offense/Clash, attack aim and recoil, brood charge, damage wear, pause, Reduce Motion, and rendering without changing combat state. Browser tests check detailed silhouettes and animation pixels in Chromium and WebKit, verify both color-blind palettes, and capture battlefield and portrait previews in `test-artifacts/bosses-*.png`.
 
+## Cloud sync + leaderboards
+
+`cloud/` holds a Cloudflare Worker + D1 API: per-device accounts (secret hashed at rest), last-write-wins save sync, and append-only leaderboards. The client treats the cloud as a mirror — localStorage stays the source of truth, a device only adopts cloud state at launch when it is strictly newer, and every cloud call is fire-and-forget safe offline. Until `CLOUD_API_DEFAULT` in `index.html` is pointed at the deployed Worker, the layer ships dormant. See `cloud/README.md` for local dev (`wrangler dev`, no account needed) and the one-time deploy steps.
+
+Tests cover identity minting, bearer auth, LWW push/pull, offline/conflict paths, score submission on match end, the leaderboard screen, plus Worker routing/validation/rate-limiting against an in-memory D1 shim; `cloud/smoke.mjs` exercises real SQL end-to-end.
+
 ## License
 
 MIT
