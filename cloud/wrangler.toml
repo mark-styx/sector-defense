@@ -1,5 +1,13 @@
 name = "sector-defense-api"
 main = "src/worker.js"
+
+# Branded endpoint alongside the workers.dev URL (both stay live; the client
+# uses whichever CLOUD_API_DEFAULT points at).
+workers_dev = true
+routes = [
+  { pattern = "api.cheesy-games.com", custom_domain = true }
+]
+
 compatibility_date = "2026-10-09"
 
 # D1 is the single database for this game: accounts, save sync, leaderboards.
