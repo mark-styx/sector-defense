@@ -193,3 +193,20 @@ test('menu exposes the leaderboard entry and settings exposes cloud sync', async
   g.frame(1);
   assert.equal(g.evaluate('settings.cloudSync'), false, 'tap toggles cloud sync off');
 });
+
+
+test('haptics route to the native plugin when Capacitor exposes it', async () => {
+  const g = await boot();
+  g.evaluate(`
+    globalThis.__haptics = [];
+    window.Capacitor = {
+      isNativePlatform: () => true,
+      Plugins: { Haptics: { impact: async (o) => { globalThis.__haptics.push(o.style); return { ok: true }; } } }
+    };
+    tryVibrate(10); tryVibrate(15); tryVibrate(50);`);
+  const hits = clone(g.evaluate('globalThis.__haptics'));
+  assert.deepEqual(hits, ['LIGHT', 'MEDIUM', 'HEAVY'], 'intensity mapped from duration');
+  // browsers without the plugin keep the legacy web path
+  g.evaluate('window.Capacitor = undefined; tryVibrate(10);');
+  assert.equal(g.evaluate('globalThis.__haptics.length'), 3, 'no crash, no double-fire on the web path');
+});
