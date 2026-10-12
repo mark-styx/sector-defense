@@ -1432,7 +1432,7 @@ function applyAllState(s) {
 // timestamp and only replaces local state at launch when strictly newer.
 // Every call is fire-and-forget safe: offline, unconfigured or mid-battle,
 // the game is unaffected.
-const CLOUD_API_DEFAULT = 'https://sector-defense-api.styxm.workers.dev'; // deployed 2026-10-09
+const CLOUD_API_DEFAULT = 'https://api.cheesy-games.com'; // branded endpoint; workers.dev kept live
 const CLOUD_DEBOUNCE_MS = 4000;
 const cloud = { userId: '', secret: '', localUpdatedAt: 0, status: 'never', lastSyncAt: 0,
   inflight: false, pendingPush: false, timer: 0 };
@@ -4790,7 +4790,11 @@ for(let i=0;i<count;i++){
 // ============================================================
 // HAPTICS
 // ============================================================
-function tryVibrate(ms){try{if(navigator.vibrate)navigator.vibrate(ms);}catch(e){}}
+function tryVibrate(ms){try{
+// Native shell: real haptics (navigator.vibrate is a no-op in WKWebView).
+if(isNativeApp()&&window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Haptics){
+window.Capacitor.Plugins.Haptics.impact({style:ms>=50?'HEAVY':ms>=15?'MEDIUM':'LIGHT'}).catch(function(){});return;}
+if(navigator.vibrate)navigator.vibrate(ms);}catch(e){}}
 
 // ============================================================
 // AMBIENT MUSIC CUES
