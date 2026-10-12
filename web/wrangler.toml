@@ -1,0 +1,8 @@
+name = "sector-defense-web"
+compatibility_date = "2026-10-09"
+
+# Static build of the game (index.html + PWA files). Same codebase as the
+# Capacitor build; index.html registers the service worker only when running
+# in a real browser, never inside the native shell.
+[assets]
+directory = "./public"

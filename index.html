@@ -11,6 +11,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Sector Defense">
 <link rel="apple-touch-icon" href="icon.png">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -6957,6 +6958,9 @@ if (document.fonts && document.fonts.load) {
   for (const w of ['400', '500', '600', '700']) document.fonts.load(w + ' 16px "Inter"');
 }
 mapPositionsReady=true;
+// PWA: install the offline shell only in real browsers (the native Capacitor
+// bundle ships no sw.js and already runs fully offline from local files).
+if(!isNativeApp()&&'serviceWorker' in navigator){try{navigator.serviceWorker.register('sw.js').catch(()=>{});}catch(e){}}
 document.fonts.ready.then(()=>requestAnimationFrame(gameLoop));
 
 })();
